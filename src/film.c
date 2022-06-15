@@ -4,10 +4,8 @@
 /* Basilisk headers */
 #include "navier-stokes/centered.h"
 #include "two-phase.h"
+#include "embed.h" // embedded boundaries (supersedes mask)
 #include "tension.h" // surface tension
-#include "contact.h" // contact angles?
-#include "vof.h" // volume of fluids (in two-phase.h anyway)
-#include "fractions.h" // fluid fractions (in vof.h anyway)
 #include "heights.h" // interfacial height
 
 
@@ -26,7 +24,7 @@
 #define nl 64.0 // dimensionless domain length (Lx/h0)
 #define nh 8.0 // dimensionless domain height (Ly/h0)
 #define theta 1.047197551 // inclination angle
-#define tmax 1000.0 // final time
+#define tmax 10.0 // final time
 
 /* Physical parameters */
 #define rho_l 998.0
@@ -37,12 +35,12 @@
 #define grav 9.807 // acceleration due to gravity
 
 /* Solver parameters */
-#define level_max 10 // maximum refinement level
-#define level_min 2 // minimum refinement level
+#define LEVEL_MAX 7 // maximum refinement level
+#define LEVEL_MIN 2 // minimum refinement level
 #define tol_f 0.0001 // fluid fraction tolerance
 #define tol_u 0.01 // velocity tolerance
 #define dtout 0.1 // output step
-#define nout (1<<(level_max-1)) // output resolution
+#define nout (1<<(LEVEL_MAX-1)) // output resolution
 
 /* Dimensionless numbers */
 #define Us ((rho_l*grav*sin(theta)*h0*h0)/(2*mu_l)) // Nusselt surface velocity
@@ -55,7 +53,7 @@
 /* ========================================================================== */
 #define PI 3.14159265358979323846
 #define C_M 5 // number of controls
-#define C_START 2.0 // control start time
+#define C_START 200.0 // control start time
 double C_loc[C_M]; // control locations
 double C_mag[C_M]; // current control magnitudes
 double C_norm; // control normaliser
@@ -86,13 +84,12 @@ double dx; // gridspacing
 /* ========================================================================== */
 /*   Boundary Conditions                                                      */
 /* ========================================================================== */
-/* Top boundary (free outflow) */
-u.n[top] = neumann(0.0);
-uf.n[top] = neumann(0.0);
-p[top] = dirichlet(0.0);
-pf[top] = dirichlet(0.0);
+/* top boundary is embedded (free outflow) */
+u.n[embed] = neumann(0.0);
+p[embed] = dirichlet(0.0);
+pf[embed] = dirichlet(0.0);
 
-/* Bottom boundary (no slip) */
+/* Bottom boundary (no slip with controls) */
 u.n[bottom] = dirichlet(control(x)); // add control at the base
 u.t[bottom] = dirichlet(0.0);
 p[bottom] = neumann(0.0);
@@ -110,7 +107,7 @@ double actuator(double x) {
 
 /* Set up the domain size */
 void init_domain() {
-  init_grid(1 << (level_max));
+  init_grid(1 << (LEVEL_MAX));
 
   L0 = nl; // always longer than it is wide
   X0 = 0.0;
@@ -136,7 +133,7 @@ void set_params() {
   G[1] = -2.0/tan(theta)/Re;
 
   /* output domain params */
-  nx = 1<<(level_max-1);
+  nx = 1<<(LEVEL_MAX-1);
   dx = nl/((double)(nx));
 }
 
@@ -178,12 +175,6 @@ void init_fluid() {
   }
 
   boundary({u,f,p});
-}
-
-/* Masks out the top */
-void init_mask() {
-
-  mask(y > nh ? top : none); // remove the top of the domain
 }
 
 /* Get interfacial height at a given x-coord */
@@ -263,7 +254,8 @@ int main(int argc, char const *argv[]) {
 /* ========================================================================== */
 /* set up the fluid */
 event init(i=0) {
-  init_mask();
+  /* use solid (from embed) rather than mask */
+  solid(cs, fs, nh + y);
   init_fluid();
 }
 
@@ -280,7 +272,7 @@ event acceleration (i++) {
 /* adapt the grid refinement every timestep */
 event adapt(i++) {
   /* refine based on fluid fraction velocity */
-  adapt_wavelet((scalar*){f,u}, (double[]){tol_f, tol_u, tol_u}, level_max, level_min);
+  adapt_wavelet((scalar*){f,u}, (double[]){tol_f, tol_u, tol_u}, LEVEL_MAX, LEVEL_MIN);
 }
 
 /* set the control magnitudes */
@@ -356,7 +348,7 @@ event output_dat(t=0.0; t<=tmax; t += dtout) {
   /* 2D fields */
   sprintf(fname, "out/data-2-%010d.dat", datcount);
   FILE *fp = fopen(fname, "w");
-  output_field({f, l, omega, u_mag, u_x, u_y, p, yh}, fp, box = {{0.0,0.0},{nl,nh}}, n=nout);
+  output_field({f, l, omega, u_mag, u_x, u_y, p, yh}, fp, box = {{0.0,0.0},{nl,nh}}, n = nout);
   fclose(fp);
 
   /* 1D interface */
@@ -373,9 +365,9 @@ event output_dat(t=0.0; t<=tmax; t += dtout) {
 #endif
 
 /* TODO: doesn't work, try embed */
-event dump_0400(t=400) {
-  dump(file="dump-0400");
-}
+// event dump_0400(t=400) {
+//   dump(file="dump-0400");
+// }
 
 /* finish */
 event stop(t=tmax) {
