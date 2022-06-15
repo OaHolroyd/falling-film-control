@@ -5,6 +5,7 @@
 *.gif
 *.pdf
 *.mov
+dump/**
 
 # Junk
 .DS_Store

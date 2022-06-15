@@ -26,14 +26,14 @@
 #define theta 1.047197551 // inclination angle
 
 /* Time parameters */
-#define tmax 50.0 // final time
+#define tmax 100.0 // final time
 #define T0 0 // initial time (0 or an integer corresponding to a dump file)
 
 /* Physical parameters */
 #define rho_l 998.0
 #define rho_g 1.17 // densities
-#define mu_l 0.0008967
-#define mu_g 0.00001836 // (dynamic) viscosities
+#define mu_l (8.967e-4)
+#define mu_g (1.836e-5) // (dynamic) viscosities
 #define gamma 0.072 // surface tension
 #define grav 9.807 // acceleration due to gravity
 
@@ -267,7 +267,6 @@ event init(i=0) {
   /* use solid rather than mask */
   solid(cs, fs, nh + y);
   init_fluid();
-  // restore(file = "dump/dump-0100")
 }
 
 /* impose acceleration due to gravity */
@@ -280,10 +279,14 @@ event acceleration (i++) {
   }
 }
 
-/* adapt the grid refinement every timestep */
-event adapt(i++) {
-  /* refine based on fluid fraction velocity */
-  adapt_wavelet((scalar*){f,u}, (double[]){tol_f, tol_u, tol_u}, LEVEL_MAX, LEVEL_MIN);
+/* static grid refinement */
+event refinement(i=0) {
+  /* refine the entire grid to maximum */
+  refine(level < LEVEL_MAX);
+
+  /* unrefine at higher layers */
+  unrefine(y > 3 && level > LEVEL_MAX-2);
+  unrefine(y > 6 && level > LEVEL_MAX-3);
 }
 
 /* set the control magnitudes */
