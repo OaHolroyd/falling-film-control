@@ -21,7 +21,8 @@ EXE=film
 SRC_DIR=./src
 OBJ_DIR=./obj
 OUT_DIR=./out
-PLT_DIR=./plots
+DUMP_DIR=./plots
+PLT_DIR=./dump
 SRC=$(wildcard $(SRC_DIR)/*.c)
 OBJ=$(addprefix $(OBJ_DIR)/, $(notdir $(SRC:.c=.o)))
 
@@ -47,7 +48,7 @@ all: clean film
 .PHONY: directories
 directories:
 	@printf "`tput bold``tput setaf 3`Creating output directories`tput sgr0`\n"
-	mkdir -p $(OBJ_DIR) $(OUT_DIR) $(PLT_DIR)
+	mkdir -p $(OBJ_DIR) $(OUT_DIR) $(PLT_DIR) $(DUMP_DIR)
 
 # Purge build files and executable
 .PHONY: clean

@@ -24,7 +24,10 @@
 #define nl 64.0 // dimensionless domain length (Lx/h0)
 #define nh 8.0 // dimensionless domain height (Ly/h0)
 #define theta 1.047197551 // inclination angle
-#define tmax 10.0 // final time
+
+/* Time parameters */
+#define tmax 50.0 // final time
+#define T0 0 // initial time (0 or an integer corresponding to a dump file)
 
 /* Physical parameters */
 #define rho_l 998.0
@@ -53,7 +56,7 @@
 /* ========================================================================== */
 #define PI 3.14159265358979323846
 #define C_M 5 // number of controls
-#define C_START 200.0 // control start time
+#define C_START 800.0 // control start time
 double C_loc[C_M]; // control locations
 double C_mag[C_M]; // current control magnitudes
 double C_norm; // control normaliser
@@ -157,24 +160,31 @@ void set_Cparams() {
 
 /* Initialises the fluid */
 void init_fluid() {
-  /* Nusselt film */
-  // fraction(f, y < 1);
+  if (T0 == 0) {
+    /* Nusselt film */
+    // fraction(f, y < 1);
 
-  /* cosine perturbation */
-  fraction(f, 1.0-y+0.05*sin(1.0*(2.0/(nl))*M_PI*(x+10)));
+    /* cosine perturbation */
+    fraction(f, 1.0-y+0.05*sin(1.0*(2.0/(nl))*M_PI*(x+10)));
 
-  /* initialise with Nusselt velocity */
-  foreach () {
-    u.x[] = f[]*y*(2.0-y) + (1.0-f[]);
-    u.y[] = 0.0;
+    /* initialise with Nusselt velocity */
+    foreach () {
+      u.x[] = f[]*y*(2.0-y) + (1.0-f[]);
+      u.y[] = 0.0;
+    }
+
+    /* initialise with Nusselt pressure */
+    foreach () {
+      p[] = f[]*2*cos(theta)/sin(theta)*(1-y);
+    }
+
+    boundary({u,f,p});
+  } else {
+    /* restore from a dump file */
+    char dump_file[32];
+    sprintf(dump_file, "dump/dump-%04d", T0);
+    restore(file = dump_file);
   }
-
-  /* initialise with Nusselt pressure */
-  foreach () {
-    p[] = f[]*2*cos(theta)/sin(theta)*(1-y);
-  }
-
-  boundary({u,f,p});
 }
 
 /* Get interfacial height at a given x-coord */
@@ -254,9 +264,10 @@ int main(int argc, char const *argv[]) {
 /* ========================================================================== */
 /* set up the fluid */
 event init(i=0) {
-  /* use solid (from embed) rather than mask */
+  /* use solid rather than mask */
   solid(cs, fs, nh + y);
   init_fluid();
+  // restore(file = "dump/dump-0100")
 }
 
 /* impose acceleration due to gravity */
@@ -365,13 +376,18 @@ event output_dat(t=0.0; t<=tmax; t += dtout) {
 #endif
 
 /* TODO: doesn't work, try embed */
-// event dump_0400(t=400) {
-//   dump(file="dump-0400");
+// event dump_0100(t=100) {
+//   dump(file = "dump/dump-0100");
 // }
 
 /* finish */
 event stop(t=tmax) {
+  char dump_file[32];
+  sprintf(dump_file, "dump/dump-%04.0lf", t);
+  dump(file = dump_file);
+
   #if LOG_STEP
   fprintf(stderr, "\n");
   #endif
+  fprintf(stderr, "%lf\n", t);
 }

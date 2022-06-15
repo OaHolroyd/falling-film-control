@@ -65,7 +65,7 @@ def plot_single(i, save=True):
     plt.gca().set_aspect(8.0)
 
     if save:
-        plt.savefig(f"interface-{i:010d}.png", dpi=300)
+        plt.savefig(f"plots/interface-{i:010d}.png", dpi=300)
     else:
         plt.show()
     plt.clf()
@@ -76,7 +76,7 @@ def plot_single(i, save=True):
     plt.plot(data1[:, 0], data1[:, 1])
 
     if save:
-        plt.savefig(f"fluid-{i:010d}.png", dpi=300)
+        plt.savefig(f"plots/fluid-{i:010d}.png", dpi=300)
     else:
         plt.show()
     plt.clf()
@@ -87,7 +87,7 @@ def plot_single(i, save=True):
     plt.plot(data1[:, 0], data1[:, 1])
 
     if save:
-        plt.savefig(f"level-{i:010d}.png", dpi=300)
+        plt.savefig(f"plots/level-{i:010d}.png", dpi=300)
     else:
         plt.show()
     plt.clf()
@@ -135,7 +135,7 @@ def plot_series(data='fluid', Ly=2.0, n=0, track=False, rate=1):
                             origin='lower', extent=(0, 64, 0, Ly), aspect=8)
             im2, = ax.plot(data1[:, 0], data1[:, 1], color='black')
             title = plt.title(data, weight='bold', fontsize=14)
-            text = plt.text(0.5, -1, s=("t = " + str(f"{k*0.01:.3f}")),
+            text = plt.text(0.5, -1, s=("t = " + str(f"{k*0.1:.3f}")),
                             weight='bold', fontsize=12, ha='center',
                             transform=ax.transAxes)
             ims.append([im1, im2, title, text])
@@ -152,7 +152,7 @@ def plot_series(data='fluid', Ly=2.0, n=0, track=False, rate=1):
             im1, = ax.plot(data1[:, 0], data1[:, 1], color='black')
             im2, = ax.plot(data1[:, 0], data1[:, 2], color='red')
             title = plt.title(data, weight='bold', fontsize=14)
-            text = plt.text(0.5, -1, s=("t = " + str(f"{k*0.01:.3f}")),
+            text = plt.text(0.5, -1, s=("t = " + str(f"{k*0.1:.3f}")),
                             weight='bold', fontsize=12, ha='center',
                             transform=ax.transAxes)
             ims.append([im1, im2, title, text])
@@ -170,7 +170,7 @@ def plot_series(data='fluid', Ly=2.0, n=0, track=False, rate=1):
             im1 = ax.quiver(data2[:, ::8, 0], data2[:, ::8, 1], data2[:, ::8, 6], data2[:, ::8, 7])
             im2, = ax.plot(data1[:, 0], data1[:, 1], color='black')
             title = plt.title(data, weight='bold', fontsize=14)
-            text = plt.text(0.5, -1, s=("t = " + str(f"{k*0.01:.3f}")),
+            text = plt.text(0.5, -1, s=("t = " + str(f"{k*0.1:.3f}")),
                             weight='bold', fontsize=12, ha='center',
                             transform=ax.transAxes)
             ims.append([im1, im2, title, text])
@@ -190,7 +190,7 @@ def plot_series(data='fluid', Ly=2.0, n=0, track=False, rate=1):
                                           data2[:, :, 6], data2[:, :, 7])
             im2, = ax.plot(data1[:, 0], data1[:, 1], color='black')
             title = plt.title(data, weight='bold', fontsize=14)
-            text = plt.text(0.5, -1, s=("t = " + str(f"{k*0.01:.3f}")),
+            text = plt.text(0.5, -1, s=("t = " + str(f"{k*0.1:.3f}")),
                             weight='bold', fontsize=12, ha='center',
                             transform=ax.transAxes)
             ims.append([lines, im2, title, text])
@@ -199,7 +199,7 @@ def plot_series(data='fluid', Ly=2.0, n=0, track=False, rate=1):
     fig.add_axes(ax)
     final_an = anim.ArtistAnimation(fig, ims, interval=1,
                                     blit=True, repeat=False)
-    final_an.save(f'{data}.gif', writer=anim.PillowWriter(fps=100))
+    final_an.save(f'plots/{data}.gif', writer=anim.PillowWriter(fps=100))
     plt.clf()
 
 
@@ -228,7 +228,7 @@ def plot_stream(Ly=2.0, n=0, track=False, rate=1):
         return stream
 
     an = anim.FuncAnimation(fig, animate, frames=100, interval=1, blit=True, repeat=False)
-    an.save('stream.gif', writer=anim.PillowWriter(fps=100))
+    an.save('plots/stream.gif', writer=anim.PillowWriter(fps=100))
 
 
 def plot_convergence(n=0):
@@ -265,12 +265,12 @@ def plot_convergence(n=0):
     plt.clf()
 
 
-plot_series(data='interface', n=4, track=True, rate=1)
-plot_series(data='vorticity', Ly=2.0, n=4, track=True, rate=1)
-plot_series(data='quiver', Ly=2.0, n=4, track=True, rate=1)
-plot_series(data='u', Ly=2.0, n=4, track=True, rate=1)
-plot_series(data='v', Ly=2.0, n=4, track=True, rate=1)
-plot_series(data='level', Ly=2.0, n=4, track=True, rate=1)
+plot_series(data='interface', track=True, rate=50)
+plot_series(data='vorticity', Ly=2.0, track=True, rate=50)
+plot_series(data='quiver', Ly=2.0, track=True, rate=50)
+plot_series(data='u', Ly=2.0, track=True, rate=50)
+plot_series(data='v', Ly=2.0, track=True, rate=50)
+plot_series(data='level', Ly=2.0, track=True, rate=50)
 # plot_stream(Ly=2.0, n=3, track=True, rate=50)
 # plot_convergence(n=4140)
 # plot_series(data='level', Ly=4.0)
