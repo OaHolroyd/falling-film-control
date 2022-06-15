@@ -1,3 +1,14 @@
+# Output files
+*.dat
+*.png
+*.mp4
+*.gif
+*.pdf
+*.mov
+
+# Junk
+.DS_Store
+
 # Prerequisites
 *.d
 
@@ -29,6 +40,7 @@
 *.dylib
 
 # Executables
+film
 *.exe
 *.out
 *.app
@@ -41,12 +53,3 @@
 *.su
 *.idb
 *.pdb
-
-# Kernel Module Compile Results
-*.mod*
-*.cmd
-.tmp_versions/
-modules.order
-Module.symvers
-Mkfile.old
-dkms.conf
