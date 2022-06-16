@@ -38,11 +38,10 @@
 #define grav 9.807 // acceleration due to gravity
 
 /* Solver parameters */
-#define LEVEL_MAX 7 // maximum refinement level
-#define LEVEL_MIN 2 // minimum refinement level
+#define LEVEL_MAX 8 // maximum refinement level
 #define tol_f 0.0001 // fluid fraction tolerance
 #define tol_u 0.01 // velocity tolerance
-#define dtout 0.1 // output step
+#define dtout 1.0 // output step
 #define nout (1<<(LEVEL_MAX-1)) // output resolution
 
 /* Dimensionless numbers */
@@ -56,7 +55,7 @@
 /* ========================================================================== */
 #define PI 3.14159265358979323846
 #define C_M 5 // number of controls
-#define C_START 800.0 // control start time
+#define C_START 80000.0 // control start time
 double C_loc[C_M]; // control locations
 double C_mag[C_M]; // current control magnitudes
 double C_norm; // control normaliser
@@ -95,8 +94,8 @@ pf[embed] = dirichlet(0.0);
 /* Bottom boundary (no slip with controls) */
 u.n[bottom] = dirichlet(control(x)); // add control at the base
 u.t[bottom] = dirichlet(0.0);
-p[bottom] = neumann(0.0);
-pf[bottom] = neumann(0.0);
+// p[bottom] = neumann(0.0);
+// pf[bottom] = neumann(0.0);
 
 
 /* ========================================================================== */
@@ -286,7 +285,8 @@ event refinement(i=0) {
 
   /* unrefine at higher layers */
   unrefine(y > 3 && level > LEVEL_MAX-2);
-  unrefine(y > 6 && level > LEVEL_MAX-3);
+  unrefine(y > 5 && level > LEVEL_MAX-3);
+  unrefine(y > 7 && level > LEVEL_MAX-4);
 }
 
 /* set the control magnitudes */
@@ -362,6 +362,7 @@ event output_dat(t=0.0; t<=tmax; t += dtout) {
   /* 2D fields */
   sprintf(fname, "out/data-2-%010d.dat", datcount);
   FILE *fp = fopen(fname, "w");
+  fprintf(fp, "# t: %lf\n", t);
   output_field({f, l, omega, u_mag, u_x, u_y, p, yh}, fp, box = {{0.0,0.0},{nl,nh}}, n = nout);
   fclose(fp);
 
@@ -369,6 +370,7 @@ event output_dat(t=0.0; t<=tmax; t += dtout) {
   sprintf(fname, "out/data-1-%010d.dat", datcount);
   fp = fopen(fname, "w");
   int i;
+  fprintf(fp, "# t: %lf\n", t);
   for (i = 0; i < nx+1; i++) {
     fprintf(fp, "%lf %lf %lf\n", i*dx, interfacial_height(i*dx, dh), control(i*dx));
   } // i end
@@ -379,9 +381,11 @@ event output_dat(t=0.0; t<=tmax; t += dtout) {
 #endif
 
 /* TODO: doesn't work, try embed */
-// event dump_0100(t=100) {
-//   dump(file = "dump/dump-0100");
-// }
+event dump_xxx(t=0.0; t+=100) {
+  char dump_file[32];
+  sprintf(dump_file, "dump/dump-%04.0lf", t);
+  dump(file = dump_file);
+}
 
 /* finish */
 event stop(t=tmax) {
@@ -392,5 +396,5 @@ event stop(t=tmax) {
   #if LOG_STEP
   fprintf(stderr, "\n");
   #endif
-  fprintf(stderr, "%lf\n", t);
+  fprintf(stderr, "final time: %lf\n", t);
 }
