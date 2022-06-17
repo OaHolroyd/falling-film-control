@@ -7,6 +7,8 @@
 *.mov
 dump/**
 
+__pycache__
+
 # Junk
 .DS_Store
 

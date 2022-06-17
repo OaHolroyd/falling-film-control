@@ -249,7 +249,7 @@ def plot_frame(i, key="interface", save=True, Ly=2.0, track=False, clip=False):
 
     # save or display
     if save:
-        fig.savefig(f"plots/{key}-{i:010d}.png", dpi=300, bbox_inches='tight')
+        fig.savefig(f"plots/{key}-{i:010d}.png", dpi=300)
     else:
         plt.show()
 
@@ -354,8 +354,7 @@ def plot_series(n=None, key="interface", save=True, Ly=2.0, track=False,
     ani = anim.FuncAnimation(fig, step, frames=range(0, n, rate))
 
     if save:
-        ani.save(f'plots/{key}.gif', writer=anim.PillowWriter(fps=100),
-                 bbox_inches='tight', dps=300)
+        ani.save(f'plots/{key}.gif', writer=anim.PillowWriter(fps=100))
     else:
         plt.show()
 
@@ -396,6 +395,7 @@ def plot_hstats(n=None, rate=1, save=True):
         plt.savefig("plots/hstats.png", dpi=300, bbox_inches='tight')
     else:
         plt.show()
+    plt.clf()
 
 
 def plot_umax(n=None, rate=1, save=True):
@@ -424,3 +424,4 @@ def plot_umax(n=None, rate=1, save=True):
         plt.savefig("plots/umax.png", dpi=300, bbox_inches='tight')
     else:
         plt.show()
+    plt.clf()
