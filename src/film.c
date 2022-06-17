@@ -26,8 +26,8 @@
 #define theta 1.047197551 // inclination angle
 
 /* Time parameters */
-#define tmax 100.0 // final time
-#define T0 0 // initial time (0 or an integer corresponding to a dump file)
+#define tmax 1600.0 // final time
+#define T0 600 // initial time (0 or an integer corresponding to a dump file)
 
 /* Physical parameters */
 #define rho_l 998.0
@@ -38,10 +38,10 @@
 #define grav 9.807 // acceleration due to gravity
 
 /* Solver parameters */
-#define LEVEL_MAX 8 // maximum refinement level
+#define LEVEL_MAX 9 // maximum refinement level
 #define tol_f 0.0001 // fluid fraction tolerance
 #define tol_u 0.01 // velocity tolerance
-#define dtout 1.0 // output step
+#define dtout 2.0 // output step
 #define nout (1<<(LEVEL_MAX-1)) // output resolution
 
 /* Dimensionless numbers */
@@ -326,6 +326,28 @@ event output_log(i=0; t<=tmax; i+=LOG_STEP) {
 int datcount = 0;
 char fname[64];
 event output_dat(t=0.0; t<=tmax; t += dtout) {
+  /* shift datcount to prevent file overwrites */
+  if (datcount == 0) {
+    /* check if there are any files in ./out */
+    FILE *fp;
+    int i = 0;
+    double t0;
+    sprintf(fname, "out/data-1-%010d.dat", i);
+    while (fp = fopen(fname, "r")) {
+      /* check if the time is before the current time */
+      fscanf(fp, "# t: %lf\n", &t0);
+      fclose(fp);
+      if (t0 >= t) {
+        break;
+      }
+
+      /* try the next file */
+      i++;
+      sprintf(fname, "out/data-1-%010d.dat", i);
+    }
+    datcount = i;
+  }
+
   /* refinement level */
   scalar l[];
   foreach () {
@@ -369,9 +391,8 @@ event output_dat(t=0.0; t<=tmax; t += dtout) {
   /* 1D interface */
   sprintf(fname, "out/data-1-%010d.dat", datcount);
   fp = fopen(fname, "w");
-  int i;
   fprintf(fp, "# t: %lf\n", t);
-  for (i = 0; i < nx+1; i++) {
+  for (int i = 0; i < nx+1; i++) {
     fprintf(fp, "%lf %lf %lf\n", i*dx, interfacial_height(i*dx, dh), control(i*dx));
   } // i end
   fclose(fp);
