@@ -55,7 +55,7 @@
 /* ========================================================================== */
 #define PI 3.14159265358979323846
 #define C_M 5 // number of controls
-#define C_START 80000.0 // control start time
+#define C_START 600.0 // control start time
 double C_loc[C_M]; // control locations
 double C_mag[C_M]; // current control magnitudes
 double C_norm; // control normaliser
@@ -291,7 +291,7 @@ event refinement(i=0) {
 
 /* set the control magnitudes */
 event controls(i++) {
-  if (t > C_START) {
+  if (t >= C_START) {
     vector dh[];
     heights(f,dh);
 

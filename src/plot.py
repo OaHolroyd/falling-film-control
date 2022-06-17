@@ -113,7 +113,7 @@ def track_peak(data1, data2=None, p=0.75):
     """
     N = data1.shape[0]
     imax = np.argmax(data1[:, 1])
-    data1[:, 1:2] = np.roll(data1[:, 1:2], int(N*p)-imax, axis=0)
+    data1[:, 1:] = np.roll(data1[:, 1:], int(N*p)-imax, axis=0)
     if data2 is not None:
         data2[:, :, 2:] = np.roll(data2[:, :, 2:], int(N*p)-imax, axis=1)
         return data1, data2
@@ -144,7 +144,7 @@ def get_extent_series(i, series, Ly=2.0, clip=False):
     for j in series:
         _, data1 = get_1D_data(j)
         _, data2 = get_2D_data(j, Ly)
-        v = max(v, get_extent(i, data1, data2, clip=False))
+        v = max(v, get_extent(i, data1, data2, clip=clip))
     return v
 
 
@@ -227,7 +227,7 @@ def plot_frame(i, key="interface", save=True, Ly=2.0, track=False, clip=False):
 
         # keys and axes
         ax.set_xlim([0, Lx])
-        ax.set_ylim([0, Ly])
+        ax.set_ylim([-2.0, Ly])
         ax.gca().set_aspect(8.0)
     else:  # 2D plots
         if key in ("fluid", "level"):  # with a fixed upper/lower bound
@@ -255,7 +255,7 @@ def plot_frame(i, key="interface", save=True, Ly=2.0, track=False, clip=False):
 
 
 def plot_series(n=None, key="interface", save=True, Ly=2.0, track=False,
-                clip=False, rate=1):
+                clip=False, rate=1, i0=0):
     """
     Plots an animation with the following possible keys:
       interface [default], control, fluid, level, vorticity, speed, u, v,
@@ -297,13 +297,13 @@ def plot_series(n=None, key="interface", save=True, Ly=2.0, track=False,
 
         # keys and axes
         ax.set_xlim([0, Lx])
-        ax.set_ylim([0, Ly])
+        ax.set_ylim([-2.0, Ly])
         ax.set_aspect(8.0)
     else:  # 2D plots
         if key in ("fluid", "level"):  # with a fixed upper/lower bound
             im = get_im(ax, data2, key=key, Lx=Lx, Ly=Ly)
         else:  # with an extent
-            v = get_extent_series(INDICES[key], range(0, n, rate),
+            v = get_extent_series(INDICES[key], range(i0, n, rate),
                                   Ly=2.0, clip=False)
             im = get_im(ax, data2, key=key, Lx=Lx, Ly=Ly, v=v)
         if clip:
@@ -351,7 +351,7 @@ def plot_series(n=None, key="interface", save=True, Ly=2.0, track=False,
             path.vertices[1:N+1, 1] = data1[:, 1]
         l1.set_data(data1[:, 0], data1[:, 1])  # interface
         return (im, l1)
-    ani = anim.FuncAnimation(fig, step, frames=range(0, n, rate))
+    ani = anim.FuncAnimation(fig, step, frames=range(i0, n, rate))
 
     if save:
         ani.save(f'plots/{key}.gif', writer=anim.PillowWriter(fps=100))
