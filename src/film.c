@@ -26,8 +26,8 @@
 #define theta 1.047197551 // inclination angle
 
 /* Time parameters */
-#define tmax 1600.0 // final time
-#define T0 600 // initial time (0 or an integer corresponding to a dump file)
+#define tmax 100.0 // final time
+#define T0 0 // initial time (0 or an integer corresponding to a dump file)
 
 /* Physical parameters */
 #define rho_l 998.0
@@ -55,7 +55,7 @@
 /* ========================================================================== */
 #define PI 3.14159265358979323846
 #define C_M 5 // number of controls
-#define C_START 600.0 // control start time
+#define C_START 10.0 // control start time
 double C_loc[C_M]; // control locations
 double C_mag[C_M]; // current control magnitudes
 double C_norm; // control normaliser
@@ -81,6 +81,7 @@ double G[2]; // gravity
 
 int nx; // x-resolution
 double dx; // gridspacing
+vector hei[]; // heights
 
 
 /* ========================================================================== */
@@ -184,11 +185,14 @@ void init_fluid() {
     sprintf(dump_file, "dump/dump-%04d", T0);
     restore(file = dump_file);
   }
+
+  /* compute heights */
+  heights(f,hei);
 }
 
 /* Get interfacial height at a given x-coord */
 #define NP 10
-double interfacial_height(double xp, vector hei) {
+double interfacial_height(double xp) {
   if (xp < 0) {
     xp += nl;
   } else if (xp > nl) {
@@ -291,12 +295,11 @@ event refinement(i=0) {
 
 /* set the control magnitudes */
 event controls(i++) {
-  if (t >= C_START) {
-    vector dh[];
-    heights(f,dh);
+  heights(f,hei);
 
+  if (t >= C_START) {
     for (int i = 0; i < C_M; i++) {
-      C_mag[i] = interfacial_height(C_loc[i] - C_PHI, dh) - 1;
+      C_mag[i] = interfacial_height(C_loc[i] - C_PHI) - 1;
     } // i end
 
     boundary({u.x, u.y}); // update boundary velocities
@@ -371,14 +374,10 @@ event output_dat(t=0.0; t<=tmax; t += dtout) {
     u_y[] = u.y[];
   }
 
-  /* distance to interface */
-  vector dh[];
-  heights(f,dh);
-
   /* interfacial height */
   scalar yh[];
   foreach () {
-    yh[] = interfacial_height(x, dh);
+    yh[] = interfacial_height(x);
   }
 
   /* 2D fields */
@@ -393,7 +392,7 @@ event output_dat(t=0.0; t<=tmax; t += dtout) {
   fp = fopen(fname, "w");
   fprintf(fp, "# t: %lf\n", t);
   for (int i = 0; i < nx+1; i++) {
-    fprintf(fp, "%lf %lf %lf\n", i*dx, interfacial_height(i*dx, dh), control(i*dx));
+    fprintf(fp, "%lf %lf %lf\n", i*dx, interfacial_height(i*dx), control(i*dx));
   } // i end
   fclose(fp);
 
