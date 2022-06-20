@@ -14,8 +14,7 @@ INDICES = {'x': 0,
            'speed': 5,
            'u': 6,
            'v': 7,
-           'pressure': 8,
-           'h': 9}
+           'pressure': 8}
 
 # COLORMAPS
 CMAP_LEVEL = ListedColormap([[0.26, 0.51, 0.92],
@@ -90,7 +89,7 @@ def get_2D_data(i, Ly=None):
     x0 = data2[0, 0]
     while data2[ny, 0] == x0:
         ny = ny + 1
-    data2 = np.reshape(data2, (ny, -1, 10), order='F')
+    data2 = np.reshape(data2, (ny, -1, 9), order='F')
 
     if Ly is None:
         return t, data2

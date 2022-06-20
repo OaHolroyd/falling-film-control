@@ -181,7 +181,7 @@ event controls(i++) {
   heights(f,hei);
 
   if (t >= C_START) {
-    control_set_magnitudes();
+    C_cost += dt*control_set_magnitudes();
 
     boundary({u.x, u.y}); // update boundary velocities
   }
@@ -209,6 +209,10 @@ event output_log(i=0; t<=TMAX; i+=LOG_STEP) {
 #if OUTPUT_DAT
 int datcount = 0;
 char fname[64];
+scalar l[];
+scalar u_mag[];
+scalar u_x[], u_y[];
+scalar omega[];
 event output_dat(t=0.0; t<=TMAX; t += DTOUT) {
   /* shift datcount to prevent file overwrites */
   if (datcount == 0) {
@@ -232,40 +236,22 @@ event output_dat(t=0.0; t<=TMAX; t += DTOUT) {
     datcount = i;
   }
 
-  /* refinement level */
-  scalar l[];
+  /* iterated scalars */
   foreach () {
-    l[] = level;
+    l[] = level; // refinement level
+    u_mag[] = sqrt(u.x[]*u.x[] + u.y[]*u.y[]); // speed
+    u_x[] = u.x[]; // horizontal velocity
+    u_y[] = u.y[]; // vertical velocity
   }
 
   /* vorticity */
-  scalar omega[];
   vorticity(u, omega);
-
-  /* speed */
-  scalar u_mag[];
-  foreach () {
-    u_mag[] = sqrt(u.x[]*u.x[] + u.y[]*u.y[]);
-  }
-
-  /* velocity components */
-  scalar u_x[], u_y[];
-  foreach () {
-    u_x[] = u.x[];
-    u_y[] = u.y[];
-  }
-
-  /* interfacial height */
-  scalar yh[];
-  foreach () {
-    yh[] = interfacial_height(x);
-  }
 
   /* 2D fields */
   sprintf(fname, "out/data-2-%010d.dat", datcount);
   FILE *fp = fopen(fname, "w");
   fprintf(fp, "# t: %lf\n", t);
-  output_field({f, l, omega, u_mag, u_x, u_y, p, yh}, fp, box = {{0.0,0.0},{LX,LY}}, n = NOUT);
+  output_field({f, l, omega, u_mag, u_x, u_y, p}, fp, box = {{0.0,0.0},{LX,LY}}, n = NOUT);
   fclose(fp);
 
   /* 1D interface */
@@ -299,4 +285,5 @@ event stop(t=TMAX) {
   fprintf(stderr, "\n");
   #endif
   fprintf(stderr, "final time: %lf\n", t);
+  fprintf(stderr, "total cost: %lf\n", C_cost);
 }

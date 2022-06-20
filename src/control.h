@@ -6,6 +6,7 @@
 #include "film-utils.h"
 #include "params.h"
 
+double C_cost = 0.0; // total control cost
 
 /* ========================================================================== */
 /*   FUNCTION DEFINITIONS                                                     */
@@ -52,11 +53,14 @@ double control(double x) {
 
 /* sets the control magnitudes and returns the cost */
 double control_set_magnitudes() {
+  double c = 0.0;
+
   for (int i = 0; i < C_M; i++) {
     C_mag[i] = interfacial_height(C_loc[i] - C_PHI) - 1;
+    c += C_mag[i]*C_mag[i];
   } // i end
 
-  return 0.0;
+  return c;
 }
 
 

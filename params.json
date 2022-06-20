@@ -19,7 +19,7 @@
 
   "SOLVER": {
     "level": 8,
-    "dtout": 1.0
+    "dtout": 0.01
   },
 
   "CONTROL": {
