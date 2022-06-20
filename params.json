@@ -1,0 +1,34 @@
+{
+  "DOMAIN": {
+    "h0": 175.0e-6,
+    "Lx": 64.0,
+    "Ly": 8.0,
+    "theta": 1.047197551,
+    "tmax": 10.0,
+    "t0": 0
+  },
+
+  "PHYSCIAL": {
+    "rho_l": 998.0,
+    "rho_g": 1.17,
+    "mu_l": 8.967e-4,
+    "mu_g": 1.836e-5,
+    "gamma": 0.072,
+    "grav": 9.807
+  },
+
+  "SOLVER": {
+    "level": 8,
+    "dtout": 1.0
+  },
+
+  "CONTROL": {
+    "type": "paired",
+    "M": 5,
+    "P": 5,
+    "start": 5.0,
+    "width": 0.01,
+    "alpha": 1.0,
+    "phi": 1.0
+  }
+}

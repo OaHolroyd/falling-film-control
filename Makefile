@@ -10,10 +10,9 @@ CC=qcc
 LD=$(CC)
 
 # C flags
-CFLAGS=-O3 #-Wall -Wextra
+CFLAGS=-O3
 
 # required libraries
-IFLAGS=
 LDFLAGS=-lm
 
 # file/folder names
@@ -33,12 +32,12 @@ OBJ=$(addprefix $(OBJ_DIR)/, $(notdir $(SRC:.c=.o)))
 # Default build target
 film: directories $(OBJ)
 	@printf "`tput bold``tput setaf 2`Linking`tput sgr0`\n"
-	$(LD) $(CFLAGS) -o $(EXE) $(OBJ) $(LDFLAGS)
+	$(LD) $(CFLAGS) $(LDFLAGS) $(IFLAGS) -o $(EXE) $(OBJ)
 
 # Build rule for binaries
 $(OBJ_DIR)/%.o: $(SRC_DIR)/%.c
 	@printf "`tput bold``tput setaf 6`Building %s`tput sgr0`\n" $@
-	$(CC) $(CFLAGS) $(IFLAGS) -c -o $@ $<
+	$(CC) $(CFLAGS) $(LDFLAGS) $(IFLAGS) -c -o $@ $<
 
 # Force rebuild of all files
 .PHONY: all
