@@ -2,7 +2,10 @@
 #include <stdlib.h>
 #include <math.h>
 
+/* Local headers */
 #include "params.h"
+#include "film-utils.h"
+#include "control.h"
 
 /* Basilisk headers */
 #include "navier-stokes/centered.h"
@@ -10,6 +13,9 @@
 #include "embed.h" // embedded boundaries (supersedes mask)
 #include "tension.h" // surface tension
 #include "heights.h" // interfacial height
+
+face vector av[]; // acceleration vector field
+double G[2]; // gravity
 
 
 /* ========================================================================== */
@@ -28,20 +34,6 @@
 /* ========================================================================== */
 #define LOG_STEP 10 // log every LOG_STEP steps
 #define OUTPUT_DAT 1 // whether to output the data
-
-/* harmonic viscosity averaging TODO: check this vs other types */
-#ifdef mu
-#undef mu
-#define mu(f)  (1./(clamp(f,0,1)*(1./mu1 - 1./mu2) + 1./mu2))
-#endif
-
-face vector av[]; // acceleration vector field
-double G[2]; // gravity
-
-// TODO: remove these if possible
-int nx; // x-resolution
-double dx; // gridspacing
-vector hei[]; // heights
 
 
 /* ========================================================================== */
@@ -62,12 +54,6 @@ u.t[bottom] = dirichlet(0.0);
 /* ========================================================================== */
 /*   FUNCTION DEFINITIONS                                                     */
 /* ========================================================================== */
-/* discrete actuator function */
-double actuator(double x) {
-
-  return C_norm*exp((cos(2*M_PI*x/LX)-1.0)/(C_W*C_W));
-}
-
 /* Set up the domain size */
 void init_domain() {
   init_grid(1 << (LEVEL));
@@ -94,31 +80,6 @@ void set_params() {
   a = av;
   G[0] = 2.0/RE;
   G[1] = -2.0/tan(THETA)/RE;
-
-  /* output domain params */
-  nx = NOUT;
-  dx = LX/((double)(nx));
-}
-
-/* Sets the control variables (call after set_params) */
-void set_Cparams() {
-  C_loc = malloc(C_M*sizeof(double));
-  C_mag = malloc(C_M*sizeof(double));
-
-  /* control locations */
-  double dc = LX/C_M;
-  for (int i = 0; i < C_M; i++) {
-    C_loc[i] = (i+0.5)*dc;
-    C_mag[i] = 0.0;
-  } // i end
-
-  /* set control normaliser */
-  C_norm = 1.0;
-  double I = 0.0;
-  for (int i = 0; i < nx; i++) {
-    I += actuator(dx*i - LX/2.0);
-  } // i end
-  C_norm = 1.0/(dx*I);
 }
 
 /* Initialises the fluid */
@@ -151,54 +112,6 @@ void init_fluid() {
 
   /* compute heights */
   heights(f,hei);
-}
-
-/* Get interfacial height at a given x-coord */
-#define NP 10
-double interfacial_height(double xp) {
-  if (xp < 0) {
-    xp += LX;
-  } else if (xp > LX) {
-    xp -= LX;
-  }
-
-  double dh[NP];
-  double yh[NP];
-  double yp;
-  double y0 = 0.0, y1 = 2.0;
-
-  /* try and find range of possible heights */
-  for (int i = 0; i < NP; i++) {
-    yp = y0 + i*(y1-y0)/(NP-1);
-    Point point = locate(xp,yp);
-
-    if (hei.y[] != nodata) {
-      yh[i] = y + height(hei.y[])*Delta;
-      dh[i] = abs(y-yh[i]);
-    } else {
-      yh[i] = -1000;
-      dh[i] = 1000;
-    }
-  } // i end
-
-  /* find the closest one */
-  int j = 0;
-  for (int i = 1; i < NP; i++) {
-    if (dh[i] < dh[j]) { j = i; }
-  } // i end
-
-  return yh[j];
-}
-
-/* returns the baseplate control velocity as a function of x */
-double control(double x) {
-  double vc = 0.0;
-
-  for (int i = 0; i < C_M; i++) {
-    vc += C_mag[i] * actuator(x-C_loc[i]);
-  } // i end
-
-  return -C_ALPHA*vc;
 }
 
 
@@ -243,7 +156,7 @@ event init(i=0) {
 }
 
 /* impose acceleration due to gravity */
-event acceleration (i++) {
+event acceleration(i++) {
   foreach_face (x) {
     av.x[] += f[]*G[0];
   }
@@ -268,9 +181,7 @@ event controls(i++) {
   heights(f,hei);
 
   if (t >= C_START) {
-    for (int i = 0; i < C_M; i++) {
-      C_mag[i] = interfacial_height(C_loc[i] - C_PHI) - 1;
-    } // i end
+    control_set_magnitudes();
 
     boundary({u.x, u.y}); // update boundary velocities
   }
@@ -361,7 +272,8 @@ event output_dat(t=0.0; t<=TMAX; t += DTOUT) {
   sprintf(fname, "out/data-1-%010d.dat", datcount);
   fp = fopen(fname, "w");
   fprintf(fp, "# t: %lf\n", t);
-  for (int i = 0; i < nx+1; i++) {
+  double dx = LX/((double)(NOUT));
+  for (int i = 0; i < NOUT+1; i++) {
     fprintf(fp, "%lf %lf %lf\n", i*dx, interfacial_height(i*dx), control(i*dx));
   } // i end
   fclose(fp);
@@ -370,7 +282,7 @@ event output_dat(t=0.0; t<=TMAX; t += DTOUT) {
 }
 #endif
 
-/* TODO: doesn't work, try embed */
+/* dump output every 100 time units */
 event dump_xxx(t=0.0; t+=100) {
   char dump_file[32];
   sprintf(dump_file, "dump/dump-%04.0lf", t);

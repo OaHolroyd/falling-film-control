@@ -23,7 +23,6 @@
   },
 
   "CONTROL": {
-    "type": "paired",
     "M": 5,
     "P": 5,
     "start": 5.0,

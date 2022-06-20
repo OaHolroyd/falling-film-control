@@ -52,6 +52,7 @@ double C_norm; // control normaliser
 double *C_loc; // control locations
 double *C_mag; // current control magnitudes
 
+
 /* checks if a token and a string match */
 static int jsoneq(const char *json, jsmntok_t *tok, const char *s) {
   if (tok->type == JSMN_STRING && (int)strlen(s) == tok->end - tok->start &&
@@ -190,14 +191,10 @@ int read_params(char *fname) {
     }
 
     else if (jsoneq(s, &t[i], "CONTROL") == 0) {
-      n = 7;
+      n = 6;
       m = n;
       for (int j = i+2; j < i+2+2*m; j++) {
-        if (jsoneq(s, &t[j], "type") == 0) {
-          j++;
-          /* do something */
-          n--;
-        } else if (jsoneq(s, &t[j], "M") == 0) {
+        if (jsoneq(s, &t[j], "M") == 0) {
           j++;
           C_M = atoi(s+t[j].start);
           n--;
@@ -231,28 +228,6 @@ int read_params(char *fname) {
       }
     }
   } // i end
-
-  fprintf(stderr, "H0 %lf\n", H0);
-  fprintf(stderr, "LX %lf\n", LX);
-  fprintf(stderr, "LY %lf\n", LY);
-  fprintf(stderr, "THETA %lf\n", THETA);
-
-  fprintf(stderr, "RHO_L %lf\n", RHO_L);
-  fprintf(stderr, "RHO_G %lf\n", RHO_G);
-  fprintf(stderr, "MU_L %lf\n", MU_L);
-  fprintf(stderr, "MU_G %lf\n", MU_G);
-  fprintf(stderr, "GAMMA %lf\n", GAMMA);
-  fprintf(stderr, "GRAV %lf\n", GRAV);
-
-  fprintf(stderr, "LEVEL %d\n", LEVEL);
-  fprintf(stderr, "DTOUT %lf\n", DTOUT);
-
-  fprintf(stderr, "C_M %d\n", C_M);
-  fprintf(stderr, "C_P %d\n", C_P);
-  fprintf(stderr, "C_START %lf\n", C_START);
-  fprintf(stderr, "C_W %lf\n", C_W);
-  fprintf(stderr, "C_ALPHA %lf\n", C_ALPHA);
-  fprintf(stderr, "C_PHI %lf\n", C_PHI);
 
   return 0;
 }
