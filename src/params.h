@@ -5,6 +5,7 @@
 #include <stdio.h>
 #include <string.h> // seems to be required for jsmn
 
+#include "parallel.h"
 #include "jsmn.h"
 
 /* ========================================================================== */

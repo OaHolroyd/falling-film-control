@@ -1,6 +1,7 @@
 # ============================================================================ #
 #   MAKEFILE FOR THIN FILM WITH FEEDBACK CONTROL                               #
 # ============================================================================ #
+UNAME := $(shell uname)
 
 # ================ #
 #   Definitiions   #
@@ -12,16 +13,16 @@ LD=$(CC)
 # C flags
 CFLAGS=-O3
 
-# required libraries
-LDFLAGS=-lm
+# required libraries (avoid openmp on macOS since it is slow)
+LDFLAGS=-fopenmp
 
 # file/folder names
 EXE=film
 SRC_DIR=./src
 OBJ_DIR=./obj
 OUT_DIR=./out
-DUMP_DIR=./plots
-PLT_DIR=./dump
+DUMP_DIR=./dump
+PLT_DIR=./plots
 SRC=$(wildcard $(SRC_DIR)/*.c)
 OBJ=$(addprefix $(OBJ_DIR)/, $(notdir $(SRC:.c=.o)))
 
@@ -59,4 +60,11 @@ clean:
 .PHONY: deepclean
 deepclean:
 	@printf "`tput bold``tput setaf 1`Deep cleaning`tput sgr0`\n"
-	rm -rf $(OBJ_DIR)/*.o ./$(EXE) $(OUT_DIR)/* $(PLT_DIR)/* *.gif *.png
+	rm -rf $(OBJ_DIR)/*.o ./$(EXE) $(OUT_DIR)/* $(PLT_DIR)/* $(DUMP_DIR)/*
+
+# generate a pure C source file
+.PHONY: source
+source:
+	@printf "`tput bold``tput setaf 5`Building source`tput sgr0`\n"
+	cd $(SRC_DIR) && \
+	$(CC) -source $(CFLAGS) -DPARALLEL $(LDFLAGS) $(IFLAGS) film.c

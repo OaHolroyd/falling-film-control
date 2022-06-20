@@ -6,6 +6,8 @@
 *.pdf
 *.mov
 dump/**
+_film.c
+remote.sh
 
 __pycache__
 

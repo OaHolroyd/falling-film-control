@@ -6,6 +6,7 @@
 #include <math.h>
 
 /* Local headers */
+#include "parallel.h"
 #include "params.h"
 
 /* Basilisk headers */
@@ -45,7 +46,7 @@ double interfacial_height(double xp) {
 
     if (hei.y[] != nodata) {
       yh[i] = y + height(hei.y[])*Delta;
-      dh[i] = abs(y-yh[i]);
+      dh[i] = fabs(y-yh[i]);
     } else {
       yh[i] = -1000;
       dh[i] = 1000;

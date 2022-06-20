@@ -3,10 +3,13 @@
 
 #include <math.h>
 
+#include "parallel.h"
 #include "film-utils.h"
 #include "params.h"
 
+
 double C_cost = 0.0; // total control cost
+
 
 /* ========================================================================== */
 /*   FUNCTION DEFINITIONS                                                     */

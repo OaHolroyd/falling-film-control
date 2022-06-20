@@ -3,6 +3,7 @@
 #include <math.h>
 
 /* Local headers */
+#include "parallel.h"
 #include "params.h"
 #include "film-utils.h"
 #include "control.h"
@@ -123,8 +124,8 @@ int main(int argc, char const *argv[]) {
   periodic(right);
 
   /* read params from file */
-  int err;
-  if (err = read_params("params.json")) {
+  int err = read_params("params.json");
+  if (err) {
     fprintf(stderr, "ERROR '%d' trying to read parameter file\n", err);
     abort();
   }
