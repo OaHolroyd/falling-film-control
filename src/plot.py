@@ -218,7 +218,7 @@ def plot_frame(i, key="interface", save=True, Ly=2.0, track=False, clip=False):
 
         # keys and axes
         ax.set_xlim([0, Lx])
-        ax.set_xlim([0, Ly])
+        ax.set_ylim([0, Ly])
         ax.gca().set_aspect(8.0)
     elif key == "control":
         ax.plot(data1[:, 0], data1[:, 1], color="blue")
