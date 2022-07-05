@@ -8,6 +8,15 @@
 #include "parallel.h"
 #include "jsmn.h"
 
+
+/* ========================================================================== */
+/*   DIMENSIONLESS NUMBERS                                                    */
+/* ========================================================================== */
+#define US ((RHO_L*GRAV*sin(THETA)*H0*H0)/(2*MU_L)) // Nusselt surface velocity
+#define RE ((RHO_L*US*H0)/MU_L) // Reynolds number
+#define CA ((MU_L*US)/GAMMA) // capillary number
+
+
 /* ========================================================================== */
 /*   PHYSICAL PARAMETERS                                                      */
 /* ========================================================================== */
@@ -37,6 +46,8 @@ double GRAV = 10;  // acceleration due to gravity
 /* Solver parameters */
 int LEVEL = 8; // maximum refinement level
 double DTOUT = 1.0; // output step
+#define N (1<<LEVEL) // max refinement grid count
+#define DX (LX/N) // max refinement grid spacing
 
 
 /* ========================================================================== */
@@ -48,12 +59,12 @@ double C_START = 100.0; // control start time
 double C_W = 0.01; // control width parameter
 double C_ALPHA = 1.0; // control strength
 double C_PHI = 1.0; // observer/control displacement
-
-double C_norm; // control normaliser
-double *C_loc; // control locations
-double *C_mag; // current control magnitudes
+double C_MU = 0.1; // control cost parameter
 
 
+/* ========================================================================== */
+/*   FUNCTION DEFINITIONS                                                     */
+/* ========================================================================== */
 /* checks if a token and a string match */
 static int jsoneq(const char *json, jsmntok_t *tok, const char *s) {
   if (tok->type == JSMN_STRING && (int)strlen(s) == tok->end - tok->start &&
@@ -192,7 +203,7 @@ int read_params(char *fname) {
     }
 
     else if (jsoneq(s, &t[i], "CONTROL") == 0) {
-      n = 6;
+      n = 7;
       m = n;
       for (int j = i+2; j < i+2+2*m; j++) {
         if (jsoneq(s, &t[j], "M") == 0) {
@@ -218,6 +229,10 @@ int read_params(char *fname) {
         } else if (jsoneq(s, &t[j], "phi") == 0) {
           j++;
           C_PHI = strtod(s+t[j].start, NULL);
+          n--;
+        } else if (jsoneq(s, &t[j], "mu") == 0) {
+          j++;
+          C_MU = strtod(s+t[j].start, NULL);
           n--;
         } else {
           fprintf(stderr, "bad token\n");

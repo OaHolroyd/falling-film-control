@@ -11,9 +11,6 @@ def main(n, track, clip, rate, start):
     plt.plot_hstats(n)
     print("hstats done")
 
-    plt.plot_umax(n)
-    print("umax done")
-
     # animations
     plt.plot_series(n=n, i0=start, key="interface", Ly=2.0,
                     track=track, clip=clip, rate=rate)

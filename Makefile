@@ -14,7 +14,7 @@ LD=$(CC)
 CFLAGS=-O3
 
 # required libraries (avoid openmp on macOS since it is slow)
-LDFLAGS=-fopenmp
+LDFLAGS=-fopenmp -llapacke
 
 # file/folder names
 EXE=film

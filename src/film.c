@@ -6,7 +6,7 @@
 #include "parallel.h"
 #include "params.h"
 #include "film-utils.h"
-#include "control.h"
+#include "control-lqr.h"
 
 /* Basilisk headers */
 #include "navier-stokes/centered.h"
@@ -20,25 +20,15 @@ double G[2]; // gravity
 
 
 /* ========================================================================== */
-/*   DERIVED PARAMETERS                                                       */
+/*   OUTPUT PARAMETERS                                                        */
 /* ========================================================================== */
-/* Dimensionless numbers */
-#define US ((RHO_L*GRAV*sin(THETA)*H0*H0)/(2*MU_L)) // Nusselt surface velocity
-#define RE ((RHO_L*US*H0)/MU_L) // Reynolds number
-#define CA ((MU_L*US)/GAMMA) // capillary number
-
 #define NOUT (1<<(LEVEL-1)) // output resolution
-
-
-/* ========================================================================== */
-/*   OUTPUT FLAGS                                                             */
-/* ========================================================================== */
 #define LOG_STEP 10 // log every LOG_STEP steps
 #define OUTPUT_DAT 1 // whether to output the data
 
 
 /* ========================================================================== */
-/*   Boundary Conditions                                                      */
+/*   BOUNDARY CONDITIONS                                                      */
 /* ========================================================================== */
 /* top boundary is embedded (free outflow) */
 u.n[embed] = neumann(0.0);
@@ -142,6 +132,8 @@ int main(int argc, char const *argv[]) {
 
   run();
 
+  control_free();
+
   return EXIT_SUCCESS;
 }
 
@@ -156,7 +148,7 @@ event init(i=0) {
   init_fluid();
 }
 
-/* impose acceleration due to gravity */
+/* impose acceleration due to gravity TODO: check the air */
 event acceleration(i++) {
   foreach_face (x) {
     av.x[] += f[]*G[0];
@@ -182,7 +174,8 @@ event controls(i++) {
   heights(f,hei);
 
   if (t >= C_START) {
-    C_cost += dt*control_set_magnitudes();
+    control_set_magnitudes();
+    control_cost();
 
     boundary({u.x, u.y}); // update boundary velocities
   }
