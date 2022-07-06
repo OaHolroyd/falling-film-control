@@ -1,5 +1,6 @@
 /* Standard headers */
 #include <stdlib.h>
+#include <stdio.h>
 #include <math.h>
 
 /* Local headers */

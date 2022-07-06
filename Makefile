@@ -6,15 +6,16 @@ UNAME := $(shell uname)
 # ================ #
 #   Definitiions   #
 # ================ #
-# Basilsik-C compiler (building and linking)
-CC=qcc
-LD=$(CC)
+# Compilers
+BC=qcc # Basilisk
+CC=gcc # C99
+LD=$(CC) # linker
 
 # C flags
 CFLAGS=-O3
 
-# required libraries (avoid openmp on macOS since it is slow)
-LDFLAGS=-fopenmp -llapacke
+# required libraries
+LDFLAGS=-fopenmp -lm -llapacke
 
 # file/folder names
 EXE=film
@@ -23,7 +24,7 @@ OBJ_DIR=./obj
 OUT_DIR=./out
 DUMP_DIR=./dump
 PLT_DIR=./plots
-SRC=$(wildcard $(SRC_DIR)/*.c)
+SRC=$(filter-out $(SRC_DIR)/_$(EXE).c $(SRC_DIR)/$(EXE).c, $(wildcard $(SRC_DIR)/*.c)) $(SRC_DIR)/_$(EXE).c
 OBJ=$(addprefix $(OBJ_DIR)/, $(notdir $(SRC:.c=.o)))
 
 
@@ -31,13 +32,17 @@ OBJ=$(addprefix $(OBJ_DIR)/, $(notdir $(SRC:.c=.o)))
 #   Build Rules   #
 # =============== #
 # Default build target
-film: directories $(OBJ)
-	@printf "`tput bold``tput setaf 2`Linking`tput sgr0`\n"
-	$(LD) $(CFLAGS) $(LDFLAGS) $(IFLAGS) -o $(EXE) $(OBJ)
+film: directories source link
+	rm $(SRC_DIR)/_$(EXE).c
+
+.PHONY: link
+link: $(OBJ)
+	@printf "\033[1;32mLinking\033[0m\n"
+	$(LD) $(CFLAGS) -o $(EXE) $(OBJ) $(LDFLAGS) $(IFLAGS)
 
 # Build rule for binaries
 $(OBJ_DIR)/%.o: $(SRC_DIR)/%.c
-	@printf "`tput bold``tput setaf 6`Building %s`tput sgr0`\n" $@
+	@printf "\033[1;36mBuilding %s\033[0m\n" $@
 	$(CC) $(CFLAGS) $(LDFLAGS) $(IFLAGS) -c -o $@ $<
 
 # Force rebuild of all files
@@ -47,24 +52,24 @@ all: clean film
 # Create required directories
 .PHONY: directories
 directories:
-	@printf "`tput bold``tput setaf 3`Creating output directories`tput sgr0`\n"
+	@printf "\033[1;33mCreating output directories\033[0m\n"
 	mkdir -p $(OBJ_DIR) $(OUT_DIR) $(PLT_DIR) $(DUMP_DIR)
 
 # Purge build files and executable
 .PHONY: clean
 clean:
-	@printf "`tput bold``tput setaf 1`Cleaning`tput sgr0`\n"
-	rm -rf $(OBJ_DIR)/*.o ./$(EXE)
+	@printf "\033[1;31mCleaning\033[0m\n"
+	rm -rf $(OBJ_DIR)/*.o ./$(EXE) $(SRC_DIR)/_$(EXE).c
 
 # Purge build files, executable, and all outputs
 .PHONY: deepclean
 deepclean:
-	@printf "`tput bold``tput setaf 1`Deep cleaning`tput sgr0`\n"
+	@printf "\033[1;31mDeep cleaning\033[0m\n"
 	rm -rf $(OBJ_DIR)/*.o ./$(EXE) $(OUT_DIR)/* $(PLT_DIR)/* $(DUMP_DIR)/*
 
-# generate a pure C source file
+# generate a pure C source file from film.c
 .PHONY: source
-source:
-	@printf "`tput bold``tput setaf 5`Building source`tput sgr0`\n"
+source: $(SRC_DIR)/$(EXE).c
+	@printf "\033[1;35mBuilding source\033[0m\n"
 	cd $(SRC_DIR) && \
-	$(CC) -source $(CFLAGS) -DPARALLEL $(LDFLAGS) $(IFLAGS) film.c
+	$(BC) -source $(CFLAGS) -DPARALLEL $(LDFLAGS) $(IFLAGS) $(EXE).c

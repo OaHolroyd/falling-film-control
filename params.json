@@ -4,8 +4,8 @@
     "Lx": 64.0,
     "Ly": 8.0,
     "theta": 1.047197551,
-    "tmax": 700.0,
-    "t0": 600
+    "tmax": 650.0,
+    "t0": 0
   },
 
   "PHYSCIAL": {
@@ -18,8 +18,8 @@
   },
 
   "SOLVER": {
-    "level": 7,
-    "dtout": 0.5
+    "level": 9,
+    "dtout": 0.1
   },
 
   "CONTROL": {
