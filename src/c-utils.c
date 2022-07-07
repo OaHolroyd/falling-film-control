@@ -1,7 +1,9 @@
-#include "array.h"
+#include "c-utils.h"
 
 /* Standard headers */
 #include <stdlib.h>
+#include <stdio.h>
+#include <stdarg.h>
 
 
 /* ========================================================================== */
@@ -31,4 +33,19 @@ double** malloc_f2d(int Ni, int Nj) {
 void free_2d(void** arr) {
   free(*arr);
   free(arr);
+}
+
+
+/* Aborts with an error message */
+void ABORT(const char *format, ...) {
+  va_list args;
+  va_start(args, format);
+
+  fprintf(stderr, "ERROR: ");
+  vfprintf(stderr, format, args);
+  fprintf(stderr, "\n");
+
+  va_end(args);
+
+  abort();
 }

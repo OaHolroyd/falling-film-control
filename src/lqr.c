@@ -5,6 +5,8 @@
 
 #include <lapacke.h>
 
+#include <stdio.h> // TODO: remove
+
 
 #define COMPLEX double complex
 
@@ -54,6 +56,16 @@ int lqr(double **A, double **B, double u, double v, int n, int m, double **K) {
   } // i end
 
 
+  // FILE *fp = fopen("out/H.dat", "w");
+  // for (int i = 0; i < 2*n; i++) {
+  //   for (int j = 0; j < 2*n; j++) {
+  //     fprintf(fp, "%20.10lf ", creal(H[2*n*i+j]));
+  //   } // j end
+  //   fprintf(fp, "\n");
+  // } // i end
+  // fclose(fp);
+
+
   /* compute eigenvalues/vectors */
   COMPLEX *w = malloc(2*n*sizeof(COMPLEX));
   COMPLEX *vr = malloc(2*n*2*n*sizeof(COMPLEX));
@@ -98,6 +110,33 @@ int lqr(double **A, double **B, double u, double v, int n, int m, double **K) {
       K[i][j] *= c;
     } // j end
   } // i end
+
+  // fp = fopen("out/K.dat", "w");
+  // for (int i = 0; i < m; i++) {
+  //   for (int j = 0; j < n; j++) {
+  //     fprintf(fp, "%20.10lf ", K[i][j]);
+  //   } // j end
+  //   fprintf(fp, "\n");
+  // } // i end
+  // fclose(fp);
+
+  // fp = fopen("out/A.dat", "w");
+  // for (int i = 0; i < n; i++) {
+  //   for (int j = 0; j < n; j++) {
+  //     fprintf(fp, "%20.10lf ", A[i][j]);
+  //   } // j end
+  //   fprintf(fp, "\n");
+  // } // i end
+  // fclose(fp);
+
+  // fp = fopen("out/B.dat", "w");
+  // for (int i = 0; i < n; i++) {
+  //   for (int j = 0; j < m; j++) {
+  //     fprintf(fp, "%20.10lf ", B[i][j]);
+  //   } // j end
+  //   fprintf(fp, "\n");
+  // } // i end
+  // fclose(fp);
 
 
   /* free workspace */

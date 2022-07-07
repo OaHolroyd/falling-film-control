@@ -1,5 +1,5 @@
-#ifndef ARRAY_H
-#define ARRAY_H
+#ifndef C_UTILS_H
+#define C_UTILS_H
 
 
 /* ========================================================================== */
@@ -12,6 +12,10 @@ double** malloc_f2d(int Ni, int Nj);
 
 /* Frees memory associated with a 2D array */
 void free_2d(void** arr);
+
+
+/* Aborts with an error message */
+void ABORT(const char *format, ...);
 
 
 #endif

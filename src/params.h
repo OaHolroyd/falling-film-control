@@ -5,6 +5,7 @@
 #include <stdio.h>
 #include <string.h> // seems to be required for jsmn
 
+#include "c-utils.h"
 #include "parallel.h"
 #include "jsmn.h"
 
@@ -90,7 +91,7 @@ int read_params(char *fname) {
   fseek(fp, 0, SEEK_SET);
   char *s = malloc(len+1);
   if (!s) { return -3; }
-  fread(s, 1, len, fp);
+  if (fread(s, 1, len, fp) != len) { ABORT("failed to load json"); }
   s[len] = '\0';
   fclose(fp);
 
@@ -137,8 +138,7 @@ int read_params(char *fname) {
         }
       } // j end
       if (n) {
-        fprintf(stderr, "ERROR: missing domain parameter\n");
-        abort();
+        ABORT("missing domain parameter");
       }
     }
 
@@ -175,8 +175,7 @@ int read_params(char *fname) {
         }
       } // j end
       if (n) {
-        fprintf(stderr, "ERROR: missing physical parameter\n");
-        abort();
+        ABORT("missing physical parameter");
       }
     }
 
@@ -197,8 +196,7 @@ int read_params(char *fname) {
         }
       } // j end
       if (n) {
-        fprintf(stderr, "ERROR: missing solver parameter\n");
-        abort();
+        ABORT("missing solver parameter");
       }
     }
 
@@ -239,8 +237,7 @@ int read_params(char *fname) {
         }
       } // j end
       if (n) {
-        fprintf(stderr, "ERROR: missing control parameter\n");
-        abort();
+        ABORT("missing control parameter");
       }
     }
   } // i end

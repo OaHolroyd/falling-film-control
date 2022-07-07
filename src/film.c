@@ -4,6 +4,7 @@
 #include <math.h>
 
 /* Local headers */
+#include "c-utils.h"
 #include "parallel.h"
 #include "params.h"
 #include "film-utils.h"
@@ -117,8 +118,7 @@ int main(int argc, char const *argv[]) {
   /* read params from file */
   int err = read_params("params.json");
   if (err) {
-    fprintf(stderr, "ERROR '%d' trying to read parameter file\n", err);
-    abort();
+    ABORT("failed to read parameter file (returned %d)", err);
   }
 
   /* set up the model */
@@ -218,7 +218,7 @@ event output_dat(t=0.0; t<=TMAX; t += DTOUT) {
     sprintf(fname, "out/data-1-%010d.dat", i);
     while (fp = fopen(fname, "r")) {
       /* check if the time is before the current time */
-      fscanf(fp, "# t: %lf\n", &t0);
+      if (fscanf(fp, "# t: %lf\n", &t0) != 1) { ABORT("missing timestamp"); }
       fclose(fp);
       if (t0 >= t) {
         break;
