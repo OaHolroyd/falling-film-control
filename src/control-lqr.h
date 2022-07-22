@@ -271,5 +271,19 @@ void control_set_magnitudes() {
   } // i end
 }
 
+/* [REQUIRED] returns the film height estimator */
+double estimator(double x) {
+  /* account for periodicity */
+  if (x < 0) {
+    x += LX;
+  } else if (x > LX) {
+    x -= LX;
+  }
+
+  /* sum the terms from the Fourier series */
+  // TODO: implement
+  return 0.0;
+}
+
 
 #endif

@@ -18,6 +18,9 @@ def main(n, track, clip, rate, start):
     plt.plot_series(n=n, i0=start, key="control", Ly=2.0,
                     track=track, clip=clip, rate=rate)
     print("control done")
+    plt.plot_series(n=n, i0=start, key="estimator", Ly=2.0,
+                    track=track, clip=clip, rate=rate)
+    print("estimator done")
     plt.plot_series(n=n, i0=start, key="fluid", Ly=2.0,
                     track=track, clip=clip, rate=rate)
     print("fluid done")

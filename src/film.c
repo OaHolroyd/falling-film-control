@@ -8,7 +8,8 @@
 #include "parallel.h"
 #include "params.h"
 #include "film-utils.h"
-#include "control-lqr.h"
+#include "control-estimator.h"
+// #include "control-lqr.h"
 
 /* Basilisk headers */
 #include "navier-stokes/centered.h"
@@ -34,8 +35,8 @@ double G[2]; // gravity
 /* ========================================================================== */
 /* top boundary is embedded (free outflow) */
 u.n[embed] = neumann(0.0);
-p[embed] = dirichlet(0.0);
-pf[embed] = dirichlet(0.0);
+p[embed] = neumann(0.0);
+pf[embed] = neumann(0.0);
 
 /* Bottom boundary (no slip with controls) */
 u.n[bottom] = dirichlet(control(x)); // add control at the base
@@ -149,16 +150,6 @@ event init(i=0) {
   init_fluid();
 }
 
-/* impose acceleration due to gravity TODO: check the air */
-event acceleration(i++) {
-  foreach_face (x) {
-    av.x[] += f[]*G[0];
-  }
-  foreach_face (y) {
-    av.y[] += f[]*G[1];
-  }
-}
-
 /* static grid refinement */
 event refinement(i=0) {
   /* refine the entire grid to maximum */
@@ -170,6 +161,16 @@ event refinement(i=0) {
   unrefine(y > 7 && level > LEVEL-4);
 }
 
+/* impose acceleration due to gravity TODO: check the air */
+event acceleration(i++) {
+  foreach_face (x) {
+    av.x[] += f[]*G[0];
+  }
+  foreach_face (y) {
+    av.y[] += f[]*G[1];
+  }
+}
+
 /* set the control magnitudes */
 event controls(i++) {
   heights(f,hei);
@@ -177,8 +178,6 @@ event controls(i++) {
   if (t >= C_START) {
     control_set_magnitudes();
     control_cost();
-
-    boundary({u.x, u.y}); // update boundary velocities
   }
 }
 
@@ -255,7 +254,8 @@ event output_dat(t=0.0; t<=TMAX; t += DTOUT) {
   fprintf(fp, "# t: %lf\n", t);
   double dx = LX/((double)(NOUT));
   for (int i = 0; i < NOUT+1; i++) {
-    fprintf(fp, "%lf %lf %lf\n", i*dx, interfacial_height(i*dx), control(i*dx));
+    // fprintf(fp, "%lf %lf %lf\n", i*dx, interfacial_height(i*dx), control(i*dx));
+    fprintf(fp, "%lf %lf %lf %lf\n", i*dx, interfacial_height(i*dx), control(i*dx), estimator(i*dx));
   } // i end
   fclose(fp);
 

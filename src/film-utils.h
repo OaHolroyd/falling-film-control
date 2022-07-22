@@ -47,6 +47,7 @@ double interfacial_height(double xp) {
     if (hei.y[] != nodata) {
       yh[i] = y + height(hei.y[])*Delta;
       dh[i] = fabs(y-yh[i]);
+      return yh[i];
     } else {
       yh[i] = -1000;
       dh[i] = 1000;

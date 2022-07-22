@@ -1,6 +1,10 @@
 #ifndef C_UTILS_H
 #define C_UTILS_H
 
+#include <complex.h>
+
+#define COMPLEX double complex
+
 
 /* ========================================================================== */
 /*   FUNCTION DECLARATIONS                                                    */
@@ -10,8 +14,14 @@
 double** malloc_f2d(int Ni, int Nj);
 
 
+/* Allocate memory for a 2D complex double array and match row indices to the
+   corresponding memory locations. */
+COMPLEX** malloc_z2d(int Ni, int Nj);
+
+
 /* Frees memory associated with a 2D array */
-void free_2d(void** arr);
+#define free_2d(A) internal_free_2d((void **)A)
+void internal_free_2d(void** arr);
 
 
 /* Aborts with an error message */

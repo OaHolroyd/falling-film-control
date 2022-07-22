@@ -9,10 +9,9 @@
 
 
 double C_cost = 0.0; // total control cost
-double C_norm; // control normaliser
-double *C_loc; // control locations
+double C_norm; // actuator normaliser
+double *C_loc; // actuator locations
 double *C_mag; // current control magnitudes
-
 
 /* ========================================================================== */
 /*   FUNCTION DEFINITIONS                                                     */
@@ -49,8 +48,10 @@ double control_cost() {
 
   /* interfacial cost */
   double dh;
+  double xi;
   for (int i = 0; i < N; i++) {
-    dh = interfacial_height(DX*(double)i) - 1;
+    xi = DX*(i+0.5);
+    dh = interfacial_height(xi) - 1;
     C_cost += dt * C_MU * dh * dh;
   } // i end
 }
@@ -69,11 +70,11 @@ void internal_set_Cparams() {
 
   /* set control normaliser */
   C_norm = 1.0;
-  double I = 0.0;
+  double integral = 0.0;
   for (int i = 0; i < N; i++) {
-    I += actuator(DX*i - LX/2.0);
+    integral += actuator(DX*i - LX/2.0);
   } // i end
-  C_norm = 1.0/(DX*I);
+  C_norm = 1.0/(DX*integral);
 }
 
 /* frees control variables */

@@ -201,12 +201,12 @@ def plot_frame(i, key="interface", save=True, Ly=2.0, track=False, clip=False):
     Lx = data1[:, 0].max()
 
     # get 2D data if required
-    if key not in ("interface", "control"):
+    if key not in ("interface", "control", "estimator"):
         _, data2 = get_2D_data(i, Ly)
 
     # track if required
     if track:
-        if key not in ("interface", "control"):
+        if key not in ("interface", "control", "estimator"):
             data1, data2 = track_peak(data1, data2)
         else:
             data1 = track_peak(data1)
@@ -219,7 +219,7 @@ def plot_frame(i, key="interface", save=True, Ly=2.0, track=False, clip=False):
         # keys and axes
         ax.set_xlim([0, Lx])
         ax.set_ylim([0, Ly])
-        ax.gca().set_aspect(8.0)
+        ax.set_aspect(8.0)
     elif key == "control":
         ax.plot(data1[:, 0], data1[:, 1], color="blue")
         ax.plot(data1[:, 0], data1[:, 2], color="red")
@@ -227,7 +227,16 @@ def plot_frame(i, key="interface", save=True, Ly=2.0, track=False, clip=False):
         # keys and axes
         ax.set_xlim([0, Lx])
         ax.set_ylim([-2.0, Ly])
-        ax.gca().set_aspect(8.0)
+        ax.set_aspect(8.0)
+    elif key == "estimator":
+        ax.plot(data1[:, 0], data1[:, 1], color="blue")
+        ax.plot(data1[:, 0], data1[:, 2], color="red")
+        ax.plot(data1[:, 0], 1+data1[:, 3], color="green")
+
+        # keys and axes
+        ax.set_xlim([0, Lx])
+        ax.set_ylim([-2.0, Ly])
+        ax.set_aspect(8.0)
     else:  # 2D plots
         if key in ("fluid", "level"):  # with a fixed upper/lower bound
             im = get_im(ax, data2, key=key, Lx=Lx, Ly=Ly)
@@ -298,6 +307,15 @@ def plot_series(n=None, key="interface", save=True, Ly=2.0, track=False,
         ax.set_xlim([0, Lx])
         ax.set_ylim([-2.0, Ly])
         ax.set_aspect(8.0)
+    elif key == "estimator":
+        l1, = ax.plot(data1[:, 0], data1[:, 1], color="blue")
+        l2, = ax.plot(data1[:, 0], data1[:, 2], color="red")
+        l3, = ax.plot(data1[:, 0], 1+data1[:, 3], color="green")
+
+        # keys and axes
+        ax.set_xlim([0, Lx])
+        ax.set_ylim([-2.0, Ly])
+        ax.set_aspect(8.0)
     else:  # 2D plots
         if key in ("fluid", "level"):  # with a fixed upper/lower bound
             im = get_im(ax, data2, key=key, Lx=Lx, Ly=Ly)
@@ -343,6 +361,11 @@ def plot_series(n=None, key="interface", save=True, Ly=2.0, track=False,
             l1.set_data(data1[:, 0], data1[:, 1])
             l2.set_data(data1[:, 0], data1[:, 2])
             return (l1, l2)
+        if key == "estimator":
+            l1.set_data(data1[:, 0], data1[:, 1])
+            l2.set_data(data1[:, 0], data1[:, 2])
+            l3.set_data(data1[:, 0], 1+data1[:, 3])
+            return (l1, l2, l3)
         # 2D plots
         im.set_data(data2[:, :, INDICES[key]])
         if clip:
