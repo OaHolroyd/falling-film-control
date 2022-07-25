@@ -3,10 +3,7 @@ import argparse
 import src.plot as plt
 
 
-def main(n, track, clip, rate, start):
-    """
-    Main function for CLI
-    """
+def plot_lines(n, track, clip, rate, start):
     # static plots
     plt.plot_hstats(n)
     print("hstats done")
@@ -21,6 +18,12 @@ def main(n, track, clip, rate, start):
     plt.plot_series(n=n, i0=start, key="estimator", Ly=2.0,
                     track=track, clip=clip, rate=rate)
     print("estimator done")
+
+
+def plot_fields(n, track, clip, rate, start):
+    """
+    Main function for CLI
+    """
     plt.plot_series(n=n, i0=start, key="fluid", Ly=2.0,
                     track=track, clip=clip, rate=rate)
     print("fluid done")
@@ -44,6 +47,11 @@ def main(n, track, clip, rate, start):
     print("pressure done")
 
 
+def main(n, track, clip, rate, start):
+    plot_lines(n, track, clip, rate, start)
+    plot_fields(n, track, clip, rate, start)
+
+
 if __name__ == "__main__":
     # process args
     parser = argparse.ArgumentParser()
@@ -57,6 +65,13 @@ if __name__ == "__main__":
                         help='clip to fluid')
     parser.add_argument('-r', '--rate', action='store', type=int, default=5,
                         help='frame skips')
+    parser.add_argument('-l', '--lines', action='store_true',
+                        help='plot lines only')
     args = parser.parse_args()
 
-    main(args.n, args.track, args.clip, args.rate, args.start)
+    if args.lines:
+        if args.n is None:
+            args.n = plt.get_n(1)
+        plot_lines(args.n, args.track, args.clip, args.rate, args.start)
+    else:
+        main(args.n, args.track, args.clip, args.rate, args.start)

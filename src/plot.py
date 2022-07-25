@@ -49,12 +49,25 @@ CMAP_PHASE = LinearSegmentedColormap("", {'red':   [(0.0,  1.00, 1.00),
                                                     (1.0,  0.70, 0.70)]})
 
 
-def get_n():
+def get_n(d=1):
     """
-    Returns the largest possible n to use
+    Returns the largest possible n to use for the given dimension
     """
-    return int(len([name for name in os.listdir('./out')
-                    if os.path.isfile(os.path.join('./out', name))])/2)
+
+    n1 = 0
+    for name in os.listdir('./out'):
+        if name[0:6] == "data-1":
+            n1 += 1
+
+    if d == 1:
+        return n1
+
+    n2 = 0
+    for name in os.listdir('./out'):
+        if name[0:6] == "data-2":
+            n2 += 1
+
+    return min(n1, n2)
 
 
 def get_1D_data(i):
@@ -270,17 +283,20 @@ def plot_series(n=None, key="interface", save=True, Ly=2.0, track=False,
       or pressure
     and either saves [default] or shows the animation
     """
-    # get max value of n if it is not supplied
-    if n is None:
-        n = get_n()
-
     t, data1 = get_1D_data(0)
 
     Lx = data1[:, 0].max()
     N = data1[:, 0].shape[0]
 
     # get 2D data if required
-    if key not in ("interface", "control"):
+    if key in ("interface", "control", "estimator"):
+        # get max value of n if it is not supplied
+        if n is None:
+            n = get_n(1)
+    else:
+        # get max value of n if it is not supplied
+        if n is None:
+            n = get_n(2)
         _, data2 = get_2D_data(0, Ly)
 
     # track if required
@@ -386,7 +402,7 @@ def plot_hstats(n=None, rate=1, save=True):
     Plots statistics about the interface (hmin, hmax, mean deviation)
     """
     if n is None:
-        n = get_n()
+        n = get_n(1)
 
     _, data1 = get_1D_data(0)
     dx = data1[1, 0] - data1[0, 0]
@@ -425,7 +441,7 @@ def plot_umax(n=None, rate=1, save=True):
     Plots umax vs t
     """
     if n is None:
-        n = get_n()
+        n = get_n(2)
 
     # get data
     t = np.zeros(n)
