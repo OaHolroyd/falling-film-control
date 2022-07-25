@@ -5,7 +5,7 @@
 
 #include "c-utils.h"
 #include "parallel.h"
-#include "film-utils.h"
+#include "b-utils.h"
 #include "params.h"
 #include "control.h"
 #include "lqr.h"
@@ -70,7 +70,7 @@ void fill_actuators_benney(double **Psi) {
   double **F = malloc_f2d(N, C_M);
   for (int i = 0; i < N; i++) {
     for (int j = 0; j < C_M; j++) {
-      F[i][j] = actuator(DX*(i+0.5)-C_loc[j]);
+      F[i][j] = actuator(ITOX(i)-C_loc[j]);
     } // j end
   } // i end
 
@@ -197,7 +197,7 @@ void fill_actuators_wr(double **Psi) {
   double **F = malloc_f2d(N, C_M);
   for (int i = 0; i < N; i++) {
     for (int j = 0; j < C_M; j++) {
-      F[i][j] = actuator(DX*(i+0.5)-C_loc[j]);
+      F[i][j] = actuator(ITOX(i)-C_loc[j]);
     } // j end
   } // i end
 
@@ -266,7 +266,7 @@ void control_set_magnitudes() {
   for (int i = 0; i < C_M; i++) {
     C_mag[i] = 0.0;
     for (int j = 0; j < N; j++) {
-      C_mag[i] -= C_K[i][j] * (interfacial_height(DX*(j+0.5)) - 1);
+      C_mag[i] -= C_K[i][j] * (interfacial_height(ITOX(j)) - 1);
     } // j end
   } // i end
 }

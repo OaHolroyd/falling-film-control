@@ -4,7 +4,7 @@
 #include <math.h>
 
 #include "parallel.h"
-#include "film-utils.h"
+#include "b-utils.h"
 #include "params.h"
 #include "control.h"
 

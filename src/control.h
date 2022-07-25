@@ -4,7 +4,7 @@
 #include <math.h>
 
 #include "parallel.h"
-#include "film-utils.h"
+#include "b-utils.h"
 #include "params.h"
 
 
@@ -50,8 +50,7 @@ double control_cost() {
   double dh;
   double xi;
   for (int i = 0; i < N; i++) {
-    xi = DX*(i+0.5);
-    dh = interfacial_height(xi) - 1;
+    dh = interfacial_height(ITOX(i)) - 1;
     C_cost += dt * C_MU * dh * dh;
   } // i end
 }
@@ -72,7 +71,7 @@ void internal_set_Cparams() {
   C_norm = 1.0;
   double integral = 0.0;
   for (int i = 0; i < N; i++) {
-    integral += actuator(DX*i - LX/2.0);
+    integral += actuator(ITOX(i) - LX/2.0);
   } // i end
   C_norm = 1.0/(DX*integral);
 }

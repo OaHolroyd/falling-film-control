@@ -5,7 +5,7 @@
 
 #include "c-utils.h"
 #include "parallel.h"
-#include "film-utils.h"
+#include "b-utils.h"
 #include "params.h"
 #include "control.h"
 #include "lqr.h"
@@ -58,7 +58,7 @@ void update_estimator_benney() {
   /* compute the explicit half */
   for (i = 0; i < C_M; i++) {
     for (j = 0; j < N; j++) {
-      C_z[i] += dt*C_B[i][j]*(interfacial_height(DX*(j+0.5)) - 1);
+      C_z[i] += dt*C_B[i][j]*(interfacial_height(ITOX(j)) - 1);
     } // j end
   } // i end
 
@@ -90,7 +90,7 @@ void set_Cparams() {
   double **r_Phi = malloc_f2d(N, C_P);
   for (i = 0; i < N; i++) {
     for (j = 0; j < C_P; j++) {
-      r_Phi[i][j] = actuator(DX*(i+0.5)-C_Oloc[j]);
+      r_Phi[i][j] = actuator(ITOX(i)-C_Oloc[j]);
     } // j end
   } // i end
 
@@ -154,7 +154,7 @@ void set_Cparams() {
 
       /* manually compute the DFT via dot product */
       for (k = 0; k < N; k++) {
-        xk = DX*(k+0.5);
+        xk = ITOX(k);
         Psi[i][j] += actuator(xk-C_loc[j]) * (cos(K[i]*xk) - I*sin(K[i]*xk));
       } // k end
 
@@ -191,7 +191,7 @@ void set_Cparams() {
 
       /* manually compute the DFT via dot product */
       for (k = 0; k < N; k++) {
-        xk = DX*(k+0.5);
+        xk = ITOX(k);
         Phi[i][j] += actuator(xk-C_Oloc[j]) * (cos(K[i]*xk) - I*sin(K[i]*xk));
       } // k end
     } // j end
