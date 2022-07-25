@@ -27,7 +27,7 @@ double G[2]; // gravity
 /* ========================================================================== */
 #define NOUT (1<<(LEVEL-1)) // output resolution
 #define LOG_STEP 10 // log every LOG_STEP steps
-#define OUTPUT_DAT 1 // whether to output the data
+#define OUTPUT_DAT 1 // dimension of data to output (1 or 2, 0 for no output)
 
 
 /* ========================================================================== */
@@ -178,6 +178,8 @@ event controls(i++) {
   if (t >= C_START) {
     control_set_magnitudes();
     control_cost();
+
+    boundary({u.x, u.y}); // update boundary velocities
   }
 }
 
@@ -230,23 +232,28 @@ event output_dat(t=0.0; t<=TMAX; t += DTOUT) {
     datcount = i;
   }
 
-  /* iterated scalars */
-  foreach () {
-    l[] = level; // refinement level
-    u_mag[] = sqrt(u.x[]*u.x[] + u.y[]*u.y[]); // speed
-    u_x[] = u.x[]; // horizontal velocity
-    u_y[] = u.y[]; // vertical velocity
+  FILE *fp;
+
+  /* only compute 2D outputs if required */
+  if (OUTPUT_DAT > 1) {
+    /* iterated scalars */
+    foreach () {
+      l[] = level; // refinement level
+      u_mag[] = sqrt(u.x[]*u.x[] + u.y[]*u.y[]); // speed
+      u_x[] = u.x[]; // horizontal velocity
+      u_y[] = u.y[]; // vertical velocity
+    }
+
+    /* vorticity */
+    vorticity(u, omega);
+
+    /* 2D fields */
+    sprintf(fname, "out/data-2-%010d.dat", datcount);
+    fp = fopen(fname, "w");
+    fprintf(fp, "# t: %lf\n", t);
+    output_field({f, l, omega, u_mag, u_x, u_y, p}, fp, box = {{0.0,0.0},{LX,LY}}, n = NOUT);
+    fclose(fp);
   }
-
-  /* vorticity */
-  vorticity(u, omega);
-
-  /* 2D fields */
-  sprintf(fname, "out/data-2-%010d.dat", datcount);
-  FILE *fp = fopen(fname, "w");
-  fprintf(fp, "# t: %lf\n", t);
-  output_field({f, l, omega, u_mag, u_x, u_y, p}, fp, box = {{0.0,0.0},{LX,LY}}, n = NOUT);
-  fclose(fp);
 
   /* 1D interface */
   sprintf(fname, "out/data-1-%010d.dat", datcount);
@@ -254,7 +261,6 @@ event output_dat(t=0.0; t<=TMAX; t += DTOUT) {
   fprintf(fp, "# t: %lf\n", t);
   double dx = LX/((double)(NOUT));
   for (int i = 0; i < NOUT+1; i++) {
-    // fprintf(fp, "%lf %lf %lf\n", i*dx, interfacial_height(i*dx), control(i*dx));
     fprintf(fp, "%lf %lf %lf %lf\n", i*dx, interfacial_height(i*dx), control(i*dx), estimator(i*dx));
   } // i end
   fclose(fp);
@@ -273,7 +279,7 @@ event dump_xxx(t=0.0; t+=100) {
 /* finish */
 event stop(t=TMAX) {
   char dump_file[32];
-  sprintf(dump_file, "dump/dump-%04.0lf", t);
+  sprintf(dump_file, "dump/dump-%04.0lf-end", t);
   dump(file = dump_file);
 
   #if LOG_STEP
