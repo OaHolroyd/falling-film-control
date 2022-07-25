@@ -13,7 +13,7 @@ LD=$(CC) # linker
 
 # C flags
 CFLAGS=-O3
-# CFLAGS=-O3 -g -fbounds-check -fsanitize=address -fsanitize=bounds -fsanitize=bounds-strict
+# CFLAGS=-O0 -g -fbounds-check -fsanitize=address -fsanitize=bounds -fsanitize=bounds-strict
 
 # required libraries
 LDFLAGS=-fopenmp -lm -llapacke

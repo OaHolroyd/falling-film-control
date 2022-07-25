@@ -242,6 +242,7 @@ int read_params(char *fname) {
     }
   } // i end
 
+  free(s);
   return 0;
 }
 
