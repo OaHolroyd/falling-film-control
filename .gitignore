@@ -5,7 +5,7 @@
 *.gif
 *.pdf
 *.mov
-dump/**
+dump*/**
 _film.c
 remote.sh
 
