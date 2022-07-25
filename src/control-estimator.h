@@ -50,6 +50,7 @@ void update_estimator_benney() {
   for (i = 0; i < C_M; i++) {
     for (j = 0; j < C_M; j++) {
       C_z[i] += 0.5*dt*C_A[i][j]*C_z0[j];
+      // C_z[i] += dt*C_A[i][j]*C_z0[j];
     } // j end
   } // i end
 
@@ -75,7 +76,7 @@ void set_Cparams() {
   internal_set_Cparams();
 
   int i, j, k;
-  FILE *fp;
+  FILE *fp; // TODO: remove outputs
 
 
   /* observer locations */
@@ -112,7 +113,6 @@ void set_Cparams() {
     j *= -1;
     k = j*(i+1)/2; // uses integer rounding
     K[i] = dk*k;
-    // fprintf(stderr, "%lf\n", K[i]);
   } // i end
 
 
@@ -241,7 +241,7 @@ void set_Cparams() {
   // fclose(fp);
 
 
-  /* compute L (this is actually L') */
+  /* compute L (this is actually L.') */
   COMPLEX **L = malloc_z2d(C_P, C_M);
   zlqr(J, Phi, C_MU*LX/(C_M*C_M), (1-C_MU), C_M, C_P, L);
 
@@ -334,7 +334,7 @@ void set_Cparams() {
   C_D = malloc_z2d(C_M, C_M);
   C_z = malloc(C_M * sizeof(COMPLEX));
   C_z0 = malloc(C_M * sizeof(COMPLEX));
-  C_ipiv = malloc(N*sizeof(int));
+  C_ipiv = malloc(C_M*sizeof(int));
 
   for (i = 0; i < C_M; i++) {
     C_z[i] = 0.0;
@@ -345,7 +345,9 @@ void set_Cparams() {
   free_2d(J);
   free_2d(Psi);
   free_2d(Phi);
+  free_2d(r_Phi);
   free_2d(L);
+  free(K);
 
   // ABORT("normal end");
 }
