@@ -67,9 +67,19 @@ if __name__ == "__main__":
                         help='frame skips')
     parser.add_argument('-l', '--lines', action='store_true',
                         help='plot lines only')
+    parser.add_argument('-e', '--estimator', action='store_true',
+                        help='estimator plot only')
     args = parser.parse_args()
 
-    if args.lines:
+    if args.estimator:
+        if args.n is None:
+            args.n = plt.get_n(1)
+        plt.plot_hstats(args.n)
+        print("hstats done")
+        plt.plot_series(n=args.n, i0=args.start, key="estimator", Ly=2.0,
+                        track=args.track, clip=args.clip, rate=args.rate)
+        print("estimator done")
+    elif args.lines:
         if args.n is None:
             args.n = plt.get_n(1)
         plot_lines(args.n, args.track, args.clip, args.rate, args.start)

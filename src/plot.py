@@ -301,7 +301,7 @@ def plot_series(n=None, key="interface", save=True, Ly=2.0, track=False,
 
     # track if required
     if track:
-        if key not in ("interface", "control"):
+        if key not in ("interface", "control", "estimator"):
             data1, data2 = track_peak(data1, data2)
         else:
             data1 = track_peak(data1)
@@ -359,12 +359,12 @@ def plot_series(n=None, key="interface", save=True, Ly=2.0, track=False,
         ax.set_title(f"{key} (t = {t})", weight='bold', fontsize=14)
 
         # get 2D data if required
-        if key not in ("interface", "control"):
+        if key not in ("interface", "control", "estimator"):
             _, data2 = get_2D_data(i, Ly)
 
         # track if required
         if track:
-            if key not in ("interface", "control"):
+            if key not in ("interface", "control", "estimator"):
                 data1, data2 = track_peak(data1, data2)
             else:
                 data1 = track_peak(data1)
