@@ -185,9 +185,9 @@ event controls(i++) {
 
 /* print progress to stderr */
 #if LOG_STEP
-int first_log = 1;
 event output_log(i=0; t<=TMAX; i+=LOG_STEP) {
   /* print column headers */
+  static int first_log = 1;
   if (first_log) {
     fprintf(stderr, "  model t        dt      iter         N    elap t  \n");
     first_log = 0;
@@ -203,14 +203,15 @@ event output_log(i=0; t<=TMAX; i+=LOG_STEP) {
 
 /* output 1D and 2D data */
 #if OUTPUT_DAT
-int datcount = 0;
-char fname[64];
-scalar l[];
-scalar u_mag[];
-scalar u_x[], u_y[];
-scalar omega[];
 event output_dat(t=0.0; t<=TMAX; t += DTOUT) {
   /* shift datcount to prevent file overwrites */
+  static int datcount = 0;
+  char fname[64];
+  scalar l[];
+  scalar u_mag[];
+  scalar u_x[], u_y[];
+  scalar omega[];
+
   if (datcount == 0) {
     /* check if there are any files in ./out */
     FILE *fp;
