@@ -71,6 +71,7 @@ void set_params() {
   f.sigma = 1.0/CA;
 
   /* acceleration and gravity */
+  // TODO: remove these globals if possible
   a = av;
   G[0] = 2.0/RE;
   G[1] = -2.0/tan(THETA)/RE;

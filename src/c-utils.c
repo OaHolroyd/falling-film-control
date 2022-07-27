@@ -33,6 +33,7 @@ double** malloc_f2d(int Ni, int Nj) {
    corresponding memory locations. */
 COMPLEX** malloc_z2d(int Ni, int Nj) {
   /* allocate row memory */
+  // TODO: is this correct
   COMPLEX **p_2arr = (COMPLEX **)malloc(Ni*sizeof(COMPLEX*));
   if (!p_2arr) { return NULL; }
 

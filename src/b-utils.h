@@ -1,5 +1,5 @@
-#ifndef FILM_UTILS_H
-#define FILM_UTILS_H
+#ifndef B_UTILS_H
+#define B_UTILS_H
 
 /* Standard headers */
 #include <stdlib.h>
