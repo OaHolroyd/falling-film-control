@@ -124,15 +124,16 @@ int main(int argc, char const *argv[]) {
   periodic(right);
 
   /* read params from file */
+  // TODO: get file from command line (defaulting to params.json)
   int err = read_params("params.json");
   if (err) {
     ABORT("failed to read parameter file (returned %d)", err);
   }
 
-  /* set up the model */
+  /* set up the model */ // TODO allow setting of ct and rt via JSON file
   init_domain();
   set_params();
-  control_set(PAIR, C_M, C_P, C_W, C_ALPHA, C_MU, C_DEL, LX, N);
+  control_set(STATIC, BENNEY, C_M, C_P, C_W, C_ALPHA, C_MU, C_DEL, LX, N, RE, CA, THETA);
 
   /* sanity check the dimensionless numbers and Nusselt velocity */
   fprintf(stderr, "Us: %.8lf\n", US);

@@ -4,7 +4,8 @@
 #include <complex.h>
 
 
-enum CONTROL_TYPE { PAIR, STATIC, DYNAMIC };
+typedef enum { PAIR, STATIC, DYNAMIC } control_t;
+typedef enum { BENNEY, WR } rom_t;
 
 
 /* ========================================================================== */
@@ -17,7 +18,7 @@ double control(double x);
 double control_cost(double *h);
 
 /* set up the control system */
-void control_set(enum CONTROL_TYPE ct, int m, int p, double w, double alpha, double mu, double del, double lx, int n);
+void control_set(control_t ct, rom_t rt, int m, int p, double w, double alpha, double mu, double del, double lx, int n, double re, double ca, double theta);
 
 /* frees the control system */
 void control_free();

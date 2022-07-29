@@ -2,11 +2,13 @@
 
 #include "control-internals.h"
 #include "control-pair.h"
+#include "control-static.h"
 
 #include "c-utils.h"
 
 
-enum CONTROL_TYPE CT;
+static control_t CT;
+
 
 /* ========================================================================== */
 /*   STRATEGY-SPECIFIC FUNCTION DECLARATIONS                                  */
@@ -59,9 +61,9 @@ double control_cost(double *h) {
 
 /* set up the control system */
 // TODO: explain parameters properly
-void control_set(enum CONTROL_TYPE ct, int m, int p, double w, double alpha, double mu, double del, double lx, int n) {
+void control_set(control_t ct, rom_t rt, int m, int p, double w, double alpha, double mu, double del, double lx, int n, double re, double ca, double theta) {
   /* control strategy independent setup */
-  internal_control_set(m, p, w, alpha, mu, del, lx, n);
+  internal_control_set(rt, m, p, w, alpha, mu, del, lx, n, re, ca, theta);
 
   /* set strategy specific functions */
   CT = ct;
@@ -73,7 +75,10 @@ void control_set(enum CONTROL_TYPE ct, int m, int p, double w, double alpha, dou
       estimator = &pair_estimator;
       break;
     case STATIC:
-      ABORT("static control type not implemented yet");
+      s_set = &static_set;
+      s_free = &static_free;
+      control_step = &static_step;
+      estimator = &static_estimator;
       break;
     case DYNAMIC:
       ABORT("dynamic control type not implemented yet");
