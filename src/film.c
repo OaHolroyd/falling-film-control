@@ -8,8 +8,7 @@
 #include "parallel.h"
 #include "params.h"
 #include "b-utils.h"
-#include "control-estimator.h"
-// #include "control-lqr.h"
+#include "control.h"
 
 /* Basilisk headers */
 #include "navier-stokes/centered.h"
@@ -18,8 +17,10 @@
 #include "tension.h" // surface tension
 #include "heights.h" // interfacial height
 
+double *H; // film height
 face vector av[]; // acceleration vector field
 double G[2]; // gravity
+double Ccost; // control cost
 
 
 /* ========================================================================== */
@@ -107,6 +108,11 @@ void init_fluid() {
 
   /* compute heights */
   heights(f,hei);
+
+  /* allocate film */
+  H = malloc(N*sizeof(double));
+
+  Ccost = 0.0;
 }
 
 
@@ -126,7 +132,7 @@ int main(int argc, char const *argv[]) {
   /* set up the model */
   init_domain();
   set_params();
-  set_Cparams();
+  control_set(PAIR, C_M, C_P, C_W, C_ALPHA, C_MU, C_DEL, LX, N);
 
   /* sanity check the dimensionless numbers and Nusselt velocity */
   fprintf(stderr, "Us: %.8lf\n", US);
@@ -136,6 +142,7 @@ int main(int argc, char const *argv[]) {
   run();
 
   control_free();
+  free(H);
 
   return EXIT_SUCCESS;
 }
@@ -176,9 +183,14 @@ event acceleration(i++) {
 event controls(i++) {
   heights(f,hei);
 
+  /* compute film height */
+  for (int i = 0; i < N; i++) {
+    H[i] = interfacial_height(ITOX(i));
+  } // i end
+
   if (t >= C_START) {
-    control_set_magnitudes();
-    control_cost();
+    control_step(H);
+    Ccost += dt * control_cost(H);
 
     boundary({u.x, u.y}); // update boundary velocities
   }
@@ -288,5 +300,5 @@ event stop(t=TMAX) {
   fprintf(stderr, "\n");
   #endif
   fprintf(stderr, "final time: %lf\n", t);
-  fprintf(stderr, "total cost: %lf\n", C_cost);
+  fprintf(stderr, "total cost: %lf\n", Ccost);
 }

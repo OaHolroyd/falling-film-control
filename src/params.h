@@ -59,7 +59,7 @@ int C_P = 5; // number of observers
 double C_START = 100.0; // control start time
 double C_W = 0.01; // control width parameter
 double C_ALPHA = 1.0; // control strength
-double C_PHI = 1.0; // observer/control displacement
+double C_DEL = 1.0; // observer/control displacement
 double C_MU = 0.1; // control cost parameter
 
 
@@ -224,9 +224,9 @@ int read_params(char *fname) {
           j++;
           C_ALPHA = strtod(s+t[j].start, NULL);
           n--;
-        } else if (jsoneq(s, &t[j], "phi") == 0) {
+        } else if (jsoneq(s, &t[j], "del") == 0) {
           j++;
-          C_PHI = strtod(s+t[j].start, NULL);
+          C_DEL = strtod(s+t[j].start, NULL);
           n--;
         } else if (jsoneq(s, &t[j], "mu") == 0) {
           j++;
