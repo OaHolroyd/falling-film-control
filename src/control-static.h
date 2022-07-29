@@ -11,8 +11,11 @@
 static double **STATIC_K; /* control operator */
 
 
+/* ========================================================================== */
+/*   AUXILIARY FUNCTION DEFINITIONS                                           */
+/* ========================================================================== */
 /* compute the control matrix in the Benney case */
-void benney_compute_K() {
+void static_benney_compute_K() {
   /* Jacobian */
   double **J = malloc_f2d(N, N);
 
@@ -83,7 +86,6 @@ void benney_compute_K() {
 
 
   /* control matrix */
-  STATIC_K = malloc_f2d(M, N);
   dlqr(J, Psi, MU, 1-MU, N, M, STATIC_K);
 
 
@@ -93,7 +95,7 @@ void benney_compute_K() {
 }
 
 /* compute the control matrix in the weighted-residuals case */
-void wr_compute_K() {
+void static_wr_compute_K() {
     /* Jacobian */
   double **J = malloc_f2d(2*N, 2*N);
 
@@ -200,7 +202,6 @@ void wr_compute_K() {
   dlqr(J, Psi, MU, 1-MU, 2*N, M, K);
 
   /* apply flux approximation */
-  STATIC_K = malloc_f2d(M, N);
   for (int i = 0; i < M; i++) {
     for (int j = 0; j < N; j++) {
       STATIC_K[i][j] = K[i][j] + 2/3 * K[i][j+N];
@@ -219,13 +220,15 @@ void wr_compute_K() {
 /* ========================================================================== */
 /* [REQUIRED] internal setup */
 void static_set() {
+  STATIC_K = malloc_f2d(M, N);
+
   /* pick from the available ROMs */
   switch (RT) {
     case BENNEY:
-      benney_compute_K();
+      static_benney_compute_K();
       break;
     case WR:
-      wr_compute_K();
+      static_wr_compute_K();
       break;
     default :
       ABORT("invalid ROM type %d", RT);
