@@ -14,7 +14,4 @@ int dlqr(double **A, double **B, double u, double v, int n, int m, double **K);
 /* complex version of the above */
 int zlqr(double complex **A, double complex **B, double u, double v, int n, int m, double complex **K);
 
-int LQR_dgesv(int n, int nrhs, double *a, int lda, int *ipiv, double *b, int ldb);
-int LQR_zgesv(int n, int nrhs, double complex *a, int lda, int *ipiv, double complex *b, int ldb);
-
 #endif

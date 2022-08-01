@@ -292,13 +292,3 @@ int zlqr(COMPLEX **A, COMPLEX **B, double u, double v, int n, int m, COMPLEX **K
 
   return info;
 }
-
-
-// TODO: make this better
-int LQR_dgesv(int n, int nrhs, double *a, int lda, int *ipiv, double *b, int ldb) {
-  return LAPACKE_dgesv(LAPACK_ROW_MAJOR, n, nrhs, a, lda, ipiv, b, ldb);
-}
-
-int LQR_zgesv(int n, int nrhs, COMPLEX *a, int lda, int *ipiv, COMPLEX *b, int ldb) {
-  return LAPACKE_zgesv(LAPACK_ROW_MAJOR, n, nrhs, a, lda, ipiv, b, ldb);
-}
