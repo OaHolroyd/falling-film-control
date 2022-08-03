@@ -25,7 +25,7 @@ void control_free();
 
 /* steps the specific control system forward in time given the interfacial
    height */
-extern void (*control_step)(double *h);
+extern void (*control_step)(double dt, double *h);
 
 /* returns the estimator as a function of x */
 extern double (*estimator)(double x);

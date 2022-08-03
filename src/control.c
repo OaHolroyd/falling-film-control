@@ -3,6 +3,7 @@
 #include "control-internals.h"
 #include "control-pair.h"
 #include "control-static.h"
+#include "control-dynamic.h"
 
 #include "c-utils.h"
 
@@ -21,7 +22,7 @@ void (*s_free)();
 
 /* steps the specific control system forward in time given the interfacial
    height */
-void (*control_step)(double *h);
+void (*control_step)(double dt, double *h);
 
 /* returns the estimator as a function of x */
 double (*estimator)(double x);
@@ -81,7 +82,10 @@ void control_set(control_t ct, rom_t rt, int m, int p, double w, double alpha, d
       estimator = &static_estimator;
       break;
     case DYNAMIC:
-      ABORT("dynamic control type not implemented yet");
+      s_set = &dynamic_set;
+      s_free = &dynamic_free;
+      control_step = &dynamic_step;
+      estimator = &dynamic_estimator;
       break;
     default :
       ABORT("invalid control type %d", ct);

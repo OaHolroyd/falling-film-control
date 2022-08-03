@@ -20,7 +20,7 @@ void pair_set() {
 void pair_free() {}
 
 /* [REQUIRED] steps the system forward in time given the interfacial height */
-void pair_step(double *h) {
+void pair_step(double dt, double *h) {
   for (int i = 0; i < M; i++) {
     Amag[i] = interp(Aloc[i]-DEL, h) - 1.0;
   } // i end

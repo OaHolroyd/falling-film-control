@@ -133,7 +133,7 @@ int main(int argc, char const *argv[]) {
   /* set up the model */ // TODO allow setting of ct and rt via JSON file
   init_domain();
   set_params();
-  control_set(STATIC, BENNEY, C_M, C_P, C_W, C_ALPHA, C_MU, C_DEL, LX, N, RE, CA, THETA);
+  control_set(DYNAMIC, BENNEY, C_M, C_P, C_W, C_ALPHA, C_MU, C_DEL, LX, N, RE, CA, THETA);
 
   /* sanity check the dimensionless numbers and Nusselt velocity */
   fprintf(stderr, "Us: %.8lf\n", US);
@@ -190,7 +190,7 @@ event controls(i++) {
   } // i end
 
   if (t >= C_START) {
-    control_step(H);
+    control_step(dt, H);
     Ccost += dt * control_cost(H);
 
     boundary({u.x, u.y}); // update boundary velocities
@@ -203,12 +203,13 @@ event output_log(i=0; t<=TMAX; i+=LOG_STEP) {
   /* print column headers */
   static int first_log = 1;
   if (first_log) {
-    fprintf(stderr, "  model t        dt      iter         N    elap t  \n");
+    fprintf(stderr, "  model t        dt      iter         N    elap t      cost\n");
     first_log = 0;
   }
 
   /* print data */
-  fprintf(stderr, "\r %8.2lf  %8.5lf  %8d  %8ld  %8.0lf ",t,dt,i,grid->n,perf.t);
+  fprintf(stderr, "\r %8.2lf  %8.5lf  %8d  %8ld  %8.0lf  %8.2lf",
+                      t,      dt,    i, grid->n, perf.t, Ccost);
 
   /* force output */
   fflush (stderr);
@@ -221,10 +222,6 @@ event output_dat(t=0.0; t<=TMAX; t += DTOUT) {
   /* shift datcount to prevent file overwrites */
   static int datcount = 0;
   char fname[64];
-  scalar l[];
-  scalar u_mag[];
-  scalar u_x[], u_y[];
-  scalar omega[];
 
   if (datcount == 0) {
     /* check if there are any files in ./out */
@@ -232,7 +229,7 @@ event output_dat(t=0.0; t<=TMAX; t += DTOUT) {
     int i = 0;
     double t0;
     sprintf(fname, "out/data-1-%010d.dat", i);
-    while (fp = fopen(fname, "r")) {
+    while ((fp = fopen(fname, "r"))) {
       /* check if the time is before the current time */
       if (fscanf(fp, "# t: %lf\n", &t0) != 1) { ABORT("missing timestamp"); }
       fclose(fp);
@@ -251,6 +248,11 @@ event output_dat(t=0.0; t<=TMAX; t += DTOUT) {
 
   /* only compute 2D outputs if required */
   if (OUTPUT_DAT > 1) {
+    scalar l[];
+    scalar u_mag[];
+    scalar u_x[], u_y[];
+    scalar omega[];
+
     /* iterated scalars */
     foreach () {
       l[] = level; // refinement level

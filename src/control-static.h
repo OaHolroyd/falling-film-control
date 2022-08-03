@@ -241,7 +241,7 @@ void static_free() {
 }
 
 /* [REQUIRED] steps the system forward in time given the interfacial height */
-void static_step(double *h) {
+void static_step(double dt, double *h) {
   /* f = K * (h-1) */
   for (int i = 0; i < M; i++) {
     Amag[i] = 0.0;
