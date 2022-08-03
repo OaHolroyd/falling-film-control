@@ -12,7 +12,7 @@ CC=gcc # C99
 LD=$(CC) # linker
 
 # C flags
-CFLAGS=-O3
+CFLAGS=-O3 -Wall
 # CFLAGS=-O0 -g -fbounds-check -fsanitize=address -fsanitize=bounds -fsanitize=bounds-strict
 
 # required libraries
@@ -44,7 +44,7 @@ link: $(OBJ)
 # Build rule for binaries
 $(OBJ_DIR)/%.o: $(SRC_DIR)/%.c
 	@printf "\033[1;36mBuilding %s\033[0m\n" $@
-	$(CC) $(CFLAGS) $(LDFLAGS) $(IFLAGS) -c -o $@ $<
+	$(CC) $(CFLAGS) -c -o $@ $< $(LDFLAGS) $(IFLAGS)
 
 # Force rebuild of all files
 .PHONY: all
