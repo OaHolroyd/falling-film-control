@@ -85,11 +85,6 @@ void dynamic_benney_set() {
 
   /* compute spectral K */
   zlqr(J, Psi, MU*LX, (1-MU), M, M, DYNAMIC_K);
-  // for (i = 0; i < M; i++) {
-  //   for (j = 0; j < M; j++) {
-  //     DYNAMIC_K[i][j] = 0.0;
-  //   } // j end
-  // } // i end
 
 
   /* compute spectral Phi - observer (this is actually the transpose) */
@@ -145,8 +140,6 @@ void dynamic_benney_set() {
   free_2d((void **)Psi);
   free_2d((void **)Phi);
   free_2d((void **)L);
-
-  // ABORT("normal end");
 }
 
 /* solves the linearised system z_t = Az + B(h-1) forward by one timestep */
