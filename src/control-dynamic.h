@@ -92,7 +92,7 @@ void dynamic_benney_set() {
       /* manually compute the inverse DFT via dot product */
       for (k = 0; k < N; k++) {
         xk = ITOX(k);
-        Phi[i][j] += rPhi[k][j] * (cos(K[i]*xk) - I*sin(K[i]*xk));
+        Phi[i][j] += rPhi[k][j] * (cos(K[i]*xk) + I*sin(K[i]*xk));
       } // k end
 
     } // j end
@@ -101,7 +101,6 @@ void dynamic_benney_set() {
 
   /* compute spectral K */
   zlqr(J, Psi, MU*LX/(M*M), (1-MU), M, M, DYNAMIC_K);
-
   for (i = 0; i < M; i++) {
     for (j = 0; j < M; j++) {
       DYNAMIC_K[i][j] = 0.0;
@@ -115,17 +114,6 @@ void dynamic_benney_set() {
   zlqr(J, Phi, DYNAMIC_MU_L*LX/(M*M), DYNAMIC_MU_L, M, P, L);
 
 
-  /* compute B */
-  for (i = 0; i < M; i++) {
-    for (j = 0; j < N; j++) {
-      DYNAMIC_B[i][j] = 0.0;
-      for (k = 0; k < P; k++) {
-        DYNAMIC_B[i][j] -= L[k][i] * rPhi[j][k];
-      } // k end
-    } // j end
-  } // i end
-
-
   /* compute A */
   for (i = 0; i < M; i++) {
     for (j = 0; j < M; j++) {
@@ -134,7 +122,18 @@ void dynamic_benney_set() {
         DYNAMIC_A[i][j] += Psi[i][k] * DYNAMIC_K[k][j];
       } // k end
       for (k = 0; k < P; k++) {
-        DYNAMIC_A[i][j] += L[k][i] * Phi[j][k];
+        DYNAMIC_A[i][j] -= L[k][i] * Phi[j][k];
+      } // k end
+    } // j end
+  } // i end
+
+
+  /* compute B */
+  for (i = 0; i < M; i++) {
+    for (j = 0; j < N; j++) {
+      DYNAMIC_B[i][j] = 0.0;
+      for (k = 0; k < P; k++) {
+        DYNAMIC_B[i][j] += L[k][i] * rPhi[j][k];
       } // k end
     } // j end
   } // i end
@@ -251,7 +250,6 @@ void dynamic_step(double dt, double *h) {
     for (int j = 0; j < M; j++) {
       Amag[i] += creal(DYNAMIC_K[i][j] * DYNAMIC_z[j]); // ensure this is real
     } // j end
-    Amag[i] = 0.0;
   } // i end
 }
 
@@ -272,7 +270,7 @@ double dynamic_estimator(double x) {
   for (int i = 0; i < M; i++) {
     j *= -1;
     k = j*(i+1)/2; // uses integer rounding
-    e += DYNAMIC_z[i]*(cos(dk*k*x) - I*sin(dk*k*x));
+    e += DYNAMIC_z[i]*(cos(dk*k*x) + I*sin(dk*k*x));
   } // i end
 
   return creal(e);

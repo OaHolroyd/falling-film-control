@@ -246,7 +246,7 @@ void static_step(double dt, double *h) {
   for (int i = 0; i < M; i++) {
     Amag[i] = 0.0;
     for (int j = 0; j < N; j++) {
-      Amag[i] -= STATIC_K[i][j] * (interp(ITOX(j), h) - 1.0);
+      Amag[i] += STATIC_K[i][j] * (interp(ITOX(j), h) - 1.0);
     } // j end
   } // i end
 }

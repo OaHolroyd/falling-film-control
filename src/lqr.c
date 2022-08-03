@@ -104,7 +104,7 @@ int dlqr(double **A, double **B, double u, double v, int n, int m, double **K) {
     for (j = 0; j < n; j++) {
       K[i][j] = 0.0;
       for (k = 0; k < n; k++) {
-        K[i][j] += B[k][i] * creal(P[k*n+j]);
+        K[i][j] -= B[k][i] * creal(P[k*n+j]);
       } // k end
       K[i][j] *= c;
     } // j end
@@ -247,7 +247,7 @@ int zlqr(COMPLEX **A, COMPLEX **B, double u, double v, int n, int m, COMPLEX **K
     for (j = 0; j < n; j++) {
       K[i][j] = 0.0;
       for (k = 0; k < n; k++) {
-        K[i][j] += conj(B[k][i]) * creal(P[k*n+j]);
+        K[i][j] -= conj(B[k][i]) * creal(P[k*n+j]);
       } // k end
       K[i][j] *= c;
     } // j end
