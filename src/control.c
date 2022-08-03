@@ -46,16 +46,20 @@ double control(double x) {
 double control_cost(double *h) {
   double cost = 0.0;
 
-  /* control cost */
-  // TODO: is this simplification correct or do we need the full integral?
-  for (int i = 0; i < M; i++) {
-    cost += (1-MU) * Amag[i]*Amag[i];
-  } // i end
-
-  /* interfacial cost */
+  double xi, ai;
   for (int i = 0; i < N; i++) {
+    xi = ITOX(i);
+
+    /* control cost */
+    ai = actuator(xi);
+    cost += (1-MU) * ai*ai;
+
+    /* interfacial cost */
     cost += MU * (h[i]-1)*(h[i]-1);
   } // i end
+
+  /* integral scaling */
+  cost *= DX;
 
   return cost;
 }
