@@ -28,7 +28,6 @@ double** malloc_f2d(int Ni, int Nj) {
   return p_2arr;
 }
 
-
 /* Allocate memory for a 2D complex double array and match row indices to the
    corresponding memory locations. */
 COMPLEX** malloc_z2d(int Ni, int Nj) {
@@ -49,13 +48,11 @@ COMPLEX** malloc_z2d(int Ni, int Nj) {
   return p_2arr;
 }
 
-
 /* Frees memory associated with a 2D array */
 void internal_free_2d(void** arr) {
   free(*arr);
   free(arr);
 }
-
 
 /* Aborts with an error message */
 void ABORT(const char *format, ...) {

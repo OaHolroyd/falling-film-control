@@ -102,4 +102,5 @@ void control_set(control_t ct, rom_t rt, int m, int p, double w, double alpha, d
 /* frees the control system */
 void control_free() {
   internal_control_free();
+  s_free();
 }

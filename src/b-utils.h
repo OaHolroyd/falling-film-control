@@ -23,6 +23,11 @@
 #define mu(f)  (1./(clamp(f,0,1)*(1./mu1 - 1./mu2) + 1./mu2))
 #endif
 
+/* convert from index to location */
+#define ITOX(i) (DX*(i+0.5))
+
+/* convert from location to index */
+#define XTOI(x) ((int)(x/DX - 0.5))
 
 /* get interfacial height at a given x-coord */
 #define NP 10
@@ -63,11 +68,5 @@ double interfacial_height(double xp) {
   return yh[j];
 }
 
-
-/* convert from index to location */
-#define ITOX(i) (DX*(i+0.5))
-
-/* convert from location to index */
-#define XTOI(x) ((int)(x/DX - 0.5))
 
 #endif

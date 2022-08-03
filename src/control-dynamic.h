@@ -10,7 +10,6 @@
 #include "lu.h"
 #include "control-internals.h"
 
-#include "debug.h"
 
 static double complex **DYNAMIC_A; // dynamics (linearised system)
 static double complex **DYNAMIC_B; // control (linearised system)
@@ -186,7 +185,6 @@ void dynamic_benney_update_estimator(double dt, double *h) {
   /* solve LUx = z */
   zlusv(DYNAMIC_A1, DYNAMIC_z, M);
 }
-
 
 
 /* ========================================================================== */

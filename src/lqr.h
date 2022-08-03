@@ -14,4 +14,5 @@ int dlqr(double **A, double **B, double u, double v, int n, int m, double **K);
 /* complex version of the above */
 int zlqr(double complex **A, double complex **B, double u, double v, int n, int m, double complex **K);
 
+
 #endif

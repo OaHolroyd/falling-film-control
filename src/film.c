@@ -17,6 +17,7 @@
 #include "tension.h" // surface tension
 #include "heights.h" // interfacial height
 
+
 double *H; // film height
 face vector av[]; // acceleration vector field
 double G[2]; // gravity

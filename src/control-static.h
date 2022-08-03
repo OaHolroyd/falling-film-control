@@ -238,6 +238,7 @@ void static_set() {
 
 /* [REQUIRED] internal free */
 void static_free() {
+
   free(STATIC_K);
 }
 
@@ -257,5 +258,6 @@ double static_estimator(double x) {
 
   return 0.0;
 }
+
 
 #endif
