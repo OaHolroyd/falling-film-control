@@ -29,6 +29,7 @@ double Ccost; // control cost
 #define NOUT (1<<(LEVEL-1)) // output resolution
 #define LOG_STEP 10 // log every LOG_STEP steps
 #define OUTPUT_DAT 1 // dimension of data to output (1 or 2, 0 for no output)
+#define DUMP 0 // how often to dump (for restarting)
 
 
 /* ========================================================================== */
@@ -287,17 +288,21 @@ event output_dat(t=0.0; t<=TMAX; t += DTOUT) {
 #endif
 
 /* dump output every 100 time units */
-event dump_xxx(t=0.0; t+=100) {
+#if DUMP
+event dump_xxx(t=0.0; t+=DUMP) {
   char dump_file[32];
   sprintf(dump_file, "dump/dump-%04.0lf", t);
   dump(file = dump_file);
 }
+#endif
 
 /* finish */
 event stop(t=TMAX) {
+  #if DUMP
   char dump_file[32];
   sprintf(dump_file, "dump/dump-%04.0lf-end", t);
   dump(file = dump_file);
+  #endif
 
   #if LOG_STEP
   fprintf(stderr, "\n");
