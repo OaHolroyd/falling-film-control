@@ -143,6 +143,7 @@ void dynamic_benney_set() {
 }
 
 /* solves the linearised system z_t = Az + B(h-1) forward by one timestep */
+// TODO: this currently uses C-N but Euler looks like it would be fine too
 void dynamic_benney_update_estimator(double dt, double *h) {
   int i, j;
 
@@ -167,9 +168,8 @@ void dynamic_benney_update_estimator(double dt, double *h) {
 
 
   /* only need to recompute the implicit matrix if dt has changed */
-  // TODO: this doesn't seem to help!
-  static double dt_prev = -1;
-  if (dt != dt_prev) {
+  static double dt_prev = -100000;
+  if (fabs(dt-dt_prev) > 1e-15) {
     /* set implicit matrix */
     for (i = 0; i < M; i++) {
       for (j = 0; j < M; j++) {
