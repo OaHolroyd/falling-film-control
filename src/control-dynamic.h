@@ -3,7 +3,6 @@
 
 #include <math.h>
 #include <complex.h>
-#include <lapacke.h>
 
 #include "c-utils.h"
 #include "lqr.h"
