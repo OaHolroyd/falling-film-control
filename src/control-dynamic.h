@@ -83,6 +83,15 @@ void dynamic_benney_set() {
   } // i end
 
 
+  /* compute spectral K */
+  zlqr(J, Psi, MU*LX, (1-MU), M, M, DYNAMIC_K);
+  // for (i = 0; i < M; i++) {
+  //   for (j = 0; j < M; j++) {
+  //     DYNAMIC_K[i][j] = 0.0;
+  //   } // j end
+  // } // i end
+
+
   /* compute spectral Phi - observer (this is actually the transpose) */
   double complex **Phi = malloc_z2d(M, P);
   for (i = 0; i < M; i++) {
@@ -99,19 +108,10 @@ void dynamic_benney_set() {
   } // i end
 
 
-  /* compute spectral K */
-  zlqr(J, Psi, MU*LX/(M*M), (1-MU), M, M, DYNAMIC_K);
-  for (i = 0; i < M; i++) {
-    for (j = 0; j < M; j++) {
-      DYNAMIC_K[i][j] = 0.0;
-    } // j end
-  } // i end
-
-
   /* compute L (this is actually the transpose) */
   const double DYNAMIC_MU_L = 0.5; // TODO: choose this optimally
   double complex **L = malloc_z2d(P, M);
-  zlqr(J, Phi, DYNAMIC_MU_L*LX/(M*M), DYNAMIC_MU_L, M, P, L);
+  zlqr(J, Phi, DYNAMIC_MU_L*LX, DYNAMIC_MU_L, M, P, L);
 
 
   /* compute A */
