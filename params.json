@@ -28,7 +28,9 @@
     "start": 600.0,
     "width": 0.01,
     "alpha": 1.0,
-    "del": 1.0,
-    "mu": 0.1
+    "del": 0.0,
+    "mu": 0.1,
+    "rom": "benney",
+    "strategy": "static"
   }
 }

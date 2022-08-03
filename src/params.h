@@ -7,6 +7,7 @@
 
 #include "c-utils.h"
 #include "parallel.h"
+#include "control.h"
 #include "jsmn.h"
 
 
@@ -61,6 +62,8 @@ double C_W = 0.01; // control width parameter
 double C_ALPHA = 1.0; // control strength
 double C_DEL = 1.0; // observer/control displacement
 double C_MU = 0.1; // control cost parameter
+rom_t C_ROM = BENNEY; // reduced order model
+control_t C_STRAT = STATIC; // control strategy
 
 
 /* ========================================================================== */
@@ -201,7 +204,7 @@ int read_params(char *fname) {
     }
 
     else if (jsoneq(s, &t[i], "CONTROL") == 0) {
-      n = 7;
+      n = 9;
       m = n;
       for (int j = i+2; j < i+2+2*m; j++) {
         if (jsoneq(s, &t[j], "M") == 0) {
@@ -231,6 +234,28 @@ int read_params(char *fname) {
         } else if (jsoneq(s, &t[j], "mu") == 0) {
           j++;
           C_MU = strtod(s+t[j].start, NULL);
+          n--;
+        } else if (jsoneq(s, &t[j], "rom") == 0) {
+          j++;
+          if (!strncmp(s+t[j].start, "benney", t[j].end-t[j].start)) {
+            C_ROM = BENNEY;
+          } else if (!strncmp(s+t[j].start, "wr", t[j].end-t[j].start)) {
+            C_ROM = WR;
+          } else {
+            ABORT("invalid ROM type");
+          }
+          n--;
+        } else if (jsoneq(s, &t[j], "strategy") == 0) {
+          j++;
+          if (!strncmp(s+t[j].start, "pair", t[j].end-t[j].start)) {
+            C_STRAT = PAIR;
+          } else if (!strncmp(s+t[j].start, "static", t[j].end-t[j].start)) {
+            C_STRAT = STATIC;
+          } else if (!strncmp(s+t[j].start, "dynamic", t[j].end-t[j].start)) {
+            C_STRAT = DYNAMIC;
+          } else {
+            ABORT("invalid control strategy");
+          }
           n--;
         } else {
           fprintf(stderr, "bad token\n");

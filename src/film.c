@@ -134,7 +134,8 @@ int main(int argc, char const *argv[]) {
   /* set up the model */ // TODO allow setting of ct and rt via JSON file
   init_domain();
   set_params();
-  control_set(DYNAMIC, BENNEY, C_M, C_P, C_W, C_ALPHA, C_MU, C_DEL, LX, N, RE, CA, THETA);
+  control_set(C_STRAT, C_ROM, C_M, C_P, C_W, C_ALPHA, C_MU, C_DEL,
+              LX, N, RE, CA, THETA);
 
   /* sanity check the dimensionless numbers and Nusselt velocity */
   fprintf(stderr, "Us: %.8lf\n", US);
