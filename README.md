@@ -21,6 +21,8 @@ make
 For a given set of parameters, the code will run for a specified time, printing the total cost
 $$ \kappa = \int_0^T \int_0^L \mu (h(x)-1)^2 + (1-\mu) F^2 \text{d}x \text{d}t $$
 
+to `stdout`. All other outputs (dimensionless numbers, simulation progress etc.) are printed to `stderr`.
+
 ### Requirements
 The code requires an input JSON file containing physical parameters, solver settings and output details. An example of such a file (containing parameters corresponding to a thin liquid water film) is included in [params.json](params.json). If you wish to use an alternative file, pass its' path as the first (and only) argument to `film`.
 
