@@ -9,7 +9,7 @@
 /*   FUNCTION DEFINITIONS                                                     */
 /* ========================================================================== */
 /* [REQUIRED] internal setup */
-void pair_set() {
+void pair_set(void) {
   /* pair requires M and P to be the same */
   if (M != P) {
     ABORT("M and P must be equal for paired controls");
@@ -17,7 +17,7 @@ void pair_set() {
 }
 
 /* [REQUIRED] internal free */
-void pair_free() {}
+void pair_free(void) {}
 
 /* [REQUIRED] steps the system forward in time given the interfacial height */
 void pair_step(double dt, double *h) {

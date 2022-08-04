@@ -15,10 +15,10 @@ static control_t CT;
 /*   STRATEGY-SPECIFIC FUNCTION DECLARATIONS                                  */
 /* ========================================================================== */
 /* sets up the specific control strategy */
-void (*s_set)();
+void (*s_set)(void);
 
 /* frees varaibles specific to the selected strategy */
-void (*s_free)();
+void (*s_free)(void);
 
 /* steps the specific control system forward in time given the interfacial
    height */
@@ -96,11 +96,11 @@ void control_set(control_t ct, rom_t rt, int m, int p, double w, double alpha, d
   }
 
   /* call strategy specific setup */
-  s_set(m, p, w, alpha, mu, del, lx, n);
+  s_set();
 }
 
 /* frees the control system */
-void control_free() {
+void control_free(void) {
   internal_control_free();
   s_free();
 }

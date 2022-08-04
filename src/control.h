@@ -21,7 +21,7 @@ double control_cost(double *h);
 void control_set(control_t ct, rom_t rt, int m, int p, double w, double alpha, double mu, double del, double lx, int n, double re, double ca, double theta);
 
 /* frees the control system */
-void control_free();
+void control_free(void);
 
 /* steps the specific control system forward in time given the interfacial
    height */

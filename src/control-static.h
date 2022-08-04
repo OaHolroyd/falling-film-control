@@ -15,7 +15,7 @@ static double **STATIC_K; /* control operator */
 /*   AUXILIARY FUNCTION DEFINITIONS                                           */
 /* ========================================================================== */
 /* compute the control matrix in the Benney case */
-void static_benney_compute_K() {
+void static_benney_compute_K(void) {
   /* Jacobian */
   double **J = malloc_f2d(N, N);
 
@@ -95,7 +95,7 @@ void static_benney_compute_K() {
 }
 
 /* compute the control matrix in the weighted-residuals case */
-void static_wr_compute_K() {
+void static_wr_compute_K(void) {
     /* Jacobian */
   double **J = malloc_f2d(2*N, 2*N);
 
@@ -220,7 +220,7 @@ void static_wr_compute_K() {
 /*   FUNCTION DEFINITIONS                                                     */
 /* ========================================================================== */
 /* [REQUIRED] internal setup */
-void static_set() {
+void static_set(void) {
   STATIC_K = malloc_f2d(M, N);
 
   /* pick from the available ROMs */
@@ -237,7 +237,7 @@ void static_set() {
 }
 
 /* [REQUIRED] internal free */
-void static_free() {
+void static_free(void) {
 
   free(STATIC_K);
 }

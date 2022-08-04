@@ -27,7 +27,7 @@ static void (*dynamic_update)(double dt, double *h); // update function
 /*   AUXILIARY FUNCTION DEFINITIONS                                           */
 /* ========================================================================== */
 /* sets the various matrices required for the Benney system to work */
-void dynamic_benney_set() {
+void dynamic_benney_set(void) {
   int i, j, k;
 
 
@@ -190,7 +190,7 @@ void dynamic_benney_update_estimator(double dt, double *h) {
 /*   FUNCTION DEFINITIONS                                                     */
 /* ========================================================================== */
 /* [REQUIRED] internal setup */
-void dynamic_set() {
+void dynamic_set(void) {
   DYNAMIC_K = malloc_z2d(M, M);
   DYNAMIC_B = malloc_z2d(M, N);
   DYNAMIC_A = malloc_z2d(M, M);
@@ -218,7 +218,7 @@ void dynamic_set() {
 }
 
 /* [REQUIRED] internal free */
-void dynamic_free() {
+void dynamic_free(void) {
   free_2d((void **)DYNAMIC_K);
   free_2d((void **)DYNAMIC_B);
   free_2d((void **)DYNAMIC_A);

@@ -1,7 +1,6 @@
 # ============================================================================ #
 #   MAKEFILE FOR THIN FILM WITH FEEDBACK CONTROL                               #
 # ============================================================================ #
-UNAME := $(shell uname)
 
 # ================ #
 #   Definitiions   #
@@ -12,7 +11,13 @@ CC=gcc # C99
 LD=$(CC) # linker
 
 # C flags
-CFLAGS=-O3 -Wall
+BFLAGS=-O3 -Wall
+CFLAGS=-O3 -Wall -Wextra -pedantic -Wno-unused-parameter -Wshadow \
+       -Waggregate-return -Wbad-function-cast -Wcast-align -Wcast-qual \
+       -Wfloat-equal -Wformat=2 -Wlogical-op -Wmissing-include-dirs \
+       -Wnested-externs -Wpointer-arith -Wconversion -Wno-sign-conversion \
+       -Wredundant-decls -Wsequence-point -Wstrict-prototypes -Wswitch -Wundef \
+       -Wunused-but-set-parameter -Wwrite-strings
 # CFLAGS=-O0 -g -fbounds-check -fsanitize=address -fsanitize=bounds -fsanitize=bounds-strict
 
 # required libraries
@@ -25,6 +30,7 @@ OBJ_DIR=./obj
 OUT_DIR=./out
 DUMP_DIR=./dump
 PLT_DIR=./plots
+
 SRC=$(filter-out $(SRC_DIR)/_$(EXE).c $(SRC_DIR)/$(EXE).c, $(wildcard $(SRC_DIR)/*.c)) $(SRC_DIR)/_$(EXE).c
 OBJ=$(addprefix $(OBJ_DIR)/, $(notdir $(SRC:.c=.o)))
 
@@ -36,10 +42,16 @@ OBJ=$(addprefix $(OBJ_DIR)/, $(notdir $(SRC:.c=.o)))
 film: directories source link
 	rm $(SRC_DIR)/_$(EXE).c
 
+# link to make executable
 .PHONY: link
 link: $(OBJ)
 	@printf "\033[1;32mLinking\033[0m\n"
 	$(LD) $(CFLAGS) -o $(EXE) $(OBJ) $(LDFLAGS) $(IFLAGS)
+
+# Build rule for basilisk binary
+$(OBJ_DIR)/_film.o: $(SRC_DIR)/_film.c
+	@printf "\033[1;36mBuilding %s\033[0m\n" $@
+	$(CC) $(BFLAGS) -c -o $@ $< $(LDFLAGS) $(IFLAGS)
 
 # Build rule for binaries
 $(OBJ_DIR)/%.o: $(SRC_DIR)/%.c
@@ -73,4 +85,4 @@ deepclean:
 source: $(SRC_DIR)/$(EXE).c
 	@printf "\033[1;35mBuilding source\033[0m\n"
 	cd $(SRC_DIR) && \
-	$(BC) -source $(CFLAGS) -DPARALLEL $(LDFLAGS) $(IFLAGS) $(EXE).c
+	$(BC) -source $(BFLAGS) -DPARALLEL $(LDFLAGS) $(IFLAGS) $(EXE).c

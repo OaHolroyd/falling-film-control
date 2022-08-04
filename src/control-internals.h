@@ -58,8 +58,11 @@ double interp(double x, double *h) {
 
   /* get neighbouring indices */
   double i = x/DX - 0.5;
-  int i0 = floor(i);
-  int i1 = ceil(i);
+  double _i0 = floor(i);
+  double _i1 = ceil(i);
+  int i0 = (int) _i0;
+  int i1 = (int) _i1;
+
 
   /* cover the case that x is on a gridpoint */
   if (i0 == i1) {
@@ -132,7 +135,7 @@ void internal_control_set(rom_t rt, int m, int p, double w, double alpha, double
 }
 
 /* frees the common memory */
-void internal_control_free() {
+void internal_control_free(void) {
   free(Aloc);
   free(Oloc);
   free(Amag);
