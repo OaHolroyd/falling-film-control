@@ -102,7 +102,7 @@ There are three strategies that we consider.
 #### Paired actuators/observers
 Here we simply couple an equal number of observers and actuators, with a fixed shift between them. The control is then simply
 ```math
-f_i = -\alpha (h(x_i - \delta) - 1).
+f_i = -\alpha \left(h(x_i - \delta) - 1\right).
 ```
 
 #### Static LQR controls
@@ -115,6 +115,6 @@ The control operator $K$ that minimises the cost $\kappa$ is provided by the [Li
 #### Dynamic LQR controls
 Although the static LQR controls work well, they are not disadvantages by restricted observations. If we limit ourselves to discrete observers we must use an estimator to derive our controls rather than the interfacial height directly. The estimator approximates the most unstable Fourier modes of the linearised system:
 ```math
-z_t = [\tilde{J} + \tilde{\Psi}\tilde{K}]z + L(\Phi (h-1) - \tilde{\Phi}z),
+z_t = \left(\tilde{J} + \tilde{\Psi}\tilde{K}\right)z + L\left(\Phi (h-1) - \tilde{\Phi}z\right),
 ```
 and is forced towards the observed system by the operator $L$, which is also set using the LQR.
