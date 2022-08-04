@@ -37,13 +37,35 @@ Basilisk includes the option to 'dump' the entire simulation to a single file, w
 
 
 ## Input parameters
-All of the parameters are either in SI units or dimensionless. The keys in [params.json](params.json) are hopefully fairly self-explanatory. However, below is a full description of what they all do.
+All of the parameters are either in SI units or dimensionless. The keys in [params.json](params.json) are hopefully fairly self-explanatory. However, below is a full description.
 
 #### Domain parameters
-These 6 parameters describe the spacial and temporal domains:
 * **`h0`** the thickness of a uniform film - m
-* **`Lx`** the ratio of film thickness to domain length - dimensionless
-* **`Ly`** the ratio of film thickness to domain height (including air layer) - dimensionless
+* **`Lx`** the ratio of film thickness to domain length
+* **`Ly`** the ratio of film thickness to domain height (including air layer)
 * **`theta`** the angle of the plate from horizontal - rad
 * **`tmax`** the simulation end time - dimensionless
 * **`t0`** the start time (either 0 or matching a dump file) - dimensionless
+
+#### Physical parameters
+* **`rho_l`** fluid-phase density - kg m^-3
+* **`rho_g`** gas-phase density - kg m^-3
+* **`mu_l`** fluid-phase dynamic viscosity - kg m^-1 s^-1
+* **`mu_g`** gas-phase dynamic viscosity - kg m^-1 s^-1
+* **`gamma`** surface tension - N m^-1
+* **`grav`** gravitational acceleration - m s^-2
+
+#### Solver parameters
+* **`level`** the grid refinement level (resulting in 2^level gridcells)
+* **`dtout`** output timestep - dimensionless
+
+#### Control parameters
+* **`M`** number of actuators - integer
+* **`P`** number of observers - integer
+* **`start`** control start time - dimensionless
+* **`width`** actuator and observer width parameter. As this approaches 0 the actuators and observers tend towards Dirac delta distributions. If this is too small for the grid to resolve this may cause unexpected results. - dimensionless
+* **`alpha`** control strength parameter - dimensionless
+* **`del`** actuator/actuator upstream offset - dimensionless
+* **`mu`** interface/control cost weighting - dimensionless
+* **`rom`** the reduced order model to use for the control strategy - "benney" or "wr"
+* **`strategy`** the type of control to use - "pair", "static" or "dynamic"
