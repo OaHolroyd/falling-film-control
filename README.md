@@ -25,7 +25,7 @@ make
 
 For a given set of parameters, the code will print the total cost
 ```math
-\kappa = \int_0^T \int_0^L \mu (h(x)-1)^2 + (1-\mu) F^2 \text{d}x \text{d}t
+\kappa = \int_0^T \int_0^L \mu (h(x)-1)^2 + (1-\mu) f^2 \text{d}x \text{d}t
 ```
 to `stdout`. All other outputs (dimensionless numbers, simulation progress etc.) are printed to `stderr`.
 
@@ -80,12 +80,12 @@ All of the parameters are either in SI units or dimensionless. The keys in [para
 The purpose of this code is to control a thin liquid film to the flat, Nusselt solution. The Navier-Stokes equations are too complex to apply any established control theoretical results to, and so we instead turn to a hierarchical control method, using reduced order models.
 
 ### Reduced order models
-We currently consider two ROMs. Instead of describing the evolution of velocity and pressure, they describe the evolution of the film height $h$ and the heigh-averaged flux $q$, with a forcing term $F$ that comes from fluid injection through the base. This results in a mass-conservation equation
+We currently consider two ROMs. Instead of describing the evolution of velocity and pressure, they describe the evolution of the film height $h$ and the heigh-averaged flux $q$, with a forcing term $f$ that comes from fluid injection through the base. This results in a mass-conservation equation
 ```math
-h_t + q_x = F.
+h_t + q_x = f.
 ```
 
-To close the system the **Benney** equation slaves the flux to the height
+To close the system, the **Benney** equation slaves the flux to the height
 ```math
 q = \frac{h^3}{3}\left(2-2h_x \cot\theta + \frac{h_{xxx}}{Ca}\right) + Re\left(\frac{8h^6h_x}{15} - \frac{2h^4f}{3}\right),
 ```
@@ -94,8 +94,27 @@ and the **weighted-residual** system requires an additional evolution equation f
 \frac{2Reh^2q_t}{5} + q = \frac{h^3}{3}\left(2-2h_x \cot\theta + \frac{h_{xxx}}{Ca}\right) + Re\left(\frac{18q^2h_x}{35} - \frac{34hqq_x}{35} + \frac{hqf}{5}\right).
 ```
 
+We can then implement control strategies to control the Navier-Stokes system by making the assumption that it is well-approximated by one of these simpler models and applying controls as if we were aiming to control the alternative system rather than the original.
 
+### Control strategies
+There are three strategies that we consider.
 
+#### Paired actuators/observers
+Here we simply couple an equal number of observers and actuators, with a fixed shift between them. The control is then simply
+```math
+f_i = -\alpha (h(x_i - \delta) - 1).
+```
 
+#### Static LQR controls
+If we relax the restriction of discrete observers, giving the control access to the full interface, we can further simplify the problem by linearising it:
+```math
+\bm{h}_t = \textbf{J}(\bm{h}-1) + \textbf{Psi}\textbf{K}(\bm{h}-1).
+```
+The control operator $\textbf{K}$ that minimises the cost $\kappa$ is provided by the [Linear-Quadratic Regulator](https://en.wikipedia.org/wiki/Linear%E2%80%93quadratic_regulator).
 
-
+#### Dynamic LQR controls
+Although the static LQR controls work well, they are not disadvantages by restricted observations. If we limit ourselves to discrete observers we must use an estimator to derive our controls rather than the interfacial height directly. The estimator approximates the most unstable Fourier modes of the linearised system:
+```math
+\bm{z}_t = [\textbf{\tilde{J}} + \textbf{\tilde{Psi}}\textbf{\tilde{K}}]\bm{z} + \textbf{L}(\textbf{Phi}(\bm{h}-1) - \textbf{\tilde{Phi}}\bm{z}),
+```
+and is forced towards the observed system by the operator $\textbf{L}$, which is also set using the LQR.
