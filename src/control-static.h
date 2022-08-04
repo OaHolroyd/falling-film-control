@@ -89,9 +89,9 @@ void static_benney_compute_K(void) {
   dlqr(J, Psi, MU, 1-MU, N, M, STATIC_K);
 
 
-  free_2d((void **)J);
-  free_2d((void **)F);
-  free_2d((void **)Psi);
+  free_2d(J);
+  free_2d(F);
+  free_2d(Psi);
 }
 
 /* compute the control matrix in the weighted-residuals case */
@@ -209,10 +209,10 @@ void static_wr_compute_K(void) {
   } // i end
 
 
-  free_2d((void **)J);
-  free_2d((void **)F);
-  free_2d((void **)Psi);
-  free_2d((void **)K);
+  free_2d(J);
+  free_2d(F);
+  free_2d(Psi);
+  free_2d(K);
 }
 
 

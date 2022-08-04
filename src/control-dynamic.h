@@ -132,12 +132,12 @@ void dynamic_benney_set(void) {
   } // i end
 
 
-  free_2d((void **)rPhi);
+  free_2d(rPhi);
   free(K);
-  free_2d((void **)J);
-  free_2d((void **)Psi);
-  free_2d((void **)Phi);
-  free_2d((void **)L);
+  free_2d(J);
+  free_2d(Psi);
+  free_2d(Phi);
+  free_2d(L);
 }
 
 /* solves the linearised system z_t = Az + B(h-1) forward by one timestep */
@@ -219,12 +219,12 @@ void dynamic_set(void) {
 
 /* [REQUIRED] internal free */
 void dynamic_free(void) {
-  free_2d((void **)DYNAMIC_K);
-  free_2d((void **)DYNAMIC_B);
-  free_2d((void **)DYNAMIC_A);
+  free_2d(DYNAMIC_K);
+  free_2d(DYNAMIC_B);
+  free_2d(DYNAMIC_A);
   free(DYNAMIC_z);
 
-  free_2d((void **)DYNAMIC_A1);
+  free_2d(DYNAMIC_A1);
   free(DYNAMIC_z0);
   free(DYNAMIC_ipiv);
 }
