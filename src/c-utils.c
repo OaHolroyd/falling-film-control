@@ -65,5 +65,5 @@ void ABORT(const char *format, ...) {
 
   va_end(args);
 
-  abort();
+  exit(1);
 }
