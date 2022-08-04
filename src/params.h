@@ -79,7 +79,7 @@ static int jsoneq(const char *json, jsmntok_t *tok, const char *s) {
 }
 
 /* read params from file */
-int read_params(char *fname) {
+int read_params(const char *fname) {
   /* fname should not be NULL */
   if (!fname) { return -1; }
 

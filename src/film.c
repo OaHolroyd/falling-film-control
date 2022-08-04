@@ -125,9 +125,16 @@ int main(int argc, char const *argv[]) {
   /* periodic left/right */
   periodic(right);
 
-  /* read params from file */
-  // TODO: get file from command line (defaulting to params.json)
-  int err = read_params("params.json");
+  /* if an argument has been submitted, check this input file */
+  int err = 0;
+  if (argc == 2) {
+    err = read_params(argv[1]);
+  } else if (argc == 1) {
+    err = read_params("params.json");
+  } else {
+    ABORT("only accepts one argument: the path to a parameter file");
+  }
+
   if (err) {
     ABORT("failed to read parameter file (returned %d)", err);
   }
@@ -270,6 +277,7 @@ event output_dat(t=0.0; t<=TMAX; t += DTOUT) {
     /* 2D fields */
     sprintf(fname, "out/data-2-%010d.dat", datcount);
     fp = fopen(fname, "w");
+    if (!fp) { ABORT("'%s' could not be opened", fname); }
     fprintf(fp, "# t: %lf\n", t);
     output_field({f, l, omega, u_mag, u_x, u_y, p}, fp, box = {{0.0,0.0},{LX,LY}}, n = NOUT);
     fclose(fp);
@@ -278,6 +286,7 @@ event output_dat(t=0.0; t<=TMAX; t += DTOUT) {
   /* 1D interface */
   sprintf(fname, "out/data-1-%010d.dat", datcount);
   fp = fopen(fname, "w");
+  if (!fp) { ABORT("'%s' could not be opened", fname); }
   fprintf(fp, "# t: %lf\n", t);
   double dx = LX/((double)(NOUT));
   for (int i = 0; i < NOUT+1; i++) {
