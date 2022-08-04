@@ -2,6 +2,11 @@
 
 Code for modelling thin liquid films controlled by baseplate actuators. Written for the PX915 individual project by [Oscar Holroyd](https://warwick.ac.uk/fac/sci/hetsys/people/studentscohort3/holroyd/), supervised by [Radu Cimpeanu](https://warwick.ac.uk/fac/sci/maths/people/staff/cimpeanu/) and [Susana Gomes](https://warwick.ac.uk/fac/sci/maths/people/staff/gomes).
 
+- [Installation](#installation)
+- [Running the Code](#running-the-code)
+- [Input Parameters](#input-parameters)
+- [Mathematical Background](#mathematical-background)
+
 
 ## Installation
 * The code relies on [Basilisk](<http://basilisk.fr/>) to model the Navier-Stokes equations. See the [installation page](<http://basilisk.fr/src/INSTALL>) for instructions. Note that bview is *not* required.
@@ -16,12 +21,12 @@ make
 ```
 
 
-## Running the code
+## Running the Code
 
 For a given set of parameters, the code will print the total cost
-
-$$ \kappa = \int_0^T \int_0^L \mu (h(x)-1)^2 + (1-\mu) F^2 \text{d}x \text{d}t $$
-
+```math
+\kappa = \int_0^T \int_0^L \mu (h(x)-1)^2 + (1-\mu) F^2 \text{d}x \text{d}t
+```
 to `stdout`. All other outputs (dimensionless numbers, simulation progress etc.) are printed to `stderr`.
 
 ### Requirements
@@ -36,7 +41,7 @@ The output data is stored as plain text, timestamped on the first line and subse
 Basilisk includes the option to 'dump' the entire simulation to a single file, which can then be restored to continue the simulation from the output time. By default this occurs every 100 time-units. Since stable travelling waves take a long time to develop for most parameter regimes it is *strongly suggested* that a single run without controls is performed to generate a dump-file with a travelling wave before loading it and beginning controls after this point. To do this set the value `"t0"` to correspond to the file at dump/dump-\<time\>.
 
 
-## Input parameters
+## Input Parameters
 All of the parameters are either in SI units or dimensionless. The keys in [params.json](params.json) are hopefully fairly self-explanatory. However, below is a full description.
 
 #### Domain parameters
@@ -45,7 +50,7 @@ All of the parameters are either in SI units or dimensionless. The keys in [para
 * **`Ly`** the ratio of film thickness to domain height (including air layer)
 * **`theta`** the angle of the plate from horizontal - rad
 * **`tmax`** the simulation end time - dimensionless
-* **`t0`** the start time (either 0 or matching a dump file) - dimensionless
+* **`t0`** the start time (either 0 or matching a [dump file](#restarting)) - dimensionless
 
 #### Physical parameters
 * **`rho_l`** fluid-phase density - kg m^-3
@@ -69,3 +74,28 @@ All of the parameters are either in SI units or dimensionless. The keys in [para
 * **`mu`** interface/control cost weighting - dimensionless
 * **`rom`** the reduced order model to use for the control strategy - "benney" or "wr"
 * **`strategy`** the type of control to use - "pair", "static" or "dynamic"
+
+
+## Mathematical Background
+The purpose of this code is to control a thin liquid film to the flat, Nusselt solution. The Navier-Stokes equations are too complex to apply any established control theoretical results to, and so we instead turn to a hierarchical control method, using reduced order models.
+
+### Reduced order models
+We currently consider two ROMs. Instead of describing the evolution of velocity and pressure, they describe the evolution of the film height $h$ and the heigh-averaged flux $q$, with a forcing term $F$ that comes from fluid injection through the base. This results in a mass-conservation equation
+```math
+h_t + q_x = F.
+```
+
+To close the system the **Benney** equation slaves the flux to the height
+```math
+q = \frac{h^3}{3}\left(2-2h_x \cot\theta + \frac{h_{xxx}}{Ca}\right) + Re\left(\frac{8h^6h_x}{15} - \frac{2h^4f}{3}\right),
+```
+and the **weighted-residual** system requires an additional evolution equation for $q$:
+```math
+\frac{2Reh^2q_t}{5} + q = \frac{h^3}{3}\left(2-2h_x \cot\theta + \frac{h_{xxx}}{Ca}\right) + Re\left(\frac{18q^2h_x}{35} - \frac{34hqq_x}{35} + \frac{hqf}{5}\right).
+```
+
+
+
+
+
+
