@@ -309,15 +309,15 @@ event dump_xxx(t=0.0; t+=DUMP) {
 
 /* finish */
 event stop(t=TMAX) {
-  #if DUMP
-  char dump_file[32];
-  sprintf(dump_file, "dump/dump-%04.0lf-end", t);
-  dump(file = dump_file);
-  #endif
+  if (DUMP) {
+    char dump_file[32];
+    sprintf(dump_file, "dump/dump-%04.0lf-end", t);
+    dump(file = dump_file);
+  }
 
-  #if LOG_STEP
-  fprintf(stderr, "\n");
-  #endif
+  if (LOG_STEP) {
+    fprintf(stderr, "\n");
+  }
   fprintf(stderr, "final time: %lf\n", t);
   fprintf(stderr, "total cost: %lf\n", Ccost);
 }
