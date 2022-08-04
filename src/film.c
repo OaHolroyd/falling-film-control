@@ -30,7 +30,7 @@ double Ccost; // control cost
 #define NOUT (1<<(LEVEL-1)) // output resolution
 #define LOG_STEP 10 // log every LOG_STEP steps
 #define OUTPUT_DAT 1 // dimension of data to output (1 or 2, 0 for no output)
-#define DUMP 0 // how often to dump (for restarting)
+#define DUMP 100 // how often to dump (for restarting)
 
 
 /* ========================================================================== */
@@ -154,6 +154,9 @@ int main(int argc, char const *argv[]) {
 
   control_free();
   free(H);
+
+  /* output the cost */
+  fprintf(stdout, "%lf\n", Ccost);
 
   return EXIT_SUCCESS;
 }
