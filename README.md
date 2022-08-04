@@ -19,6 +19,7 @@ make
 ## Running the code
 
 For a given set of parameters, the code will run for a specified time, printing the total cost
+
 $$ \kappa = \int_0^T \int_0^L \mu (h(x)-1)^2 + (1-\mu) F^2 \text{d}x \text{d}t $$
 
 to `stdout`. All other outputs (dimensionless numbers, simulation progress etc.) are printed to `stderr`.
