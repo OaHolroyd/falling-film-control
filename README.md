@@ -108,13 +108,13 @@ f_i = -\alpha (h(x_i - \delta) - 1).
 #### Static LQR controls
 If we relax the restriction of discrete observers, giving the control access to the full interface, we can further simplify the problem by linearising it:
 ```math
-\textbf{h}_t = \textbf{J}(\textbf{h}-1) + \textbf{\Psi}\textbf{K}(\textbf{h}-1).
+h_t = J(h-1) + \Psi K(h-1).
 ```
-The control operator $\textbf{K}$ that minimises the cost $\kappa$ is provided by the [Linear-Quadratic Regulator](https://en.wikipedia.org/wiki/Linear%E2%80%93quadratic_regulator).
+The control operator $K$ that minimises the cost $\kappa$ is provided by the [Linear-Quadratic Regulator](https://en.wikipedia.org/wiki/Linear%E2%80%93quadratic_regulator).
 
 #### Dynamic LQR controls
 Although the static LQR controls work well, they are not disadvantages by restricted observations. If we limit ourselves to discrete observers we must use an estimator to derive our controls rather than the interfacial height directly. The estimator approximates the most unstable Fourier modes of the linearised system:
 ```math
-\textbf{z}_t = [\tilde{\textbf{J}} + \tilde{\textbf{\Psi}}\tilde{\textbf{K}}]\textbf{z} + \textbf{L}(\textbf{\Phi}(\textbf{h}-1) - \tilde{\textbf{\Phi}}\textbf{z}),
+z_t = [\tilde{J} + \tilde{\Psi}\tilde{K}]z + L(\Phi (h-1) - \tilde{\Phi}z),
 ```
-and is forced towards the observed system by the operator $\textbf{L}$, which is also set using the LQR.
+and is forced towards the observed system by the operator $L$, which is also set using the LQR.
