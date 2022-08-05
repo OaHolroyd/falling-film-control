@@ -5,8 +5,7 @@
 #include <complex.h>
 
 #include "c-utils.h"
-#include "lqr.h"
-#include "lu.h"
+#include "linalg.h"
 #include "control-internals.h"
 
 

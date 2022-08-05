@@ -4,7 +4,7 @@
 #include <math.h>
 
 #include "c-utils.h"
-#include "lqr.h"
+#include "linalg.h"
 #include "control-internals.h"
 
 
