@@ -86,7 +86,7 @@ void static_benney_compute_K(void) {
 
 
   /* control matrix */
-  dlqr(J, Psi, MU, 1-MU, N, M, STATIC_K);
+  dlqr(J, Psi, MU/DX, 1-MU, N, M, STATIC_K);
 
 
   free_2d(J);
