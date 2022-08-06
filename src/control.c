@@ -3,6 +3,7 @@
 #include "control-internals.h"
 #include "control-pair.h"
 #include "control-lqr.h"
+#include "control-static.h"
 #include "control-dynamic.h"
 
 #include "c-utils.h"
@@ -86,7 +87,10 @@ void control_set(control_t ct, rom_t rt, int m, int p, double w, double alpha, d
       estimator = &lqr_estimator;
       break;
     case STATIC:
-      ABORT("static not yet implemented");
+      s_set = &static_set;
+      s_free = &static_free;
+      control_step = &static_step;
+      estimator = &static_estimator;
       break;
     case DYNAMIC:
       s_set = &dynamic_set;

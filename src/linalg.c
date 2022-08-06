@@ -3,12 +3,121 @@
 #include <math.h>
 #include <lapacke.h>
 
+#include "c-utils.h"
+
 #define COMPLEX double complex
 
 
 /* ========================================================================== */
 /*   FUNCTION DEFINITIONS                                                     */
 /* ========================================================================== */
+/* returns the trace of an n-by-n double matrix A */
+double dtr(double **A, int n) {
+  double tr = 0.0;
+
+  for (int i = 0; i < n; i++) {
+    tr += A[i][i];
+  } // i end
+
+  return tr;
+}
+
+/* given an n-by-n double matrix A, fills w with the eigenvalues */
+void dev(double **A, double complex *w, int n) {
+  double *wr = malloc(n*sizeof(double));
+  double *wi = malloc(n*sizeof(double));
+
+  /* get real and imaginary parts */
+  LAPACKE_dgeev(LAPACK_ROW_MAJOR, 'N', 'N', n, *A, n, wr, wi, NULL, n, NULL, n);
+
+  /* combine */
+  for (int i = 0; i < n; i++) {
+    w[i] = wr[i] + I*wi[i];
+  } // i end
+
+  free(wr);
+  free(wi);
+}
+
+/* given an n-by-n double matrix A, computes the spectral radius */
+void dsr(double **A, int n, double *l) {
+  double *wr = malloc(n*sizeof(double));
+  double *wi = malloc(n*sizeof(double));
+
+  /* get real and imaginary parts */
+  LAPACKE_dgeev(LAPACK_ROW_MAJOR, 'N', 'N', n, *A, n, wr, wi, NULL, n, NULL, n);
+
+  /* find the largest real component */
+  *l = wr[0];
+  for (int i = 1; i < n; i++) {
+    if (*l < wr[i]) { *l = wr[i]; }
+  } // i end
+
+  free(wr);
+  free(wi);
+}
+
+/* solves AX + XA' + Q = 0 for X, overwriting Q. All matrices are n-by-n */
+void dlyap(double **A, double **Q, int n) {
+  double *wr = malloc(n*sizeof(double));
+  double *wi = malloc(n*sizeof(double));
+
+  /* compute Schur form of A */
+  int sdim;
+  double **Z = malloc_f2d(n, n);
+  LAPACKE_dgees(LAPACK_ROW_MAJOR, 'V', 'N', NULL, n, *A, n, &sdim, wr, wi, *Z, n);
+
+  /* compute F = Z'Q */
+  double **F = malloc_f2d(n, n);
+  for (int i = 0; i < n; i++) {
+    for (int j = 0; j < n; j++) {
+      F[i][j] = 0.0;
+      for (int k = 0; k < n; k++) {
+        F[i][j] += Z[k][i] * Q[k][j];
+      } // k end
+    } // j end
+  } // i end
+
+  /* compute Q = -FZ */
+  for (int i = 0; i < n; i++) {
+    for (int j = 0; j < n; j++) {
+      Q[i][j] = 0.0;
+      for (int k = 0; k < n; k++) {
+        Q[i][j] -= F[i][k] * Z[k][j];
+      } // k end
+    } // j end
+  } // i end
+
+  /* solve Schur version (AY + YA' = -Q) */
+  double s;
+  LAPACKE_dtrsyl(LAPACK_ROW_MAJOR, 'N', 'T', 1, n, n, *A, n, *A, n, *Q, n, &s);
+  s = 1/s;
+
+  /* convert back to original system */
+  for (int i = 0; i < n; i++) {
+    for (int j = 0; j < n; j++) {
+      F[i][j] = 0.0;
+      for (int k = 0; k < n; k++) {
+        F[i][j] += Z[i][k] * Q[k][j] * s;
+      } // k end
+    } // j end
+  } // i end
+  for (int i = 0; i < n; i++) {
+    for (int j = 0; j < n; j++) {
+      Q[i][j] = 0.0;
+      for (int k = 0; k < n; k++) {
+        Q[i][j] += F[i][k] * Z[j][k];
+      } // k end
+    } // j end
+  } // i end
+
+  free(wr);
+  free(wi);
+  free_2d(Z);
+  free_2d(F);
+}
+
+
 /* ==================== */
 /*   LU FACTORISATION   */
 /* ==================== */

@@ -31,6 +31,6 @@
     "del": 0.0,
     "mu": 0.1,
     "rom": "benney",
-    "strategy": "dynamic"
+    "strategy": "static"
   }
 }

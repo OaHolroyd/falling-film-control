@@ -15,7 +15,7 @@ static double **LQR_K; /* control operator */
 /*   AUXILIARY FUNCTION DEFINITIONS                                           */
 /* ========================================================================== */
 /* compute the control matrix in the Benney case */
-void lqr_benney_compute_K(void) {
+void lqr_benney_compute_K(double **lqr_k) {
   /* Jacobian */
   double **J = malloc_f2d(N, N);
 
@@ -86,7 +86,7 @@ void lqr_benney_compute_K(void) {
 
 
   /* control matrix */
-  dlqr(J, Psi, MU/DX, 1-MU, N, M, LQR_K);
+  dlqr(J, Psi, DX*MU, 1-MU, N, M, lqr_k);
 
 
   free_2d(J);
@@ -95,7 +95,7 @@ void lqr_benney_compute_K(void) {
 }
 
 /* compute the control matrix in the weighted-residuals case */
-void lqr_wr_compute_K(void) {
+void lqr_wr_compute_K(double **lqr_k) {
     /* Jacobian */
   double **J = malloc_f2d(2*N, 2*N);
 
@@ -199,12 +199,12 @@ void lqr_wr_compute_K(void) {
 
   /* full control matrix */
   double **K = malloc_f2d(M, 2*N);
-  dlqr(J, Psi, MU, 1-MU, 2*N, M, K);
+  dlqr(J, Psi, DX*MU, 1-MU, 2*N, M, K);
 
   /* apply flux approximation */
   for (int i = 0; i < M; i++) {
     for (int j = 0; j < N; j++) {
-      LQR_K[i][j] = K[i][j] + 2/3 * K[i][j+N];
+      lqr_k[i][j] = K[i][j] + 2/3 * K[i][j+N];
     } // j end
   } // i end
 
@@ -226,10 +226,10 @@ void lqr_set(void) {
   /* pick from the available ROMs */
   switch (RT) {
     case BENNEY:
-      lqr_benney_compute_K();
+      lqr_benney_compute_K(LQR_K);
       break;
     case WR:
-      lqr_wr_compute_K();
+      lqr_wr_compute_K(LQR_K);
       break;
     default :
       ABORT("invalid ROM type %d", RT);

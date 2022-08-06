@@ -7,6 +7,19 @@
 /* ========================================================================== */
 /*   FUNCTION DECLARATIONS                                                    */
 /* ========================================================================== */
+/* returns the trace of an n-by-n double matrix A */
+double dtr(double **A, int n);
+
+/* given an n-by-n double matrix A, fills w with the eigenvalues */
+void dev(double **A, double complex *w, int n);
+
+/* given an n-by-n double matrix A, computes the spectral radius l */
+void dsr(double **A, int n, double *l);
+
+/* solves AX + XA' + Q = 0 for X, overwriting Q. All matrices are n-by-n */
+void dlyap(double **A, double **Q, int n);
+
+
 /* ==================== */
 /*   LU FACTORISATION   */
 /* ==================== */
