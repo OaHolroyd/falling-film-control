@@ -32,11 +32,7 @@ void dynamic_benney_set(void) {
 
   /* compute (real) observer matrix (actually the transpose) */
   double **rPhi = malloc_f2d(N, P);
-  for (i = 0; i < N; i++) {
-    for (j = 0; j < P; j++) {
-      rPhi[i][j] = DX*actuator(ITOX(i)-Oloc[j]);
-    } // j end
-  } // i end
+  benney_observer(rPhi);
 
 
   /* compute controllable wavenumbers */

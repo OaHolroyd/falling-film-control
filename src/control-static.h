@@ -23,81 +23,15 @@ void static_benney_compute_KPHI(double **static_kphi) {
   /* compute J, Psi, Phi, and K0 */
   /* Jacobian */
   double **J = malloc_f2d(N, N);
-
-  for (i = 0; i < N; i++) {
-    for (j = 0; j < N; j++) {
-      J[i][j] = 0.0;
-    } // j end
-  } // i end
-
-  double c0 = -1/(3*CA) * (1/(DX*DX*DX*DX));
-  double c1 = 1/DX + (2/tan(THETA)/3 - 8*RE/15) * (1/(DX*DX)) + 1/(3*CA) * (4/(DX*DX*DX*DX));
-  double c2 = (2/tan(THETA)/3 - 8*RE/15) * (-2/(DX*DX)) - 1/(3*CA) * (6/(DX*DX*DX*DX));
-  double c3 = -1/DX + (2/tan(THETA)/3 - 8*RE/15) * (1/(DX*DX)) + 1/(3*CA) * (4/(DX*DX*DX*DX));
-  double c4 = -1/(3*CA) * (1/(DX*DX*DX*DX));
-  for (i = 2; i < N-2; i++) {
-    J[i][i-2] = c0;
-    J[i][i-1] = c1;
-    J[i][i] = c2;
-    J[i][i+1] = c3;
-    J[i][i+2] = c4;
-  } // i end
-
-  J[0][N-2] = c0;
-  J[0][N-1] = c1;
-  J[0][0] = c2;
-  J[0][1] = c3;
-  J[0][2] = c4;
-
-  J[1][N-1] = c0;
-  J[1][0] = c1;
-  J[1][1] = c2;
-  J[1][1+1] = c3;
-  J[1][1+2] = c4;
-
-  J[N-2][N-4] = c0;
-  J[N-2][N-3] = c1;
-  J[N-2][N-2] = c2;
-  J[N-2][N-1] = c3;
-  J[N-2][0] = c4;
-
-  J[N-1][N-3] = c0;
-  J[N-1][N-2] = c1;
-  J[N-1][N-1] = c2;
-  J[N-1][0] = c3;
-  J[N-1][1] = c4;
-
-
-  /* forcing matrix (TODO: see if rotating this makes it faster) */
-  double **F = malloc_f2d(N, M);
-  for (i = 0; i < N; i++) {
-    for (j = 0; j < M; j++) {
-      F[i][j] = actuator(ITOX(i)-Aloc[j]);
-    } // j end
-  } // i end
-
+  benney_jacobian(J);
 
   /* actuator matrix */
   double **Psi = malloc_f2d(N, M);
-  for (i = 1; i < N-1; i++) {
-    for (j = 0; j < M; j++) {
-      Psi[i][j] = F[i][j] + (RE/(3*DX)) * (F[i+1][j]-F[i-1][j]);
-    } // j end
-  } // i end
-  for (j = 0; j < M; j++) {
-    Psi[0][j] = F[0][j] + (RE/(3*DX)) * (F[1][j]-F[N-1][j]);
-    Psi[N-1][j] = F[N-1][j] + (RE/(3*DX)) * (F[0][j]-F[N-2][j]);
-  } // j end
-
+  benney_actuator(Psi);
 
   /* observer matrix (actually the transpose) */
   double **Phi = malloc_f2d(N, P);
-  for (i = 0; i < N; i++) {
-    for (j = 0; j < P; j++) {
-      Phi[i][j] = DX*actuator(ITOX(i)-Oloc[j]);
-    } // j end
-  } // i end
-
+  benney_observer(Phi);
 
   /* full control matrix (note alternative cost preferences) */
   double **K_lqr = malloc_f2d(M, N);
@@ -290,7 +224,6 @@ void static_benney_compute_KPHI(double **static_kphi) {
 
 
   free_2d(J);
-  free_2d(F);
   free_2d(Psi);
   free_2d(Phi);
   free_2d(K_lqr);

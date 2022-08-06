@@ -5,6 +5,7 @@
 #include <math.h>
 #include <complex.h>
 
+#include "c-utils.h"
 #include "control.h"
 
 
@@ -139,6 +140,196 @@ void internal_control_free(void) {
   free(Aloc);
   free(Oloc);
   free(Amag);
+}
+
+
+/* ======================= */
+/*  ROM Matrix Generators  */
+/* ======================= */
+/* Jacobian (N-by-N) */
+void benney_jacobian(double **J) {
+  for (int i = 0; i < N; i++) {
+    for (int j = 0; j < N; j++) {
+      J[i][j] = 0.0;
+    } // j end
+  } // i end
+
+  double c0 = -1/(3*CA) * (1/(DX*DX*DX*DX));
+  double c1 = 1/DX + (2/tan(THETA)/3 - 8*RE/15) * (1/(DX*DX)) + 1/(3*CA) * (4/(DX*DX*DX*DX));
+  double c2 = (2/tan(THETA)/3 - 8*RE/15) * (-2/(DX*DX)) - 1/(3*CA) * (6/(DX*DX*DX*DX));
+  double c3 = -1/DX + (2/tan(THETA)/3 - 8*RE/15) * (1/(DX*DX)) + 1/(3*CA) * (4/(DX*DX*DX*DX));
+  double c4 = -1/(3*CA) * (1/(DX*DX*DX*DX));
+  for (int i = 2; i < N-2; i++) {
+    J[i][i-2] = c0;
+    J[i][i-1] = c1;
+    J[i][i] = c2;
+    J[i][i+1] = c3;
+    J[i][i+2] = c4;
+  } // i end
+
+  J[0][N-2] = c0;
+  J[0][N-1] = c1;
+  J[0][0] = c2;
+  J[0][1] = c3;
+  J[0][2] = c4;
+
+  J[1][N-1] = c0;
+  J[1][0] = c1;
+  J[1][1] = c2;
+  J[1][1+1] = c3;
+  J[1][1+2] = c4;
+
+  J[N-2][N-4] = c0;
+  J[N-2][N-3] = c1;
+  J[N-2][N-2] = c2;
+  J[N-2][N-1] = c3;
+  J[N-2][0] = c4;
+
+  J[N-1][N-3] = c0;
+  J[N-1][N-2] = c1;
+  J[N-1][N-1] = c2;
+  J[N-1][0] = c3;
+  J[N-1][1] = c4;
+}
+
+/* Actuator (N-by-M) */
+void benney_actuator(double **Psi) {
+  /* forcing matrix (TODO: see if rotating this makes it faster) */
+  double **F = malloc_f2d(N, M);
+  for (int i = 0; i < N; i++) {
+    for (int j = 0; j < M; j++) {
+      F[i][j] = actuator(ITOX(i)-Aloc[j]);
+    } // j end
+  } // i end
+
+  /* actuator matrix */
+  for (int i = 1; i < N-1; i++) {
+    for (int j = 0; j < M; j++) {
+      Psi[i][j] = F[i][j] + (RE/(3*DX)) * (F[i+1][j]-F[i-1][j]);
+    } // j end
+  } // i end
+  for (int j = 0; j < M; j++) {
+    Psi[0][j] = F[0][j] + (RE/(3*DX)) * (F[1][j]-F[N-1][j]);
+    Psi[N-1][j] = F[N-1][j] + (RE/(3*DX)) * (F[0][j]-F[N-2][j]);
+  } // j end
+
+  free_2d(F);
+}
+
+/* (the transpose of the) Observer (N-by-P) */
+void benney_observer(double **Phi) {
+  for (int i = 0; i < N; i++) {
+    for (int j = 0; j < P; j++) {
+      Phi[i][j] = DX*actuator(ITOX(i)-Oloc[j]);
+    } // j end
+  } // i end
+}
+
+/* Jacobian (2N-by-2N) */
+void wr_jacobian(double **J) {
+  for (int i = 0; i < 2*N; i++) {
+    for (int j = 0; j < 2*N; j++) {
+      J[i][j] = 0.0;
+    } // j end
+  } // i end
+
+  double c0, c1, c2, c3, c4;
+
+  /* top right */
+  c1 = 1/(2*DX);
+  c3 = -1/(2*DX);
+  for (int i = 1; i < N-1; i++) {
+    J[i][N+i-1] = c1;
+    J[i][N+i+1] = c3;
+  } // i end
+
+  J[0][N+N-1] = c1;
+  J[0][N+1] = c3;
+
+  J[N-1][N+N-2] = c1;
+  J[N-1][N+0] = c3;
+
+  /* bottom left */
+  c0 = 1/(3*CA) * (-1/(2*DX*DX*DX));
+  c1 = (8*RE/35 - 2/tan(THETA)/3) * (-1/(2*DX)) + 1/(3*CA) * (1/(DX*DX*DX));
+  c2 = 2;
+  c3 = (8*RE/35 - 2/tan(THETA)/3) * (1/(2*DX)) + 1/(3*CA) * (-1/(DX*DX*DX));
+  c4 = 1/(3*CA) * (1/(2*DX*DX*DX));
+  for (int i = 2; i < N-2; i++) {
+    J[N+i][i-2] = c0;
+    J[N+i][i-1] = c1;
+    J[N+i][i] = c2;
+    J[N+i][i+1] = c3;
+    J[N+i][i+2] = c4;
+  } // i end
+
+  J[N+0][N-2] = c0;
+  J[N+0][N-1] = c1;
+  J[N+0][0] = c2;
+  J[N+0][1] = c3;
+  J[N+0][2] = c4;
+
+  J[N+1][N-1] = c0;
+  J[N+1][0] = c1;
+  J[N+1][1] = c2;
+  J[N+1][1+1] = c3;
+  J[N+1][1+2] = c4;
+
+  J[N+N-2][N-4] = c0;
+  J[N+N-2][N-3] = c1;
+  J[N+N-2][N-2] = c2;
+  J[N+N-2][N-1] = c3;
+  J[N+N-2][0] = c4;
+
+  J[N+N-1][N-3] = c0;
+  J[N+N-1][N-2] = c1;
+  J[N+N-1][N-1] = c2;
+  J[N+N-1][0] = c3;
+  J[N+N-1][1] = c4;
+
+  /* bottom right */
+  c1 = 6*RE/105 * 1/(2*DX);
+  c2 = -1;
+  c3 = 6*RE/105 * -1/(2*DX);
+  for (int i = 1; i < N-1; i++) {
+    J[N+i][N+i-1] = c1;
+    J[N+i][N+i] = c2;
+    J[N+i][N+i+1] = c3;
+  } // i end
+
+  J[N+0][N+N-1] = c1;
+  J[N+0][N+0] = c2;
+  J[N+0][N+1] = c3;
+
+  J[N+N-1][N+N-2] = c1;
+  J[N+N-1][N+N-1] = c2;
+  J[N+N-1][N+0] = c3;
+}
+
+/* Actuator (2N-by-M) */
+void wr_actuator(double **Psi) {
+  /* forcing matrix (TODO: see if rotating this makes it faster) */
+  double **F = malloc_f2d(N, M);
+  for (int i = 0; i < N; i++) {
+    for (int j = 0; j < M; j++) {
+      F[i][j] = actuator(ITOX(i)-Aloc[j]);
+    } // j end
+  } // i end
+
+  /* actuator matrix */
+  for (int i = 0; i < N; i++) {
+    for (int j = 0; j < M; j++) {
+      Psi[i][j] = F[i][j];
+      Psi[i+N][j] = 2*RE/15 * F[i][j];
+    } // j end
+  } // i end
+
+  free_2d(F);
+}
+
+/* (the transpose of the) Observer (2N-by-P) */
+void wr_observer(double **Phi) {
+
 }
 
 
