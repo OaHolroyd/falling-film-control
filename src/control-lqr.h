@@ -1,5 +1,5 @@
-#ifndef CONTROL_STATIC_H
-#define CONTROL_STATIC_H
+#ifndef CONTROL_LQR_H
+#define CONTROL_LQR_H
 
 #include <math.h>
 
@@ -8,14 +8,14 @@
 #include "control-internals.h"
 
 
-static double **STATIC_K; /* control operator */
+static double **LQR_K; /* control operator */
 
 
 /* ========================================================================== */
 /*   AUXILIARY FUNCTION DEFINITIONS                                           */
 /* ========================================================================== */
 /* compute the control matrix in the Benney case */
-void static_benney_compute_K(void) {
+void lqr_benney_compute_K(void) {
   /* Jacobian */
   double **J = malloc_f2d(N, N);
 
@@ -86,7 +86,7 @@ void static_benney_compute_K(void) {
 
 
   /* control matrix */
-  dlqr(J, Psi, MU/DX, 1-MU, N, M, STATIC_K);
+  dlqr(J, Psi, MU/DX, 1-MU, N, M, LQR_K);
 
 
   free_2d(J);
@@ -95,7 +95,7 @@ void static_benney_compute_K(void) {
 }
 
 /* compute the control matrix in the weighted-residuals case */
-void static_wr_compute_K(void) {
+void lqr_wr_compute_K(void) {
     /* Jacobian */
   double **J = malloc_f2d(2*N, 2*N);
 
@@ -204,7 +204,7 @@ void static_wr_compute_K(void) {
   /* apply flux approximation */
   for (int i = 0; i < M; i++) {
     for (int j = 0; j < N; j++) {
-      STATIC_K[i][j] = K[i][j] + 2/3 * K[i][j+N];
+      LQR_K[i][j] = K[i][j] + 2/3 * K[i][j+N];
     } // j end
   } // i end
 
@@ -220,16 +220,16 @@ void static_wr_compute_K(void) {
 /*   FUNCTION DEFINITIONS                                                     */
 /* ========================================================================== */
 /* [REQUIRED] internal setup */
-void static_set(void) {
-  STATIC_K = malloc_f2d(M, N);
+void lqr_set(void) {
+  LQR_K = malloc_f2d(M, N);
 
   /* pick from the available ROMs */
   switch (RT) {
     case BENNEY:
-      static_benney_compute_K();
+      lqr_benney_compute_K();
       break;
     case WR:
-      static_wr_compute_K();
+      lqr_wr_compute_K();
       break;
     default :
       ABORT("invalid ROM type %d", RT);
@@ -237,24 +237,24 @@ void static_set(void) {
 }
 
 /* [REQUIRED] internal free */
-void static_free(void) {
+void lqr_free(void) {
 
-  free(STATIC_K);
+  free(LQR_K);
 }
 
 /* [REQUIRED] steps the system forward in time given the interfacial height */
-void static_step(double dt, double *h) {
+void lqr_step(double dt, double *h) {
   /* f = K * (h-1) */
   for (int i = 0; i < M; i++) {
     Amag[i] = 0.0;
     for (int j = 0; j < N; j++) {
-      Amag[i] += STATIC_K[i][j] * (interp(ITOX(j), h) - 1.0);
+      Amag[i] += LQR_K[i][j] * (interp(ITOX(j), h) - 1.0);
     } // j end
   } // i end
 }
 
 /* [REQUIRED] returns the estimator as a function of x */
-double static_estimator(double x) {
+double lqr_estimator(double x) {
 
   return 0.0;
 }

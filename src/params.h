@@ -248,6 +248,8 @@ int read_params(const char *fname) {
           j++;
           if (!strncmp(s+t[j].start, "pair", t[j].end-t[j].start)) {
             C_STRAT = PAIR;
+          } else if (!strncmp(s+t[j].start, "lqr", t[j].end-t[j].start)) {
+            C_STRAT = LQR;
           } else if (!strncmp(s+t[j].start, "static", t[j].end-t[j].start)) {
             C_STRAT = STATIC;
           } else if (!strncmp(s+t[j].start, "dynamic", t[j].end-t[j].start)) {

@@ -4,7 +4,7 @@
 #include <complex.h>
 
 
-typedef enum { PAIR, STATIC, DYNAMIC } control_t;
+typedef enum { PAIR, LQR, STATIC, DYNAMIC } control_t;
 typedef enum { BENNEY, WR } rom_t;
 
 
