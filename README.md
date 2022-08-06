@@ -117,7 +117,7 @@ That the unrestricted LQR control performs better than the paired controls is no
 ```math
 h_t = J(h-1) + \Psi K \Phi (h-1).
 ```
-Unfortunately this makes computing $K$ significantly more expensive.
+Unfortunately this makes computing $K$ significantly more expensive, requiring an iterative method to solve a set of coupled Lyapunov equations.
 
 ### Dynamic output feedback
 In the SOF case, although we observe $(h-1)$ continuously, we only use the current observation of the interface to set our control. We can exploit the previous measurements by switching to a dynamic control scheme. Here we use an estimator, coupled to the main system, to derive our controls. The estimator approximates the most unstable Fourier modes of the linearised system:
