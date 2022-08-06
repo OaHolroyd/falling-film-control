@@ -97,7 +97,7 @@ and the **weighted-residual** system requires an additional evolution equation f
 We can then implement control strategies to control the Navier-Stokes system by making the assumption that it is well-approximated by one of these simpler models and applying controls as if we were aiming to control the alternative system rather than the original.
 
 ## Control strategies
-There are three strategies that we consider.
+There are four strategies that we consider.
 
 ### Paired actuators/observers
 Here we simply couple an equal number of observers and actuators, with a fixed shift between them. The control is then simply
@@ -105,16 +105,25 @@ Here we simply couple an equal number of observers and actuators, with a fixed s
 f_i = -\alpha \left(h(x_i - \delta) - 1\right).
 ```
 
-### Static LQR controls
+### Unrestricted LQR controls
 If we relax the restriction of discrete observers, giving the control access to the full interface, we can further simplify the problem by linearising it:
 ```math
 h_t = J(h-1) + \Psi K(h-1).
 ```
 The control operator $K$ that minimises the cost $\kappa$ is provided by the [Linear-Quadratic Regulator](https://en.wikipedia.org/wiki/Linear%E2%80%93quadratic_regulator).
 
-### Dynamic LQR controls
-Although the static LQR controls work well, they are not disadvantages by restricted observations. If we limit ourselves to discrete observers we must use an estimator to derive our controls rather than the interfacial height directly. The estimator approximates the most unstable Fourier modes of the linearised system:
+### Static output feedback
+That the unrestricted LQR control performs better than the paired controls is not surprising, since it has full access to the interfacial information. We can amend this by including a linearised observer matrix:
+```math
+h_t = J(h-1) + \Psi K \Phi (h-1).
+```
+Unfortunately this makes computing $K$ significantly more expensive.
+
+### Dynamic output feedback
+In the SOF case, although we observe $(h-1)$ continuously, we only use the current observation of the interface to set our control. We can exploit the previous measurements by switching to a dynamic control scheme. Here we use an estimator, coupled to the main system, to derive our controls. The estimator approximates the most unstable Fourier modes of the linearised system:
 ```math
 z_t = \left(\tilde{J} + \tilde{\Psi}\tilde{K}\right)z + L\left(\Phi (h-1) - \tilde{\Phi}z\right),
 ```
 and is forced towards the observed system by the operator $L$, which is also set using the LQR.
+
+This system includes the restrictions of the SOF method and avoid the time-consuming iterative methods that the previous scheme needs to compute $K$ (the estimator is so cheap to update that it has a negligible effect on the simulation time).
