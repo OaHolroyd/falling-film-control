@@ -9,7 +9,7 @@
 /*   FUNCTION DEFINITIONS                                                     */
 /* ========================================================================== */
 /* output 1D double array to file at fname */
-int debug_out_d1d(char *fname, double *A, int ni) {
+int debug_out_d1d(const char *fname, double *A, int ni) {
   FILE *fp = fopen(fname, "w");
 
   if (!fp) { return 1; }
@@ -23,7 +23,7 @@ int debug_out_d1d(char *fname, double *A, int ni) {
 }
 
 /* output 1D double complex array to files at fname */
-int debug_out_z1d(char *fname, double complex *A, int ni) {
+int debug_out_z1d(const char *fname, double complex *A, int ni) {
   FILE *fp = fopen(fname, "w");
 
   if (!fp) { return 1; }
@@ -37,7 +37,7 @@ int debug_out_z1d(char *fname, double complex *A, int ni) {
 }
 
 /* output 2D double array to file at fname */
-int debug_out_d2d(char *fname, double **A, int ni, int nj) {
+int debug_out_d2d(const char *fname, double **A, int ni, int nj) {
   FILE *fp = fopen(fname, "w");
 
   if (!fp) { return 1; }
@@ -54,7 +54,7 @@ int debug_out_d2d(char *fname, double **A, int ni, int nj) {
 }
 
 /* output 2D double complex array to files at fname */
-int debug_out_z2d(char *fname, double complex **A, int ni, int nj) {
+int debug_out_z2d(const char *fname, double complex **A, int ni, int nj) {
   FILE *fp = fopen(fname, "w");
 
   if (!fp) { return 1; }
