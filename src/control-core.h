@@ -1,5 +1,5 @@
-#ifndef CONTROL_INTERNALS_H
-#define CONTROL_INTERNALS_H
+#ifndef CONTROL_CORE_H
+#define CONTROL_CORE_H
 
 #include <stdlib.h>
 #include <math.h>

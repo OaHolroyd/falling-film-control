@@ -6,9 +6,8 @@
 
 #include "c-utils.h"
 #include "linalg.h"
-#include "control-internals.h"
+#include "control-core.h"
 
-#include <stdio.h>
 
 static double **STATIC_KPHI; /* control operator */
 

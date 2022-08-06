@@ -2,7 +2,7 @@
 #define CONTROL_PAIR_H
 
 #include "c-utils.h"
-#include "control-internals.h"
+#include "control-core.h"
 
 
 /* ========================================================================== */

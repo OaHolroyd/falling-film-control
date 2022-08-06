@@ -5,7 +5,7 @@
 
 #include "c-utils.h"
 #include "linalg.h"
-#include "control-internals.h"
+#include "control-core.h"
 
 
 static double **LQR_K; /* control operator */

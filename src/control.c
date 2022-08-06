@@ -1,6 +1,6 @@
 #include "control.h"
 
-#include "control-internals.h"
+#include "control-core.h"
 #include "control-pair.h"
 #include "control-lqr.h"
 #include "control-static.h"

@@ -6,7 +6,7 @@
 
 #include "c-utils.h"
 #include "linalg.h"
-#include "control-internals.h"
+#include "control-core.h"
 
 
 static double complex **DYNAMIC_A; // dynamics (linearised system)
