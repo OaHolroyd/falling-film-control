@@ -218,11 +218,24 @@ void benney_actuator(double **Psi) {
 
 /* (the transpose of the) Observer (N-by-P) */
 void benney_observer(double **Phi) {
-  for (int i = 0; i < N; i++) {
-    for (int j = 0; j < P; j++) {
-      Phi[i][j] = DX*actuator(ITOX(i)-Oloc[j]);
-    } // j end
-  } // i end
+  /* P < N use approximate delta-functions */
+  if (P != N) {
+    for (int i = 0; i < N; i++) {
+      for (int j = 0; j < P; j++) {
+        Phi[i][j] = DX*actuator(ITOX(i)-Oloc[j]);
+      } // j end
+    } // i end
+  }
+
+  /* if P == N then just pass all the information */
+  else {
+    for (int i = 0; i < N; i++) {
+      for (int j = 0; j < N; j++) {
+        Phi[i][j] = 0.0;
+      } // j end
+      Phi[i][i] = 1.0;
+    } // i end
+  }
 }
 
 /* Jacobian (2N-by-2N) */

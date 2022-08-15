@@ -8,6 +8,7 @@
 dump*/**
 _film.c
 remote.sh
+multi_run.sh
 
 __pycache__
 

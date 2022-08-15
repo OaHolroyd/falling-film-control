@@ -87,10 +87,12 @@ void static_benney_compute_KPHI(double **static_kphi) {
   double iv;
   double **Pk = malloc_f2d(N, N);
   double **Sk = malloc_f2d(N, N);
+
   double **K1 = malloc_f2d(M, P); // search direction
   double **W1 = malloc_f2d(M, N); // TODO: remove if possible
   double **W2 = malloc_f2d(N, P); // TODO: remove if possible
   double **W3 = malloc_f2d(P, P); // TODO: remove if possible
+  int *ipiv = malloc(P*sizeof(int));
   while (1) {
     /* K * Phi */
     for (i = 0; i < M; i++) {
@@ -118,7 +120,7 @@ void static_benney_compute_KPHI(double **static_kphi) {
       for (j = 0; j < N; j++) {
         Pk[i][j] = 0.0;
         for (k = 0; k < M; k++) {
-          Pk[i][j] += MU * KPHIk[k][i] * KPHIk[k][j];
+          Pk[i][j] += (1-MU) * KPHIk[k][i] * KPHIk[k][j];
         } // k end
       } // j end
       Pk[i][i] += DX * MU; // TODO: check the factor of DX
@@ -157,7 +159,7 @@ void static_benney_compute_KPHI(double **static_kphi) {
 
 
     /* compute gain update direction */
-    iv = 1/MU; // scale factor
+    iv = 1/(1-MU); // scale factor
     for (i = 0; i < M; i++) { // interim W1
       for (j = 0; j < N; j++) {
         W1[i][j] = 0.0;
@@ -191,16 +193,15 @@ void static_benney_compute_KPHI(double **static_kphi) {
       } // j end
     } // i end
 
-    // solve K1 = W3\K1
-    int *ipiv = malloc(P*sizeof(int));
-    LAPACKE_dgesv(LAPACK_ROW_MAJOR, P, M, *W3, P, ipiv, *K1, P);
+    // solve W3 * K1 = K1 (ie the transpose of the problem)
+    LAPACKE_dgesv(LAPACK_COL_MAJOR, P, M, *W3, P, ipiv, *K1, P);
 
 
     /* update K */
     const double a = 0.005; // TODO: set optimally
     for (i = 0; i < M; i++) { // pre-solve K = W1 * W2
       for (j = 0; j < P; j++) {
-        K[i][j] = (1-a)*K[i][j] + a*K1[i][j];
+        K[i][j] = (1-a)*K[i][j] + a*K1[i][j]; // note the transpose
       } // j end
     } // i end
 
@@ -233,6 +234,7 @@ void static_benney_compute_KPHI(double **static_kphi) {
   free_2d(W1);
   free_2d(W2);
   free_2d(W3);
+  free(ipiv);
 }
 
 

@@ -420,10 +420,12 @@ def plot_hstats(n=None, rate=1, save=True):
         dh[i] = dx * sum((data1[:, 1] - 1.0)**2) / L
 
     # plot data
-    plt.plot(t, hmin, label="hmin")
-    plt.plot(t, hmax, label="hmax")
-    plt.plot(t, dh, label="dh")
-    plt.gca().set_ylim(bottom=0)
+    plt.plot(t-600, hmin, label="hmin")
+    plt.plot(t-600, hmax, label="hmax")
+    plt.plot(t-600, dh, label="dh")
+    plt.gca().set_yscale('log')
+    # plt.gca().set_xscale('log')
+    # plt.gca().set_ylim(bottom=0)
     plt.xlabel("t")
     plt.ylabel("deviation")
     plt.legend()
