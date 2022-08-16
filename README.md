@@ -63,6 +63,7 @@ All of the parameters are either in SI units or dimensionless. The keys in [para
 ### Solver parameters
 * **`level`** the grid refinement level (resulting in 2^level gridcells)
 * **`dtout`** output timestep - dimensionless
+* **`output`** output dimension (0, 1 or 2 dimensional data)
 
 ### Control parameters
 * **`M`** number of actuators - integer

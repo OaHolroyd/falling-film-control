@@ -48,6 +48,7 @@ double GRAV = 10;  // acceleration due to gravity
 /* Solver parameters */
 int LEVEL = 8; // maximum refinement level
 double DTOUT = 1.0; // output step
+int OUTPUT = 0; // output type
 #define N (1<<LEVEL) // max refinement grid count
 #define DX (LX/N) // max refinement grid spacing
 
@@ -182,7 +183,7 @@ int read_params(const char *fname) {
     }
 
     else if (jsoneq(s, &t[i], "SOLVER") == 0) {
-      n = 2;
+      n = 3;
       m = n;
       for (int j = i+2; j < i+2+2*m; j++) {
         if (jsoneq(s, &t[j], "level") == 0) {
@@ -192,6 +193,10 @@ int read_params(const char *fname) {
         } else if (jsoneq(s, &t[j], "dtout") == 0) {
           j++;
           DTOUT = strtod(s+t[j].start, NULL);
+          n--;
+        } else if (jsoneq(s, &t[j], "output") == 0) {
+          j++;
+          OUTPUT = atoi(s+t[j].start);
           n--;
         } else {
           fprintf(stderr, "bad token\n");

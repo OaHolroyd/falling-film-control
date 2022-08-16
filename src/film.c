@@ -29,7 +29,7 @@ double Ccost; // control cost
 /* ========================================================================== */
 #define NOUT (1<<(LEVEL-1)) // output resolution
 #define LOG_STEP 10 // log every LOG_STEP steps
-#define OUTPUT_DAT 1 // dimension of data to output (1 or 2, 0 for no output)
+#define OUTPUT_DAT 1 // whether to output data
 #define DUMP 100 // how often to dump (for restarting)
 
 
@@ -229,75 +229,90 @@ event output_log(i=0; t<=TMAX; i+=LOG_STEP) {
 }
 #endif
 
-/* output 1D and 2D data */
 #if OUTPUT_DAT
 event output_dat(t=0.0; t<=TMAX; t += DTOUT) {
-  /* shift datcount to prevent file overwrites */
-  static int datcount = 0;
-  char fname[64];
+  /* ouput 0D data */
+  if (OUTPUT >= 0) {
+    double dh = H[0]-1.0;
+    for (int i = 1; i < N; i++) {
+      if (fabs(H[0]-1.0) > dh) { dh = fabs(H[0]-1.0); }
+    } // i end
 
-  if (datcount == 0) {
-    /* check if there are any files in ./out */
-    FILE *fp;
-    int i = 0;
-    double t0;
-    sprintf(fname, "out/data-1-%010d.dat", i);
-    while ((fp = fopen(fname, "r"))) {
-      /* check if the time is before the current time */
-      if (fscanf(fp, "# t: %lf\n", &t0) != 1) { ABORT("missing timestamp"); }
-      fclose(fp);
-      if (t0 >= t) {
-        break;
-      }
-
-      /* try the next file */
-      i++;
-      sprintf(fname, "out/data-1-%010d.dat", i);
-    }
-    datcount = i;
-  }
-
-  FILE *fp;
-
-  /* only compute 2D outputs if required */
-  if (OUTPUT_DAT > 1) {
-    scalar l[];
-    scalar u_mag[];
-    scalar u_x[], u_y[];
-    scalar omega[];
-
-    /* iterated scalars */
-    foreach () {
-      l[] = level; // refinement level
-      u_mag[] = sqrt(u.x[]*u.x[] + u.y[]*u.y[]); // speed
-      u_x[] = u.x[]; // horizontal velocity
-      u_y[] = u.y[]; // vertical velocity
-    }
-
-    /* vorticity */
-    vorticity(u, omega);
-
-    /* 2D fields */
-    sprintf(fname, "out/data-2-%010d.dat", datcount);
-    fp = fopen(fname, "w");
-    if (!fp) { ABORT("'%s' could not be opened", fname); }
-    fprintf(fp, "# t: %lf\n", t);
-    output_field({f, l, omega, u_mag, u_x, u_y, p}, fp, box = {{0.0,0.0},{LX,LY}}, n = NOUT);
+    /* append max devaiation to file */
+    FILE *fp = fopen("out/data-0.dat", "a");
+    fprintf(fp, "%lf %lf\n", t-C_START, dh);
     fclose(fp);
   }
 
-  /* 1D interface */
-  sprintf(fname, "out/data-1-%010d.dat", datcount);
-  fp = fopen(fname, "w");
-  if (!fp) { ABORT("'%s' could not be opened", fname); }
-  fprintf(fp, "# t: %lf\n", t);
-  double dx = LX/((double)(NOUT));
-  for (int i = 0; i < NOUT+1; i++) {
-    fprintf(fp, "%lf %lf %lf %lf\n", i*dx, interfacial_height(i*dx), control(i*dx), estimator(i*dx));
-  } // i end
-  fclose(fp);
 
-  datcount++;
+
+  /* output 1D/2D data */
+  if (OUTPUT >= 1) {
+    /* shift datcount to prevent file overwrites */
+    static int datcount = 0;
+    char fname[64];
+
+    if (datcount == 0) {
+      /* check if there are any files in ./out */
+      FILE *fp;
+      int i = 0;
+      double t0;
+      sprintf(fname, "out/data-1-%010d.dat", i);
+      while ((fp = fopen(fname, "r"))) {
+        /* check if the time is before the current time */
+        if (fscanf(fp, "# t: %lf\n", &t0) != 1) { ABORT("missing timestamp"); }
+        fclose(fp);
+        if (t0 >= t) {
+          break;
+        }
+
+        /* try the next file */
+        i++;
+        sprintf(fname, "out/data-1-%010d.dat", i);
+      }
+      datcount = i;
+    }
+
+    /* 1D interface */
+    sprintf(fname, "out/data-1-%010d.dat", datcount);
+    FILE *fp = fopen(fname, "w");
+    if (!fp) { ABORT("'%s' could not be opened", fname); }
+    fprintf(fp, "# t: %lf\n", t);
+    double dx = LX/((double)(NOUT));
+    for (int i = 0; i < NOUT+1; i++) {
+      fprintf(fp, "%lf %lf %lf %lf\n", i*dx, interfacial_height(i*dx), control(i*dx), estimator(i*dx));
+    } // i end
+    fclose(fp);
+
+    /* only compute 2D outputs if required */
+    if (OUTPUT_DAT > 1) {
+      scalar l[];
+      scalar u_mag[];
+      scalar u_x[], u_y[];
+      scalar omega[];
+
+      /* iterated scalars */
+      foreach () {
+        l[] = level; // refinement level
+        u_mag[] = sqrt(u.x[]*u.x[] + u.y[]*u.y[]); // speed
+        u_x[] = u.x[]; // horizontal velocity
+        u_y[] = u.y[]; // vertical velocity
+      }
+
+      /* vorticity */
+      vorticity(u, omega);
+
+      /* 2D fields */
+      sprintf(fname, "out/data-2-%010d.dat", datcount);
+      fp = fopen(fname, "w");
+      if (!fp) { ABORT("'%s' could not be opened", fname); }
+      fprintf(fp, "# t: %lf\n", t);
+      output_field({f, l, omega, u_mag, u_x, u_y, p}, fp, box = {{0.0,0.0},{LX,LY}}, n = NOUT);
+      fclose(fp);
+    }
+
+    datcount++;
+  }
 }
 #endif
 

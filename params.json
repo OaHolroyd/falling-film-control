@@ -4,7 +4,7 @@
     "Lx": 64.0,
     "Ly": 8.0,
     "theta": 1.047197551,
-    "tmax": 610,
+    "tmax": 650,
     "t0": 599
   },
 
@@ -19,7 +19,8 @@
 
   "SOLVER": {
     "level": 9,
-    "dtout": 1
+    "dtout": 1,
+    "output": 0
   },
 
   "CONTROL": {
@@ -31,6 +32,6 @@
     "del": 0.0,
     "mu": 0.1,
     "rom": "benney",
-    "strategy": "static"
+    "strategy": "dynamic"
   }
 }
