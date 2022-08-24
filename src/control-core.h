@@ -340,9 +340,40 @@ void wr_actuator(double **Psi) {
   free_2d(F);
 }
 
-/* (the transpose of the) Observer (2N-by-P) */
+/* (the transpose of the) Observer (2N-by-2P) */
 void wr_observer(double **Phi) {
+  /* P < N use approximate delta-functions */
+  if (P != N) {
+    for (int i = 0; i < 2*N; i++) {
+      for (int j = 0; j < 2*P; j++) {
+        Phi[i][j] = 0.0;
+      } // j end
+    } // i end
 
+    /* observe interfacial height */
+    for (int i = 0; i < N; i++) {
+      for (int j = 0; j < P; j++) {
+        Phi[i][j] = DX*actuator(ITOX(i)-Oloc[j]);
+      } // j end
+    } // i end
+
+    /* observe flux */ // TODO: should the q = 2/3 h assumption be here?
+    for (int i = 0; i < N; i++) {
+      for (int j = 0; j < P; j++) {
+        Phi[N+i][P+j] = DX*actuator(ITOX(i)-Oloc[j]);
+      } // j end
+    } // i end
+  }
+
+  /* if P == N then just pass all the information */
+  else {
+    for (int i = 0; i < 2*N; i++) {
+      for (int j = 0; j < 2*N; j++) {
+        Phi[i][j] = 0.0;
+      } // j end
+      Phi[i][i] = 1.0;
+    } // i end
+  }
 }
 
 

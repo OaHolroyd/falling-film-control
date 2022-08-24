@@ -231,16 +231,34 @@ event output_log(i=0; t<=TMAX; i+=LOG_STEP) {
 
 #if OUTPUT_DAT
 event output_dat(t=0.0; t<=TMAX; t += DTOUT) {
+  static int datcount = 0;
+
   /* ouput 0D data */
   if (OUTPUT >= 0) {
-    double dh = H[0]-1.0;
-    for (int i = 1; i < N; i++) {
-      if (fabs(H[0]-1.0) > dh) { dh = fabs(H[0]-1.0); }
+    /* L2 interfacial deviation */
+    double dh = 0.0;
+    for (int i = 0; i < N; i++) {
+      dh += (H[i]-1.0)*(H[i]-1.0);
     } // i end
+    dh = sqrt(DX*dh);
 
-    /* append max devaiation to file */
+    /* L2 control magnitude */
+    double dc = 0.0;
+    for (int i = 0; i < N; i++) {
+      dc += control(ITOX(i))*control(ITOX(i));
+    } // i end
+    dc = sqrt(DX*dc);
+
+    /* L2 estimator deviation */
+    double de = 0.0;
+    for (int i = 0; i < N; i++) {
+      de += (H[i]-1.0-estimator(ITOX(i)))*(H[i]-1.0-estimator(ITOX(i)));
+    } // i end
+    de = sqrt(DX*de);
+
+    /* append data to file */
     FILE *fp = fopen("out/data-0.dat", "a");
-    fprintf(fp, "%lf %lf\n", t-C_START, dh);
+    fprintf(fp, "%lf %lf %lf %lf %lf\n", t-C_START, dh, de, dc, Ccost);
     fclose(fp);
   }
 
@@ -249,7 +267,6 @@ event output_dat(t=0.0; t<=TMAX; t += DTOUT) {
   /* output 1D/2D data */
   if (OUTPUT >= 1) {
     /* shift datcount to prevent file overwrites */
-    static int datcount = 0;
     char fname[64];
 
     if (datcount == 0) {
@@ -310,9 +327,9 @@ event output_dat(t=0.0; t<=TMAX; t += DTOUT) {
       output_field({f, l, omega, u_mag, u_x, u_y, p}, fp, box = {{0.0,0.0},{LX,LY}}, n = NOUT);
       fclose(fp);
     }
-
-    datcount++;
   }
+
+  datcount++;
 }
 #endif
 
