@@ -261,5 +261,11 @@ double dynamic_estimator(double x) {
   return creal(e);
 }
 
+/* [REQUIRED] outputs the internal matrices */
+void dynamic_output(void) {
+  output_z2d("out/A.dat", DYNAMIC_A, M, M);
+  output_z2d("out/B.dat", DYNAMIC_B, M, N);
+  output_z2d("out/K.dat", DYNAMIC_K, M, M);
+}
 
 #endif

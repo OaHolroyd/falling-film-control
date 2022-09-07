@@ -32,5 +32,10 @@ double pair_estimator(double x) {
   return 0.0;
 }
 
+/* [REQUIRED] outputs the internal matrices */
+void pair_output(void) {
+  // TODO: work out matrix
+}
+
 
 #endif

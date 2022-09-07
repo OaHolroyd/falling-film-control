@@ -101,5 +101,10 @@ double lqr_estimator(double x) {
   return 0.0;
 }
 
+/* [REQUIRED] outputs the internal matrices */
+void lqr_output(void) {
+  output_d2d("out/K.dat", LQR_K, M, N);
+}
+
 
 #endif

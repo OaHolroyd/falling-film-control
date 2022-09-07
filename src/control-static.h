@@ -11,7 +11,7 @@
 // #include "debug.h"
 
 static double **STATIC_KPHI; /* control operator */
-
+static double **STATIC_K;
 
 /* ========================================================================== */
 /*   AUXILIARY FUNCTION DEFINITIONS                                           */
@@ -39,12 +39,11 @@ void static_benney_compute_KPHI(double **static_kphi) {
 
 
   /* initial guess for restricted matrix */
-  double **K = malloc_f2d(M, P);
   for (i = 0; i < M; i++) {
     for (j = 0; j < P; j++) {
-      K[i][j] = 0.0;
+      STATIC_K[i][j] = 0.0;
       for (k = 0; k < N; k++) {
-        K[i][j] += Phi[k][j] * K_lqr[i][k] * (((double)N)/((double)P));
+        STATIC_K[i][j] += Phi[k][j] * K_lqr[i][k] * (((double)N)/((double)P));
       } // k end
     } // j end
   } // i end
@@ -59,7 +58,7 @@ void static_benney_compute_KPHI(double **static_kphi) {
     for (j = 0; j < N; j++) {
       KPHIk[i][j] = 0.0;
       for (k = 0; k < P; k++) {
-        KPHIk[i][j] += K[i][k] * Phi[j][k];
+        KPHIk[i][j] += STATIC_K[i][k] * Phi[j][k];
       } // k end
     } // j end
   } // i end
@@ -100,7 +99,7 @@ void static_benney_compute_KPHI(double **static_kphi) {
       for (j = 0; j < N; j++) {
         KPHIk[i][j] = 0.0;
         for (k = 0; k < P; k++) {
-          KPHIk[i][j] += K[i][k] * Phi[j][k];
+          KPHIk[i][j] += STATIC_K[i][k] * Phi[j][k];
         } // k end
       } // j end
     } // i end
@@ -202,7 +201,7 @@ void static_benney_compute_KPHI(double **static_kphi) {
     const double a = 0.005; // TODO: set optimally
     for (i = 0; i < M; i++) { // pre-solve K = W1 * W2
       for (j = 0; j < P; j++) {
-        K[i][j] = (1-a)*K[i][j] + a*K1[i][j]; // note the transpose
+        STATIC_K[i][j] = (1-a)*STATIC_K[i][j] + a*K1[i][j]; // note the transpose
       } // j end
     } // i end
 
@@ -218,7 +217,7 @@ void static_benney_compute_KPHI(double **static_kphi) {
     for (j = 0; j < N; j++) {
       STATIC_KPHI[i][j] = 0.0;
       for (k = 0; k < P; k++) {
-        STATIC_KPHI[i][j] += K[i][k] * Phi[j][k];
+        STATIC_KPHI[i][j] += STATIC_K[i][k] * Phi[j][k];
       } // k end
     } // j end
   } // i end
@@ -261,14 +260,13 @@ void static_benney_compute_KPHI(double **static_kphi) {
 
 
 //   /* initial guess for restricted matrix */
-//   double **K = malloc_f2d(M, 2*P);
 //   for (i = 0; i < M; i++) {
 //     for (j = 0; j < P; j++) {
-//       K[i][j] = 0.0;
-//       K[i][P+j] = 0.0;
+//       STATIC_K[i][j] = 0.0;
+//       STATIC_K[i][P+j] = 0.0;
 //       for (k = 0; k < N; k++) {
-//         K[i][j] += Phi[k][j] * K_lqr[i][k] * (((double)N)/((double)P));
-//         K[i][P+j] += Phi[N+k][P+j] * K_lqr[i][N+k] * (((double)N)/((double)P));
+//         STATIC_K[i][j] += Phi[k][j] * K_lqr[i][k] * (((double)N)/((double)P));
+//         STATIC_K[i][P+j] += Phi[N+k][P+j] * K_lqr[i][N+k] * (((double)N)/((double)P));
 //       } // k end
 //     } // j end
 //   } // i end
@@ -283,7 +281,7 @@ void static_benney_compute_KPHI(double **static_kphi) {
 //     for (j = 0; j < 2*N; j++) {
 //       KPHIk[i][j] = 0.0;
 //       for (k = 0; k < 2*P; k++) {
-//         KPHIk[i][j] += K[i][k] * Phi[j][k];
+//         KPHIk[i][j] += STATIC_K[i][k] * Phi[j][k];
 //       } // k end
 //     } // j end
 //   } // i end
@@ -326,7 +324,7 @@ void static_benney_compute_KPHI(double **static_kphi) {
 //       for (j = 0; j < 2*N; j++) {
 //         KPHIk[i][j] = 0.0;
 //         for (k = 0; k < 2*P; k++) {
-//           KPHIk[i][j] += K[i][k] * Phi[j][k];
+//           KPHIk[i][j] += STATIC_K[i][k] * Phi[j][k];
 //         } // k end
 //       } // j end
 //     } // i end
@@ -429,7 +427,7 @@ void static_benney_compute_KPHI(double **static_kphi) {
 //     const double a = 0.005; // TODO: set optimally
 //     for (i = 0; i < M; i++) { // pre-solve K = W1 * W2
 //       for (j = 0; j < 2*P; j++) {
-//         K[i][j] = (1-a)*K[i][j] + a*K1[i][j]; // note the transpose
+//         STATIC_K[i][j] = (1-a)*STATIC_K[i][j] + a*K1[i][j]; // note the transpose
 //       } // j end
 //     } // i end
 
@@ -445,7 +443,7 @@ void static_benney_compute_KPHI(double **static_kphi) {
 //     for (j = 0; j < 2*N; j++) {
 //       KPHIk[i][j] = 0.0;
 //       for (k = 0; k < 2*P; k++) {
-//         KPHIk[i][j] += K[i][k] * Phi[j][k];
+//         KPHIk[i][j] += STATIC_K[i][k] * Phi[j][k];
 //       } // k end
 //     } // j end
 //   } // i end
@@ -479,6 +477,7 @@ void static_benney_compute_KPHI(double **static_kphi) {
 /* [REQUIRED] internal setup */
 void static_set(void) {
   STATIC_KPHI = malloc_f2d(M, N);
+  STATIC_K = malloc_f2d(M, P);
 
   /* pick from the available ROMs */
   switch (RT) {
@@ -495,8 +494,8 @@ void static_set(void) {
 
 /* [REQUIRED] internal free */
 void static_free(void) {
-
   free(STATIC_KPHI);
+  free(STATIC_K);
 }
 
 /* [REQUIRED] steps the system forward in time given the interfacial height */
@@ -516,5 +515,10 @@ double static_estimator(double x) {
   return 0.0;
 }
 
+/* [REQUIRED] outputs the internal matrices */
+void static_output(void) {
+
+  output_d2d("out/K.dat", STATIC_K, M, P);
+}
 
 #endif

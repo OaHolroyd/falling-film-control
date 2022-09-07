@@ -21,6 +21,9 @@ void (*s_set)(void);
 /* frees varaibles specific to the selected strategy */
 void (*s_free)(void);
 
+/* outputs matrices specific to the selected strategy */
+void (*s_output)(void);
+
 /* steps the specific control system forward in time given the interfacial
    height */
 void (*control_step)(double dt, double *h);
@@ -79,24 +82,28 @@ void control_set(control_t ct, rom_t rt, int m, int p, double w, double alpha, d
       s_free = &pair_free;
       control_step = &pair_step;
       estimator = &pair_estimator;
+      s_output = &pair_output;
       break;
     case LQR:
       s_set = &lqr_set;
       s_free = &lqr_free;
       control_step = &lqr_step;
       estimator = &lqr_estimator;
+      s_output = &lqr_output;
       break;
     case STATIC:
       s_set = &static_set;
       s_free = &static_free;
       control_step = &static_step;
       estimator = &static_estimator;
+      s_output = &static_output;
       break;
     case DYNAMIC:
       s_set = &dynamic_set;
       s_free = &dynamic_free;
       control_step = &dynamic_step;
       estimator = &dynamic_estimator;
+      s_output = &dynamic_output;
       break;
     default :
       ABORT("invalid control type %d", ct);
@@ -110,4 +117,10 @@ void control_set(control_t ct, rom_t rt, int m, int p, double w, double alpha, d
 void control_free(void) {
   internal_control_free();
   s_free();
+}
+
+/* outputs the relevant control matrices */
+void control_output(void) {
+  internal_control_output();
+  s_output();
 }

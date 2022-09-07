@@ -23,6 +23,9 @@ void control_set(control_t ct, rom_t rt, int m, int p, double w, double alpha, d
 /* frees the control system */
 void control_free(void);
 
+/* outputs the relevant control matrices */
+void control_output(void);
+
 /* steps the specific control system forward in time given the interfacial
    height */
 extern void (*control_step)(double dt, double *h);
