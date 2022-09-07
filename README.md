@@ -1,4 +1,4 @@
-# PX915 - Control of Thin Liquid Films
+# Control of Falling Liquid Films
 
 Code for modelling thin liquid films controlled by baseplate actuators. Written for the PX915 individual project by [Oscar Holroyd](https://warwick.ac.uk/fac/sci/hetsys/people/studentscohort3/holroyd/), supervised by [Radu Cimpeanu](https://warwick.ac.uk/fac/sci/maths/people/staff/cimpeanu/) and [Susana Gomes](https://warwick.ac.uk/fac/sci/maths/people/staff/gomes).
 
@@ -9,7 +9,7 @@ Code for modelling thin liquid films controlled by baseplate actuators. Written 
 
 
 # Installation
-* The code relies on [Basilisk](<http://basilisk.fr/>) to model the Navier-Stokes equations. See the [installation page](<http://basilisk.fr/src/INSTALL>) for instructions. Note that bview is *not* required.
+* The code relies on [Basilisk](<http://basilisk.fr/>) to model the Navier-Stokes equations. See the [installation page](<http://basilisk.fr/src/INSTALL>) for instructions. Note that bview is *not* required. Make sure that qcc (or a symlink to it) is on your PATH.
 * The LQR controls require a functioning [LAPACKE](https://netlib.org/lapack/lapacke.html) implementation.
 
 Once these are installed, an executable can be generated:

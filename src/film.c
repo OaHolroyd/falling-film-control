@@ -155,9 +155,6 @@ int main(int argc, char const *argv[]) {
   control_free();
   free(H);
 
-  /* output the cost */
-  fprintf(stdout, "%lf\n", Ccost);
-
   return EXIT_SUCCESS;
 }
 
@@ -355,4 +352,7 @@ event stop(t=TMAX) {
   }
   fprintf(stderr, "final time: %lf\n", t);
   fprintf(stderr, "total cost: %lf\n", Ccost);
+
+  /* output the cost */
+  fprintf(stdout, "%.15lf\n", Ccost);
 }
