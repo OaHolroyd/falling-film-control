@@ -68,5 +68,23 @@ double interfacial_height(double xp) {
   return yh[j];
 }
 
+double flux(double xp, double h, scalar u, scalar f) {
+  if (xp < 0) {
+    xp += LX;
+  } else if (xp > LX) {
+    xp -= LX;
+  }
+
+  /* integrate flux from 0 to h */
+  double q = 0.0;
+  double yp = 0.5 * DX;
+  while (yp < h) {
+    q += DX * interpolate(u, xp, yp) * interpolate(f, xp, yp);
+    yp += DX;
+  }
+
+  return q;
+}
+
 
 #endif

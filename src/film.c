@@ -295,7 +295,8 @@ event output_dat(t=0.0; t<=TMAX; t += DTOUT) {
     fprintf(fp, "# t: %lf\n", t);
     double dx = LX/((double)(NOUT));
     for (int i = 0; i < NOUT+1; i++) {
-      fprintf(fp, "%lf %lf %lf %lf\n", i*dx, interfacial_height(i*dx), control(i*dx), estimator(i*dx));
+      double h = interfacial_height(i*dx);
+      fprintf(fp, "%lf %lf %lf %lf %lf\n", i*dx, h, control(i*dx), estimator(i*dx), flux(i*dx, h, u.x, f));
     } // i end
     fclose(fp);
 
