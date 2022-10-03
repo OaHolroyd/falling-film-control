@@ -176,9 +176,13 @@ void internal_control_output(void) {
   forcing_matrix(F);
   output_d2d("out/F.dat", F, N, M);
 
-  double **Psi, **Phi;
+  double **J, **Psi, **Phi;
   switch (RT) {
     case BENNEY:
+      /* Jacobian */
+      J = malloc_f2d(N, N);
+      benney_jacobian(J);
+
       /* actuator matrix */
       Psi = malloc_f2d(N, M);
       benney_actuator(Psi);
@@ -187,10 +191,15 @@ void internal_control_output(void) {
       Phi = malloc_f2d(N, P);
       benney_observer(Phi);
 
+      output_d2d("out/J.dat", J, N, N);
       output_d2d("out/Psi.dat", Psi, N, M);
       output_d2d("out/Phi.dat", Phi, N, P);
       break;
     case WR:
+      /* Jacobian */
+      J = malloc_f2d(2*N, 2*N);
+      wr_jacobian(J);
+
       /* actuator matrix */
       Psi = malloc_f2d(2*N, M);
       wr_actuator(Psi);
@@ -199,12 +208,14 @@ void internal_control_output(void) {
       Phi = malloc_f2d(2*N, 2*P);
       wr_observer(Phi);
 
+      output_d2d("out/J.dat", J, 2*N, 2*N);
       output_d2d("out/Psi.dat", Psi, 2*N, M);
       output_d2d("out/Phi.dat", Phi, 2*N, 2*P);
       break;
   }
 
   free_2d(F);
+  free_2d(J);
   free_2d(Psi);
   free_2d(Phi);
 }
