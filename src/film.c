@@ -150,6 +150,11 @@ int main(int argc, char const *argv[]) {
   fprintf(stderr, "Us: %.8lf\n", US);
   fprintf(stderr, "Re: %.8lf\n", RE);
   fprintf(stderr, "Ca: %.8lf\n", CA);
+  FILE *fp = fopen("out/numbers.dat", "w");
+  fprintf(fp, "%.8lf\n", RE);
+  fprintf(fp, "%.8lf\n", CA);
+  fclose(fp);
+
 
   run();
 
