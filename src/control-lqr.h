@@ -48,7 +48,7 @@ void lqr_wr_compute_K(double **lqr_k) {
   /* apply flux approximation */
   for (int i = 0; i < M; i++) {
     for (int j = 0; j < N; j++) {
-      lqr_k[i][j] = K[i][j] + 2/3 * K[i][j+N]; // TODO: is this correct
+      lqr_k[i][j] = K[i][j] + (2/3.0) * K[i][j+N]; // TODO: is this correct
     } // j end
   } // i end
 

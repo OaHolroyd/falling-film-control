@@ -451,7 +451,7 @@ void static_benney_compute_KPHI(double **static_kphi) {
 //   /* apply flux approximation */
 //   for (i = 0; i < M; i++) {
 //     for (j = 0; j < N; j++) {
-//       STATIC_KPHI[i][j] = KPHIk[i][j] + 2/3 * KPHIk[i][N+j];
+//       STATIC_KPHI[i][j] = KPHIk[i][j] + 2/3.0 * KPHIk[i][N+j];
 //     } // j end
 //   } // i end
 

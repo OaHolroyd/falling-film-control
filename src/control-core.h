@@ -2,6 +2,7 @@
 #define CONTROL_CORE_H
 
 #include <stdlib.h>
+#include <stdio.h>
 #include <math.h>
 #include <complex.h>
 
@@ -346,11 +347,11 @@ void wr_jacobian(double **J) {
   J[N-1][N+0] = c3;
 
   /* bottom left */
-  c0 = 1/(3*CA) * (-1/(2*DX*DX*DX));
-  c1 = (8*RE/35 - 2/tan(THETA)/3) * (-1/(2*DX)) + 1/(3*CA) * (1/(DX*DX*DX));
-  c2 = 2;
-  c3 = (8*RE/35 - 2/tan(THETA)/3) * (1/(2*DX)) + 1/(3*CA) * (-1/(DX*DX*DX));
-  c4 = 1/(3*CA) * (1/(2*DX*DX*DX));
+  c0 = (5/(6*RE*CA)) * (-1/(2*DX*DX*DX));
+  c1 = (4/7.0 - 5/(3*RE*tan(THETA))) * (-1/(2*DX)) + (5/(6*RE*CA)) * (1/(DX*DX*DX));
+  c2 = 5/RE;
+  c3 = (4/7.0 - 5/(3*RE*tan(THETA))) * (1/(2*DX)) + (5/(6*RE*CA)) * (-1/(DX*DX*DX));
+  c4 = (5/(6*RE*CA)) * (1/(2*DX*DX*DX));
   for (int i = 2; i < N-2; i++) {
     J[N+i][i-2] = c0;
     J[N+i][i-1] = c1;
@@ -384,9 +385,10 @@ void wr_jacobian(double **J) {
   J[N+N-1][1] = c4;
 
   /* bottom right */
-  c1 = 6*RE/105 * 1/(2*DX);
-  c2 = -1;
-  c3 = 6*RE/105 * -1/(2*DX);
+  fprintf(stderr, "DX: %lf\n", DX);
+  c1 = -(34/21.0) * (-1/(2*DX));
+  c2 = -(5/(2*RE));
+  c3 = -(34/21.0) * (1/(2*DX));
   for (int i = 1; i < N-1; i++) {
     J[N+i][N+i-1] = c1;
     J[N+i][N+i] = c2;
@@ -412,7 +414,7 @@ void wr_actuator(double **Psi) {
   for (int i = 0; i < N; i++) {
     for (int j = 0; j < M; j++) {
       Psi[i][j] = F[i][j];
-      Psi[i+N][j] = 2*RE/15 * F[i][j];
+      Psi[i+N][j] = (1/3.0) * F[i][j];
     } // j end
   } // i end
 
