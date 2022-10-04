@@ -2,7 +2,6 @@
 #define CONTROL_CORE_H
 
 #include <stdlib.h>
-#include <stdio.h>
 #include <math.h>
 #include <complex.h>
 
@@ -385,7 +384,6 @@ void wr_jacobian(double **J) {
   J[N+N-1][1] = c4;
 
   /* bottom right */
-  fprintf(stderr, "DX: %lf\n", DX);
   c1 = -(34/21.0) * (-1/(2*DX));
   c2 = -(5/(2*RE));
   c3 = -(34/21.0) * (1/(2*DX));
