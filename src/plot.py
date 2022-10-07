@@ -408,6 +408,28 @@ def plot_hstats(n=None, rate=1, save=True):
     dx = data1[1, 0] - data1[0, 0]
     L = data1[:, 0].max()
 
+    # get dimensionless numbers
+    nums = np.loadtxt("out/numbers.dat")
+    RE = nums[0]
+    CA = nums[1]
+
+    # get matrices and compute growth rate
+    J = np.loadtxt("out/J.dat")
+    Psi = np.loadtxt("out/Psi.dat")
+    K = np.loadtxt("out/K.dat")
+
+    # pad K with zeros if required
+    if K.shape[1] == Psi.shape[0]/2:
+        K = np.concatenate((K, np.zeros(K.shape)), axis=1)
+
+    A = J - np.matmul(Psi, K);
+    val, vec = np.linalg.eig(A)
+    val = np.real(val)
+    val = np.sort(val)
+    val = val[::-1]
+    l = max(val)
+    l = val[1]
+
     # get data
     t = np.zeros(n)
     hmin = np.zeros(n)
@@ -417,22 +439,83 @@ def plot_hstats(n=None, rate=1, save=True):
         t[i], data1 = get_1D_data(i)
         hmin[i] = 1.0 - data1[:, 1].min()
         hmax[i] = data1[:, 1].max() - 1.0
-        dh[i] = dx * sum((data1[:, 1] - 1.0)**2) / L
+        dh[i] = dx * np.sqrt(sum((data1[:, 1] - 1.0)**2)) / L
 
     # plot data
-    plt.plot(t-600, hmin, label="hmin")
-    plt.plot(t-600, hmax, label="hmax")
-    plt.plot(t-600, dh, label="dh")
+    plt.plot(t-100, np.exp(l*(t-100)), label="analytic")
+    plt.plot(t-100, hmin, label="hmin")
+    plt.plot(t-100, hmax, label="hmax")
+    plt.plot(t-100, dh, label="dh")
     plt.gca().set_yscale('log')
-    # plt.gca().set_xscale('log')
-    # plt.gca().set_ylim(bottom=0)
+    plt.ylim(top=5*max(hmax))
     plt.xlabel("t")
     plt.ylabel("deviation")
     plt.legend()
+    plt.annotate(f"Re = {RE}\nCa = {CA}", xy=(0.05, 0.05),
+                 xycoords='axes fraction')
 
     # save or display
     if save:
         plt.savefig("plots/hstats.png", dpi=300, bbox_inches='tight')
+    else:
+        plt.show()
+    plt.clf()
+
+
+def plot_fmodes(n=None, rate=1, nmodes=5, save=True):
+    """
+    Plots statistics about the interface (hmin, hmax, mean deviation)
+    """
+    if n is None:
+        n = get_n(1)
+
+    _, data1 = get_1D_data(0)
+    dx = data1[1, 0] - data1[0, 0]
+    L = data1[:, 0].max()
+
+    # get dimensionless numbers
+    nums = np.loadtxt("out/numbers.dat")
+    RE = nums[0]
+    CA = nums[1]
+
+    # get matrices and compute growth rate
+    J = np.loadtxt("out/J.dat")
+    Psi = np.loadtxt("out/Psi.dat")
+    K = np.loadtxt("out/K.dat")
+
+    # pad K with zeros if required
+    if K.shape[1] == Psi.shape[0]/2:
+        K = np.concatenate((K, np.zeros(K.shape)), axis=1)
+
+    A = J - np.matmul(Psi, K);
+    val, vec = np.linalg.eig(A)
+    l = max(np.real(val))
+
+    # get data
+    t = np.zeros(n)
+    modes = np.zeros([n,nmodes])
+    for i in range(0, n, rate):
+        t[i], data1 = get_1D_data(i)
+        m = np.fft.rfft(data1[:, 1] - 1.0)
+        modes[i,:] = np.abs(np.real(m[0:nmodes]))
+
+    # plot data
+    mmax = 0
+    for i in range(0, nmodes):
+        mmax = max([mmax, max(modes[:,i])])
+        plt.plot(t-100, modes[:,i], label=f"{i}", color=(i/nmodes, 0.0, 0.0))
+    plt.gca().set_yscale('log')
+    plt.plot(t-100, np.exp(l*(t-100)), label="analytic")
+    plt.ylim(top=5*mmax)
+    plt.xlabel("t")
+    plt.ylabel("eigenmode")
+    plt.legend()
+    plt.annotate(f"Re = {RE}\nCa = {CA}", xy=(0.5, 0.05),
+                 xycoords='axes fraction')
+
+    # save or display
+    if save:
+        plt.savefig("plots/fmode.png", dpi=300, bbox_inches='tight')
     else:
         plt.show()
     plt.clf()

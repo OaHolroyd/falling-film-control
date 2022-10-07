@@ -7,6 +7,10 @@ def plot_lines(n, track, clip, rate, start):
     # static plots
     plt.plot_hstats(n)
     print("hstats done")
+    plt.plot_fmodes(n)
+    print("fmodes done")
+    return
+
 
     # animations
     plt.plot_series(n=n, i0=start, key="interface", Ly=2.0,
