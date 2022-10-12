@@ -25,15 +25,6 @@ double Ccost; // control cost
 
 
 /* ========================================================================== */
-/*   OUTPUT PARAMETERS                                                        */
-/* ========================================================================== */
-#define NOUT (1<<(LEVEL-1)) // output resolution
-#define LOG_STEP 10 // log every LOG_STEP steps
-#define OUTPUT_DAT 1 // whether to output data
-#define DUMP 100 // how often to dump (for restarting)
-
-
-/* ========================================================================== */
 /*   BOUNDARY CONDITIONS                                                      */
 /* ========================================================================== */
 /* top boundary is embedded (free outflow) */

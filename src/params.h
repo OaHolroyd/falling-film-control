@@ -12,6 +12,15 @@
 
 
 /* ========================================================================== */
+/*   OUTPUT PARAMETERS                                                        */
+/* ========================================================================== */
+#define NOUT (1<<(LEVEL-1)) // output resolution
+#define LOG_STEP 10 // log every LOG_STEP steps
+#define OUTPUT_DAT 1 // whether to output data
+#define DUMP 100 // how often to dump (for restarting)
+
+
+/* ========================================================================== */
 /*   DIMENSIONLESS NUMBERS                                                    */
 /* ========================================================================== */
 #define US ((RHO_L*GRAV*sin(THETA)*H0*H0)/(2*MU_L)) // Nusselt surface velocity
