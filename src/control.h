@@ -26,6 +26,9 @@ void control_free(void);
 /* outputs the relevant control matrices */
 void control_output(void);
 
+/* sets CM to be the control matrix (so that f = CM*(h-1)) */
+extern void (*control_matrix)(double **CM);
+
 /* steps the specific control system forward in time given the interfacial
    height */
 extern void (*control_step)(double dt, double *h);

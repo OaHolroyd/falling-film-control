@@ -33,6 +33,7 @@ double *hx, *hxxx, *qf; // interface/flux derivatives
 double *res; // residual
 double **J; // Jacobian
 double **qh; // qh
+double **CM; // control matrix
 
 #define DT 0.05 // maximum timestep
 #define ITERMAX 20 // max iterations
@@ -61,9 +62,14 @@ void init_variables(void) {
   qf = malloc(N*sizeof(double));
   res = malloc(2*N*sizeof(double));
   J = malloc_f2d(2*N, 2*N);
+  CM = malloc_f2d(N, N);
   qh = malloc_f2d(N, N);
 
-  /* initial condition */
+  Cost = 0.0;
+}
+
+/* sets the initial condition */
+void initial_condition(void) {
   for (int i = 0; i < N; i++) {
     x[i] = ITOX(i);
     h[i] = 1.0 + 0.05*sin((2.0/(LX))*M_PI*(x[i]+10.0));
@@ -71,14 +77,18 @@ void init_variables(void) {
     q[i] = 0.0;
     q_1[i] = q[i]; q_2[i] = q[i];
     f[i] = 0.0;
+  } // i end
+}
 
+/* set the target state */
+void init_target(void) {
+  /* target state */
+  U = 0.0;
+  for (int i = 0; i < N; i++) {
     H[i] = 1.0;
     Q[i] = 2.0/3.0;
     S[i] = 0.0;
   } // i end
-
-  U = 0.0;
-  Cost = 0.0;
 }
 
 /* frees variables */
@@ -99,6 +109,7 @@ void free_variables(void) {
   free(qf);
   free(res);
   free_2d(J);
+  free_2d(CM);
   free_2d(qh);
 }
 
@@ -174,6 +185,15 @@ void output(double t) {
   datcount++;
 }
 
+/* outputs dimensionless numbers and other details */
+void output_numbers(void) {
+  FILE *fp = fopen("out/numbers.dat", "w");
+  fprintf(fp, "%.8lf\n", RE);
+  fprintf(fp, "%.8lf\n", CA);
+  fprintf(fp, "%.8lf\n", C_START);
+  fclose(fp);
+}
+
 /* prints the log */
 void print_log(int i, double t) {
   /* print column headers */
@@ -226,7 +246,7 @@ void compute_precursors(void) {
 }
 
 /* compute the residual */
-void compute_residual(void) {
+void compute_residual(int use_CM) {
   /* residual */
   for (int i = 1; i < N-1; i++) {
     double ht = (h[i] - 4.0*h_1[i]/3.0 + h_2[i]/3.0)/(DT*2.0/3.0);
@@ -242,14 +262,24 @@ void compute_residual(void) {
   qx = 0.5/DX * (q[0] - q[N-2]);
   res[N-1] = ht - f[N-1] + qx;
 
-  for (int i = 0; i < N; i++) {
-    // TODO: this should be f+CM*(h-H)-S
-    res[N+i] = f[i];
-  } // i end
+  if (use_CM) {
+    // f+CM*(h-H)-S
+    for (int i = 0; i < N; i++) {
+      res[N+i] = f[i]-S[i];
+      for (int k = 0; k < N; k++) {
+        res[N+i] += CM[i][k] * (h[k]-H[k]);
+      } // k end
+    } // i end
+  } else {
+    // f+0*(h-H)-S
+    for (int i = 0; i < N; i++) {
+      res[N+i] = f[i]-S[i];
+    } // i end
+  }
 }
 
 /* computes the Jacobian (via qh) */
-void compute_jacobian(void) {
+void compute_jacobian(int use_CM) {
   double h3, c;
 
   /* construct qh */
@@ -361,11 +391,19 @@ void compute_jacobian(void) {
   J[N-1][N] = 0.5/DX*qf[0];
 
   /* J10 (CM) */
-  for (int i = 0; i < N; i++) {
-    for (int j = 0; j < N; j++) {
-      J[N+i][j] = 0.0;
-    } // j end
-  } // i end
+  if (use_CM) {
+    for (int i = 0; i < N; i++) {
+      for (int j = 0; j < N; j++) {
+        J[N+i][j] = CM[i][j];
+      } // j end
+    } // i end
+  } else {
+    for (int i = 0; i < N; i++) {
+      for (int j = 0; j < N; j++) {
+        J[N+i][j] = 0.0;
+      } // j end
+    } // i end
+  }
 
   /* J11 (I) */
   for (int i = 0; i < N; i++) {
@@ -406,18 +444,20 @@ int main(int argc, char const *argv[]) {
 
   /* set up the model */
   init_variables();
+  initial_condition();
+  init_target();
+
+  /* compute the controls */
   control_set(C_STRAT, C_ROM, C_M, C_P, C_W, C_ALPHA, C_MU, C_DEL,
               LX, N, RE, CA, THETA);
   control_output();
+  control_matrix(CM);
 
   /* sanity check the dimensionless numbers and Nusselt velocity */
   fprintf(stderr, "Us: %.8lf\n", US);
   fprintf(stderr, "Re: %.8lf\n", RE);
   fprintf(stderr, "Ca: %.8lf\n", CA);
-  FILE *fp = fopen("out/numbers.dat", "w");
-  fprintf(fp, "%.8lf\n", RE);
-  fprintf(fp, "%.8lf\n", CA);
-  fclose(fp);
+  output_numbers();
 
 
   /* ============ */
@@ -432,11 +472,14 @@ int main(int argc, char const *argv[]) {
       print_log(nsteps, t);
     }
 
+    /* turn off controls before C_START */
+    int use_CM = t>=C_START;
+
     /* iterate to a solution */
     for (int k = 0; k < ITERMAX; k++) {
       /* compute q, hx, hxxx, res */
       compute_precursors();
-      compute_residual();
+      compute_residual(use_CM);
 
       /* stop if residual is small enough */
       double nres = 0.0;
@@ -446,7 +489,7 @@ int main(int argc, char const *argv[]) {
       if (nres < 1e-14) { break; }
 
       /* iterate to improve h and f */
-      compute_jacobian();
+      compute_jacobian(use_CM);
       dsv(J, res, 2*N);
 
       for (int i = 0; i < N; i++) {

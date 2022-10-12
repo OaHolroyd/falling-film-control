@@ -106,5 +106,22 @@ void lqr_output(void) {
   output_d2d("out/K.dat", LQR_K, M, N);
 }
 
+/* [REQUIRED] generates the control matrix CM = F*K */
+void lqr_matrix(double **CM) {
+  /* forcing matrix */
+  double **F = malloc_f2d(N, M);
+  forcing_matrix(F);
+
+  for (int i = 0; i < N; i++) {
+    for (int j = 0; j < N; j++) {
+      CM[i][j] = 0.0;
+      for (int k = 0; k < M; k++) {
+        CM[i][j] += F[i][k]*LQR_K[k][j];
+      } // k end
+    } // j end
+  } // i end
+
+  free_2d(F);
+}
 
 #endif

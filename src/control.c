@@ -24,6 +24,9 @@ void (*s_free)(void);
 /* outputs matrices specific to the selected strategy */
 void (*s_output)(void);
 
+/* sets CM to be the control matrix (so that f = CM*(h-1)) */
+void (*control_matrix)(double **CM);
+
 /* steps the specific control system forward in time given the interfacial
    height */
 void (*control_step)(double dt, double *h);
@@ -83,6 +86,7 @@ void control_set(control_t ct, rom_t rt, int m, int p, double w, double alpha, d
       control_step = &pair_step;
       estimator = &pair_estimator;
       s_output = &pair_output;
+      control_matrix = &pair_matrix;
       break;
     case LQR:
       s_set = &lqr_set;
@@ -90,6 +94,7 @@ void control_set(control_t ct, rom_t rt, int m, int p, double w, double alpha, d
       control_step = &lqr_step;
       estimator = &lqr_estimator;
       s_output = &lqr_output;
+      control_matrix = &lqr_matrix;
       break;
     case STATIC:
       s_set = &static_set;
@@ -97,6 +102,7 @@ void control_set(control_t ct, rom_t rt, int m, int p, double w, double alpha, d
       control_step = &static_step;
       estimator = &static_estimator;
       s_output = &static_output;
+      control_matrix = &static_matrix;
       break;
     case DYNAMIC:
       s_set = &dynamic_set;
@@ -104,6 +110,7 @@ void control_set(control_t ct, rom_t rt, int m, int p, double w, double alpha, d
       control_step = &dynamic_step;
       estimator = &dynamic_estimator;
       s_output = &dynamic_output;
+      control_matrix = NULL;
       break;
     default :
       ABORT("invalid control type %d", ct);
