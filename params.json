@@ -4,11 +4,11 @@
     "Lx": 30.0,
     "Ly": 8.0,
     "theta": 1.047197551,
-    "tmax": 20,
+    "tmax": 35,
     "t0": 0
   },
 
-  "PHYSCIAL": {
+  "PHYSICAL": {
     "rho_l": 10058.938842622002416886564380943,
     "rho_g": 10.0,
     "mu_l": 1.0e-3,
@@ -26,12 +26,12 @@
   "CONTROL": {
     "M": "5",
     "P": "5",
-    "start": 100.0,
+    "start": 15.0,
     "width": 0.1,
     "alpha": 1.0,
     "del": 0.0,
     "mu": 0.5,
-    "rom": "wr",
+    "rom": "benney",
     "strategy": "lqr"
   }
 }

@@ -154,7 +154,7 @@ int read_params(const char *fname) {
       }
     }
 
-    else if (jsoneq(s, &t[i], "PHYSCIAL") == 0) {
+    else if (jsoneq(s, &t[i], "PHYSICAL") == 0) {
       n = 6;
       m = n;
       for (int j = i+2; j < i+2+2*m; j++) {
