@@ -257,7 +257,7 @@ event output_dat(t=0.0; t<=TMAX; t += DTOUT) {
     de = sqrt(DX*de);
 
     /* append data to file */
-    FILE *fp = fopen("out/data-0.dat", "a");
+    FILE *fp = fopen("out/ns-0.dat", "a");
     fprintf(fp, "%lf %lf %lf %lf %lf\n", t-C_START, dh, de, dc, Ccost);
     fclose(fp);
   }
@@ -274,7 +274,7 @@ event output_dat(t=0.0; t<=TMAX; t += DTOUT) {
       FILE *fp;
       int i = 0;
       double t0;
-      sprintf(fname, "out/data-1-%010d.dat", i);
+      sprintf(fname, "out/ns-1-%010d.dat", i);
       while ((fp = fopen(fname, "r"))) {
         /* check if the time is before the current time */
         if (fscanf(fp, "# t: %lf\n", &t0) != 1) { ABORT("missing timestamp"); }
@@ -285,13 +285,13 @@ event output_dat(t=0.0; t<=TMAX; t += DTOUT) {
 
         /* try the next file */
         i++;
-        sprintf(fname, "out/data-1-%010d.dat", i);
+        sprintf(fname, "out/ns-1-%010d.dat", i);
       }
       datcount = i;
     }
 
     /* 1D interface */
-    sprintf(fname, "out/data-1-%010d.dat", datcount);
+    sprintf(fname, "out/ns-1-%010d.dat", datcount);
     FILE *fp = fopen(fname, "w");
     if (!fp) { ABORT("'%s' could not be opened", fname); }
     fprintf(fp, "# t: %lf\n", t);
@@ -321,7 +321,7 @@ event output_dat(t=0.0; t<=TMAX; t += DTOUT) {
       vorticity(u, omega);
 
       /* 2D fields */
-      sprintf(fname, "out/data-2-%010d.dat", datcount);
+      sprintf(fname, "out/ns-2-%010d.dat", datcount);
       fp = fopen(fname, "w");
       if (!fp) { ABORT("'%s' could not be opened", fname); }
       fprintf(fp, "# t: %lf\n", t);

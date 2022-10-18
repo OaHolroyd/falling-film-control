@@ -11,8 +11,6 @@
 #include "linalg.h"
 #include "control.h"
 
-#include "debug.h"
-
 
 /* convert from index to location */
 #define ITOX(i) (DX*(i+0.5))
@@ -26,7 +24,7 @@
 /* ========================================================================== */
 double *x; // x coordinates
 double *h, *h_1, *h_2; // interface
-double *q, *q_1, *q_2; // flux
+double *q; // flux
 double *f; // control magnitudes
 double *H, *Q, *S, U; // target state
 double *hx, *hxxx, *qf; // interface/flux derivatives
@@ -51,8 +49,6 @@ void init_variables(void) {
   h_1 = malloc(N*sizeof(double));
   h_2 = malloc(N*sizeof(double));
   q = malloc(N*sizeof(double));
-  q_1 = malloc(N*sizeof(double));
-  q_2 = malloc(N*sizeof(double));
   f = malloc(N*sizeof(double));
   H = malloc(N*sizeof(double));
   Q = malloc(N*sizeof(double));
@@ -75,7 +71,6 @@ void initial_condition(void) {
     h[i] = 1.0 + 0.05*sin((2.0/(LX))*M_PI*(x[i]+10.0));
     h_1[i] = h[i]; h_2[i] = h[i];
     q[i] = 0.0;
-    q_1[i] = q[i]; q_2[i] = q[i];
     f[i] = 0.0;
   } // i end
 }
@@ -98,8 +93,6 @@ void free_variables(void) {
   free(h_1);
   free(h_2);
   free(q);
-  free(q_1);
-  free(q_2);
   free(f);
   free(H);
   free(Q);
@@ -140,7 +133,7 @@ void output(double t) {
     de = sqrt(DX*de);
 
     /* append data to file */
-    FILE *fp = fopen("out/data-0.dat", "a");
+    FILE *fp = fopen("out/benney-0.dat", "a");
     fprintf(fp, "%lf %lf %lf %lf %lf\n", t-C_START, dh, de, dc, Cost);
     fclose(fp);
   }
@@ -155,7 +148,7 @@ void output(double t) {
       FILE *fp;
       int i = 0;
       double t0;
-      sprintf(fname, "out/data-1-%010d.dat", i);
+      sprintf(fname, "out/benney-1-%010d.dat", i);
       while ((fp = fopen(fname, "r"))) {
         /* check if the time is before the current time */
         if (fscanf(fp, "# t: %lf\n", &t0) != 1) { ABORT("missing timestamp"); }
@@ -166,13 +159,13 @@ void output(double t) {
 
         /* try the next file */
         i++;
-        sprintf(fname, "out/data-1-%010d.dat", i);
+        sprintf(fname, "out/benney-1-%010d.dat", i);
       }
       datcount = i;
     }
 
     /* 1D interface */
-    sprintf(fname, "out/data-1-%010d.dat", datcount);
+    sprintf(fname, "out/benney-1-%010d.dat", datcount);
     FILE *fp = fopen(fname, "w");
     if (!fp) { ABORT("'%s' could not be opened", fname); }
     fprintf(fp, "# t: %lf\n", t);
@@ -510,8 +503,6 @@ int main(int argc, char const *argv[]) {
     for (int i = 0; i < N; i++) {
       h_2[i] = h_1[i];
       h_1[i] = h[i];
-      // q2[i] = q1[i]; // TODO: remove
-      // q1[i] = q[i]; // TODO: remove
     } // i end
 
 
