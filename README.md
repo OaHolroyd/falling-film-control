@@ -104,7 +104,7 @@ and the **weighted-residual** system requires an additional evolution equation f
 We can then implement control strategies to control the Navier-Stokes system by making the assumption that it is well-approximated by one of these simpler models and applying controls as if we were aiming to control the alternative system rather than the original.
 
 ## Control strategies
-There are four strategies that we consider.
+There are two strategies that we consider.
 
 ### Paired actuators/observers
 Here we simply couple an equal number of observers and actuators, with a fixed shift between them. The control is then simply
