@@ -345,6 +345,7 @@ event dump_xxx(t=0.0; t+=DUMP) {
 }
 #endif
 
+#if EARLY_EXIT
 event update_history(t=C_START, t+=50.0) {
   static int first = 1;
   static double dh = 0.0;
@@ -415,6 +416,7 @@ event early_stop(i++) {
     exit(EXIT_SUCCESS);
   }
 }
+#endif
 
 /* finish */
 event stop(t=TMAX) {

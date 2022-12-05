@@ -19,7 +19,9 @@ cd px915-basilisk
 make source
 make
 ```
-The three resulting executables (`film-ns`, `film-wr`, and `film-benney`) use the specified system to model the thin film.
+Note that on some systems (eg the University of Warwick's SCRTP resources) the LAPACK library is linked with `-lopenblas`. If compilation fails, try linking with `-llapacke`.
+
+The three resulting executables (`film-ns`, `film-wr`, and `film-benney`) use the specified system to model the thin film. Note that the option to finish the NS simulation early (in the case of failure to control or successful stabilisation) is set to true by default. To change this, change the value of `EARLY_EXIT` in [src/params.h](src/params.h) and recompile the code.
 
 
 # Running the Code

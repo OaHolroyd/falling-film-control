@@ -10,6 +10,8 @@
 #include "control.h"
 #include "jsmn.h"
 
+ // whether to allow early exit in fully controlled/uncontrollable cases
+#define EARLY_EXIT 1
 
 /* ========================================================================== */
 /*   OUTPUT PARAMETERS                                                        */
