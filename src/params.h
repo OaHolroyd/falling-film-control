@@ -75,7 +75,7 @@ double C_ALPHA = 1.0; // control strength
 double C_DEL = 1.0; // observer/control displacement
 double C_MU = 0.1; // control cost parameter
 rom_t C_ROM = BENNEY; // reduced order model
-control_t C_STRAT = STATIC; // control strategy
+control_t C_STRAT = LQR; // control strategy
 
 
 /* ========================================================================== */

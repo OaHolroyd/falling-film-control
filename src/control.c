@@ -3,8 +3,6 @@
 #include "control-core.h"
 #include "control-pair.h"
 #include "control-lqr.h"
-#include "control-static.h"
-#include "control-dynamic.h"
 
 #include "c-utils.h"
 
