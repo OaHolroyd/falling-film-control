@@ -21,7 +21,8 @@ CFLAGS=-O3 -Wall -Wextra -pedantic -Wno-unused-parameter -Wshadow \
 # CFLAGS=-O0 -g -fbounds-check -fsanitize=address -fsanitize=bounds -fsanitize=bounds-strict
 
 # required libraries
-LDFLAGS=-fopenmp -lm -llapacke
+# TODO: use openblas if on ORAC
+LDFLAGS=-fopenmp -lm -lopenblas
 
 # file/folder names
 EXE_BE=film-benney
