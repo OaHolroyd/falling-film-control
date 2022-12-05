@@ -14,8 +14,8 @@ Code for modelling thin liquid films controlled by baseplate actuators. Written 
 
 Once these are installed, the executables can be generated:
 ```bash
-git clone https://github.com/OaHolroyd/px915-basilisk
-cd px915-basilisk
+git clone https://github.com/OaHolroyd/falling-film-control
+cd falling-film-control
 make source
 make
 ```
