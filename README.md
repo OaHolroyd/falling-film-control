@@ -43,6 +43,9 @@ The output data is stored as plain text, timestamped on the first line and subse
 ## Restarting
 Basilisk includes the option to 'dump' the entire simulation to a single file, which can then be restored to continue the simulation from the output time. By default this occurs every 100 time-units. Since stable travelling waves take a long time to develop for most parameter regimes it is *strongly suggested* that a single run without controls is performed to generate a dump-file with a travelling wave before loading it and beginning controls after this point. To do this set the value `"t0"` to correspond to the file at dump/dump-\<time\>.
 
+## Helper script
+Included in the repo is the helper script [analysis.py](analysis.py). It is currently set up to perform multiple runs across ranges of Reynolds and capillary numbers. However, the base class `FilmModel` should be relatively simple to rework if you need to iterate over other sets of parameters.
+
 
 # Input Parameters
 All of the parameters are either in SI units or dimensionless. The keys in [params.json](params.json) are hopefully fairly self-explanatory. However, below is a full description.

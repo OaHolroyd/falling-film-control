@@ -496,11 +496,6 @@ def main(rom, n, uid, M):
     Re1 = 100
     Ca0 = 0.0001
     Ca1 = 0.01
-
-    Re0 = 5.0
-    Re1 = 500
-    Ca0 = 0.0001
-    Ca1 = 0.01
     Res = np.logspace(np.log10(Re0), np.log10(Re1), num=n)
     Cas = np.logspace(np.log10(Ca0), np.log10(Ca1), num=n)
 
@@ -514,7 +509,6 @@ def main(rom, n, uid, M):
 
     # run
     fm.params["CONTROL"]["start"] = 50
-    fm.params["DOMAIN"]["tmax"] = 2000 + fm.params["CONTROL"]["start"]
     fm.params["SOLVER"]["dtout"] = 0.5
     fm.params["CONTROL"]["M"] = M
 
