@@ -466,7 +466,7 @@ int main(int argc, char const *argv[]) {
     }
 
     /* turn off controls before C_START */
-    int use_CM = t>=C_START;
+    int use_CM = (t>=C_START);
 
     /* iterate to a solution */
     for (int k = 0; k < ITERMAX; k++) {
@@ -493,11 +493,13 @@ int main(int argc, char const *argv[]) {
       } // i end
     } // k end
 
-    /* check for blowup */
-    if (isnan(h[0])) {
-      fprintf(stderr, "\nBlowup at t = %lf\n", t);
-      break;
-    }
+    /* check for blowup (and start controls early) */
+    for (int i = 0; i < N; i++) {
+      if (h[i] > 1.25 || h[i] < 0.5) {
+        t = C_START;
+        break;
+      }
+    } // i end
 
     /* copy backwards */
     for (int i = 0; i < N; i++) {

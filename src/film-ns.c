@@ -122,6 +122,8 @@ void output_numbers(void) {
 /*   MAIN                                                                     */
 /* ========================================================================== */
 int main(int argc, char const *argv[]) {
+  omp_set_num_threads(1);
+
   /* periodic left/right */
   periodic(right);
 
@@ -294,7 +296,7 @@ event output_dat(t=0.0; t<=TMAX; t += DTOUT) {
     sprintf(fname, "out/ns-1-%010d.dat", datcount);
     FILE *fp = fopen(fname, "w");
     if (!fp) { ABORT("'%s' could not be opened", fname); }
-    fprintf(fp, "# t: %lf\n", t);
+    fprintf(fp, "# t: %lf\n", t-C_START);
     double dx = LX/((double)(NOUT));
     for (int i = 0; i < NOUT+1; i++) {
       double h = interfacial_height(i*dx);
@@ -342,6 +344,77 @@ event dump_xxx(t=0.0; t+=DUMP) {
   dump(file = dump_file);
 }
 #endif
+
+event update_history(t=C_START, t+=50.0) {
+  static int first = 1;
+  static double dh = 0.0;
+
+  if (first) {
+    for (int i = 0; i < N; i++) {
+      dh += (H[i]-1.0)*(H[i]-1.0);
+    } // i end
+    dh = sqrt(DX*dh);
+    first = 0;
+  } else {
+    double dh1 = 0.0;
+    for (int i = 0; i < N; i++) {
+      dh1 += (H[i]-1.0)*(H[i]-1.0);
+    } // i end
+    dh1 = sqrt(DX*dh1);
+
+    if (dh1 > dh) {
+      control_free();
+      free(H);
+
+      fprintf(stderr, "\nExit early due to damping failure\n");
+      exit(EXIT_SUCCESS);
+    }
+  }
+}
+
+event early_stop(i++) {
+  /* L2 interfacial deviation */
+  double dh = 0.0;
+  for (int i = 0; i < N; i++) {
+    dh += (H[i]-1.0)*(H[i]-1.0);
+  } // i end
+  dh = sqrt(DX*dh);
+
+  /* if the film blows up, stop */
+  if (dh > 100.0) {
+    if (DUMP) {
+      char dump_file[32];
+      sprintf(dump_file, "dump/dump-%04.0lf-end", t);
+      dump(file = dump_file);
+    }
+
+    if (LOG_STEP) {
+      fprintf(stderr, "\n");
+    }
+    fprintf(stderr, "final time: %lf\n", t);
+    fprintf(stderr, "total cost: %lf\n", Ccost);
+
+    /* output the cost */
+    fprintf(stdout, "%.15lf\n", Ccost);
+
+    /* clean up */
+    control_free();
+    free(H);
+
+    fprintf(stderr, "\nExit early due to blowup\n");
+    exit(EXIT_SUCCESS);
+  }
+
+  /* if the film has been controlled, stop */
+  if (dh < 0.00005) {
+    /* clean up */
+    control_free();
+    free(H);
+
+    fprintf(stderr, "\nExit early due to damping success\n");
+    exit(EXIT_SUCCESS);
+  }
+}
 
 /* finish */
 event stop(t=TMAX) {
