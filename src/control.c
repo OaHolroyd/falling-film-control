@@ -96,22 +96,6 @@ void control_set(control_t ct, rom_t rt, int m, int p, double w, double alpha, d
       s_output = &lqr_output;
       control_matrix = &lqr_matrix;
       break;
-    case STATIC:
-      s_set = &static_set;
-      s_free = &static_free;
-      control_step = &static_step;
-      estimator = &static_estimator;
-      s_output = &static_output;
-      control_matrix = &static_matrix;
-      break;
-    case DYNAMIC:
-      s_set = &dynamic_set;
-      s_free = &dynamic_free;
-      control_step = &dynamic_step;
-      estimator = &dynamic_estimator;
-      s_output = &dynamic_output;
-      control_matrix = NULL;
-      break;
     default :
       ABORT("invalid control type %d", ct);
   }

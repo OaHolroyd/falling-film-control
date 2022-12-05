@@ -1,6 +1,6 @@
 # Control of Falling Liquid Films
 
-Code for modelling thin liquid films controlled by baseplate actuators. Written for the PX915 individual project by [Oscar Holroyd](https://warwick.ac.uk/fac/sci/hetsys/people/studentscohort3/holroyd/), supervised by [Radu Cimpeanu](https://warwick.ac.uk/fac/sci/maths/people/staff/cimpeanu/) and [Susana Gomes](https://warwick.ac.uk/fac/sci/maths/people/staff/gomes).
+Code for modelling thin liquid films controlled by baseplate actuators. Written for LINK TO PAPER by [Oscar Holroyd](https://warwick.ac.uk/fac/sci/hetsys/people/studentscohort3/holroyd/), supervised by [Radu Cimpeanu](https://warwick.ac.uk/fac/sci/maths/people/staff/cimpeanu/) and [Susana Gomes](https://warwick.ac.uk/fac/sci/maths/people/staff/gomes).
 
 - [Installation](#installation)
 - [Running the Code](#running-the-code)
@@ -12,13 +12,14 @@ Code for modelling thin liquid films controlled by baseplate actuators. Written 
 * The code relies on [Basilisk](<http://basilisk.fr/>) to model the Navier-Stokes equations. See the [installation page](<http://basilisk.fr/src/INSTALL>) for instructions. Note that bview is *not* required. Make sure that qcc (or a symlink to it) is on your PATH.
 * The LQR controls require a functioning [LAPACKE](https://netlib.org/lapack/lapacke.html) implementation.
 
-Once these are installed, an executable can be generated:
+Once these are installed, the executables can be generated:
 ```bash
 git clone https://github.com/OaHolroyd/px915-basilisk
 cd px915-basilisk
 make source
 make
 ```
+The three resulting executables (`film-ns`, `film-wr`, and `film-benney`) use the specified system to model the thin film.
 
 
 # Running the Code
@@ -30,12 +31,12 @@ For a given set of parameters, the code will print the total cost
 to `stdout`. All other outputs (dimensionless numbers, simulation progress etc.) are printed to `stderr`.
 
 ## Requirements
-The code requires an input JSON file containing physical parameters, solver settings and output details. An example of such a file (containing parameters corresponding to a thin liquid water film) is included in [params.json](params.json). If you wish to use an alternative file, pass its' path as the first (and only) argument to `film`.
+The code requires an input JSON file containing physical parameters, solver settings and output details. An example of such a file (containing parameters corresponding to a thin liquid water film) is included in [params.json](params.json). If you wish to use an alternative file, pass its' path as the first (and only) argument to `film-<model>`.
 
 The code outputs 0D, 1D, and 2D data under the directory 'out', and full variable outputs under 'dump'. These directories must exist for the code to run (and are created by `make`).
 
 ## Visualisation
-The output data is stored as plain text, timestamped on the first line and subsequently in a format easily read by [gnuplot](http://www.gnuplot.info/). The basic visualisation script [gen_plots.py](gen_plots.py) is included for quick analysis.
+The output data is stored as plain text, timestamped on the first line and subsequently in a format easily read by [gnuplot](http://www.gnuplot.info/) or [pgfplots](https://ctan.org/pkg/pgfplots). The Python helper script [analysis.py](analysis.py) includes basic plotting functionality.
 
 ## Restarting
 Basilisk includes the option to 'dump' the entire simulation to a single file, which can then be restored to continue the simulation from the output time. By default this occurs every 100 time-units. Since stable travelling waves take a long time to develop for most parameter regimes it is *strongly suggested* that a single run without controls is performed to generate a dump-file with a travelling wave before loading it and beginning controls after this point. To do this set the value `"t0"` to correspond to the file at dump/dump-\<time\>.
@@ -74,7 +75,7 @@ All of the parameters are either in SI units or dimensionless. The keys in [para
 * **`del`** actuator/actuator upstream offset - dimensionless
 * **`mu`** interface/control cost weighting - dimensionless
 * **`rom`** the reduced order model to use for the control strategy - "benney" or "wr"
-* **`strategy`** the type of control to use - "pair", "static" or "dynamic"
+* **`strategy`** the type of control to use - "pair" or "lqr"
 
 
 # Mathematical Background
@@ -112,19 +113,3 @@ If we relax the restriction of discrete observers, giving the control access to 
 h_t = J(h-1) + \Psi K(h-1).
 ```
 The control operator $K$ that minimises the cost $\kappa$ is provided by the [Linear-Quadratic Regulator](https://en.wikipedia.org/wiki/Linear%E2%80%93quadratic_regulator).
-
-### Static output feedback
-That the unrestricted LQR control performs better than the paired controls is not surprising, since it has full access to the interfacial information. We can amend this by including a linearised observer matrix:
-```math
-h_t = J(h-1) + \Psi K \Phi (h-1).
-```
-Unfortunately this makes computing $K$ significantly more expensive, requiring an iterative method to solve a set of coupled Lyapunov equations.
-
-### Dynamic output feedback
-In the SOF case, although we observe $(h-1)$ continuously, we only use the current observation of the interface to set our control. We can exploit the previous measurements by switching to a dynamic control scheme. Here we use an estimator, coupled to the main system, to derive our controls. The estimator approximates the most unstable Fourier modes of the linearised system:
-```math
-z_t = \left(\tilde{J} + \tilde{\Psi}\tilde{K}\right)z + L\left(\Phi (h-1) - \tilde{\Phi}z\right),
-```
-and is forced towards the observed system by the operator $L$, which is also set using the LQR.
-
-This system includes the restrictions of the SOF method and avoid the time-consuming iterative methods that the previous scheme needs to compute $K$ (the estimator is so cheap to update that it has a negligible effect on the simulation time).
