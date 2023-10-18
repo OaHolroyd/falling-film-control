@@ -1,6 +1,6 @@
 # Control of Falling Liquid Films
 
-Code for modelling thin liquid films controlled by baseplate actuators. Written for LINK TO PAPER by [Oscar Holroyd](https://warwick.ac.uk/fac/sci/hetsys/people/studentscohort3/holroyd/), supervised by [Radu Cimpeanu](https://warwick.ac.uk/fac/sci/maths/people/staff/cimpeanu/) and [Susana Gomes](https://warwick.ac.uk/fac/sci/maths/people/staff/gomes).
+Code for modelling thin liquid films controlled by baseplate actuators. Written for [LQR control of falling liquid films](http://arxiv.org/abs/2301.11379) by [Oscar Holroyd](https://warwick.ac.uk/fac/sci/hetsys/people/studentscohort3/holroyd/), supervised by [Radu Cimpeanu](https://warwick.ac.uk/fac/sci/maths/people/staff/cimpeanu/) and [Susana Gomes](https://warwick.ac.uk/fac/sci/maths/people/staff/gomes).
 
 - [Installation](#installation)
 - [Running the Code](#running-the-code)
