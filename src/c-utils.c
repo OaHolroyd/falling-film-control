@@ -129,3 +129,8 @@ int output_z2d(const char *fname, double complex **A, int ni, int nj) {
 
   return 0;
 }
+
+double frand(void) {
+  const int r = rand();
+  return ((double)r)/((double)RAND_MAX);
+}

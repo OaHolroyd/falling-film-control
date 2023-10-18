@@ -37,5 +37,7 @@ int output_d2d(const char *fname, double **A, int ni, int nj);
 /* output 2D double complex array to files at fname */
 int output_z2d(const char *fname, double complex **A, int ni, int nj);
 
+/* returns a uniformly distributed random double between 0 and 1 */
+double frand(void);
 
 #endif
