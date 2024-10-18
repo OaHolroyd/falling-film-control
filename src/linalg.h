@@ -16,8 +16,9 @@ void dev(double **A, double complex *w, int n);
 /* given an n-by-n double matrix A, computes the spectral radius l */
 void dsr(double **A, int n, double *l);
 
-/* solves AX + XA' + Q = 0 for X, overwriting Q. All matrices are n-by-n */
-void dlyap(double **A, double **Q, int n);
+/* solves AX + XA' + Q = 0 (if transpose is 0) or A'X + XA + Q = 0 (otherwise)
+   for X, overwriting Q. All matrices are n-by-n */
+void dlyap(double **A, double **Q, int n, int transpose);
 
 
 /* ==================== */

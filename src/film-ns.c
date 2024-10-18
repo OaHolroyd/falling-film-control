@@ -111,9 +111,14 @@ void init_fluid() {
 /* outputs dimensionless numbers and other details */
 void output_numbers(void) {
   FILE *fp = fopen("out/numbers.dat", "w");
-  fprintf(fp, "%.8lf\n", RE);
-  fprintf(fp, "%.8lf\n", CA);
-  fprintf(fp, "%.8lf\n", C_START);
+  fprintf(fp, "RE %lf\n", RE);
+  fprintf(fp, "CA %lf\n", CA);
+  fprintf(fp, "THETA %lf\n", THETA);
+  fprintf(fp, "C_START %lf\n", C_START);
+  fprintf(fp, "C_STRAT %d\n", C_STRAT);
+  fprintf(fp, "C_W %lf\n", C_W);
+  fprintf(fp, "M %d\n", C_M);
+  fprintf(fp, "P %d\n", C_P);
   fclose(fp);
 }
 
@@ -122,7 +127,9 @@ void output_numbers(void) {
 /*   MAIN                                                                     */
 /* ========================================================================== */
 int main(int argc, char const *argv[]) {
+  #ifdef _OPENMP
   omp_set_num_threads(1);
+  #endif
 
   /* periodic left/right */
   periodic(right);
@@ -362,13 +369,13 @@ event update_history(t=C_START, t+=50.0) {
     } // i end
     dh1 = sqrt(DX*dh1);
 
-    if (dh1 > dh) {
-      control_free();
-      free(H);
+    // if (dh1 > dh) {
+    //   control_free();
+    //   free(H);
 
-      fprintf(stderr, "\nExit early due to damping failure\n");
-      exit(EXIT_SUCCESS);
-    }
+    //   fprintf(stderr, "\nExit early due to damping failure\n");
+    //   exit(EXIT_SUCCESS);
+    // }
   }
 }
 
@@ -406,14 +413,14 @@ event early_stop(i++) {
   }
 
   /* if the film has been controlled, stop */
-  if (dh < 0.00005) {
-    /* clean up */
-    control_free();
-    free(H);
+  // if (dh < 0.00005) {
+  //   /* clean up */
+  //   control_free();
+  //   free(H);
 
-    fprintf(stderr, "\nExit early due to damping success\n");
-    exit(EXIT_SUCCESS);
-  }
+  //   fprintf(stderr, "\nExit early due to damping success\n");
+  //   exit(EXIT_SUCCESS);
+  // }
 }
 
 /* finish */

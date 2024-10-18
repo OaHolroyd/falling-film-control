@@ -131,6 +131,8 @@ class FilmModel():
         """
         dump the parameters to a json file ready to be run
         """
+        self.params["CONTROL"]["M"] = int(self.params["CONTROL"]["M"])
+        self.params["CONTROL"]["P"] = int(self.params["CONTROL"]["P"])
         with open(file, 'w', encoding='utf-8') as f:
             json.dump(self.params, f)
 
@@ -162,7 +164,7 @@ class FilmModel():
             except subprocess.CalledProcessError:
                 print("  failed, tring again")
 
-    def multi_run(self, REs, CAs, rom="benney", uid=1):
+    def multi_run(self, REs, CAs, rom="wr", uid=1):
         """
         Runs the code over all of the supplied parameters. The lengths must
         either match or one must have a single value
@@ -179,7 +181,7 @@ class FilmModel():
             M = 1
             CAs = [CAs]
 
-        # esure equal length
+        # ensure equal length
         if N != M:
             if N == 1:
                 REs = 0*CAs + REs[0]
@@ -231,6 +233,88 @@ class FilmModel():
                     self.params["CONTROL"]["rom"] = rom
                     self.set_params(REs[i], CAs[i])
                     self.dump_params(file=f"{work_dir}/run-{i:04d}/params.json")
+
+                    # check if K0 file exists and the move it
+                    filename = f'k0/{self.params["CONTROL"]["M"]}_{self.params["CONTROL"]["P"]}_{REs[i]:06.2f}.dat'
+                    if os.path.isfile(filename):
+                        os.system(f"mv {filename} {work_dir}/run-{i:04d}/k0.dat")
+                    else:
+                        continue
+
+                    # run the code
+                    M = N-len([f for f in os.listdir(queue_dir) if f.endswith('.txt')])
+                    mp_worker(['./film-ns', f'./{work_dir}/run-{i:04d}/', i, N, my_rank, M])
+
+                    break
+                except subprocess.CalledProcessError:
+                    # failed to rm queue file means the ith job is taken
+                    continue
+            # if we ever finish the loop if means that all the jobs are taken
+            # and we are done
+            if not ongoing:
+                break
+        comm.Barrier()
+
+    def multi_run2(self, REs, CAs, Ms, Ps, rom="wr", uid=1):
+        """
+        Runs the code over all of the supplied parameters. The lengths must
+        either match or one must have a single value
+        """
+        # get length and convert to lists if required
+        N = len(REs)
+
+        # get comms details
+        comm = MPI.COMM_WORLD
+        my_rank = comm.Get_rank()
+        p = comm.Get_size()
+        M = 0  # number of runs this task has to perform
+        for i in range(N):
+            if i % p != my_rank:
+                continue
+            M = M + 1
+
+        # set up "queue"
+        work_dir = f"py-work-{rom}-{uid:04d}"
+        output_dir = f"py-out-{rom}-{uid:04d}"
+        queue_dir = f"{work_dir}/queue"
+        if my_rank == 0:
+            os.system(f"mkdir -p {output_dir}")
+            os.system(f"mkdir -p {work_dir}")
+            if not os.path.isdir(f"mkdir -p {queue_dir}"):
+                os.system(f"mkdir -p {queue_dir}")
+                for i in range(N):
+                    os.system(f"touch {queue_dir}/{i:04d}.txt")
+        comm.Barrier()
+
+        while True:
+            # find next task
+            ongoing = 0
+            for i in range(N):
+                try:
+                    subprocess.run(["rm", f"{work_dir}/queue/{i:04d}.txt"],
+                                   stderr=subprocess.DEVNULL,
+                                   stdout=subprocess.DEVNULL,
+                                   check=True)
+                    ongoing = 1
+
+                    # set up directories, executable and parameter file
+                    os.system(f"mkdir {work_dir}/run-{i:04d}")
+                    os.system(f"mkdir {work_dir}/run-{i:04d}/out")
+                    os.system(f"mkdir {work_dir}/run-{i:04d}/dump")
+                    os.system(f"cp film-ns {work_dir}/run-{i:04d}/film-ns")
+                    self.params["CONTROL"]["rom"] = rom
+                    self.set_params(REs[i], CAs[i])
+                    self.params["CONTROL"]["M"] = Ms[i]
+                    self.params["CONTROL"]["P"] = Ps[i]
+                    self.dump_params(file=f"{work_dir}/run-{i:04d}/params.json")
+
+                    # check if (static) K0 file exists and the move it
+                    if self.params["CONTROL"]["strategy"] == "static":
+                        filename = f'k0/{self.params["CONTROL"]["M"]}_{self.params["CONTROL"]["P"]}_{REs[i]:06.2f}.dat'
+                        if os.path.isfile(filename):
+                            os.system(f"mv {filename} {work_dir}/run-{i:04d}/k0.dat")
+                        else:
+                            continue
 
                     # run the code
                     M = N-len([f for f in os.listdir(queue_dir) if f.endswith('.txt')])
@@ -493,33 +577,44 @@ def main(rom, n, uid, M):
     fm = FilmModel()
 
     Re0 = 1.0
-    Re1 = 100
-    Ca0 = 0.0001
-    Ca1 = 0.01
+    Re1 = 100.0
+    Ca0 = 0.05
+    Ca1 = 0.05
 
-    Re0 = 5.0
-    Re1 = 500
-    Ca0 = 0.0001
-    Ca1 = 0.01
     Res = np.logspace(np.log10(Re0), np.log10(Re1), num=n)
-    Cas = np.logspace(np.log10(Ca0), np.log10(Ca1), num=n)
+    Ca = 0.05
+    ms = [M]
 
-    REs = np.zeros([n, n])
-    CAs = np.zeros([n, n])
-    for i in range(n):
-        REs[:, i] = Res
-        CAs[i, :] = Cas
-    REs = REs.flatten()
-    CAs = CAs.flatten()
+    NN = len(Res)*len(ms)*4
 
-    # run
+    REs = np.zeros([NN])
+    CAs = np.zeros([NN])
+    Ms = np.zeros([NN], dtype=int)
+    Ps = np.zeros([NN], dtype=int)
+
+    k = 0
+    for Re in Res:
+        for m in ms:
+            # for P in [m-1, m, m+1, m+2]:
+            for P in [m]:
+                REs[k] = Re
+                CAs[k] = Ca
+                Ms[k] = m
+                Ps[k] = P
+                k += 1
+
     fm.params["CONTROL"]["start"] = 50
-    fm.params["DOMAIN"]["tmax"] = 2000 + fm.params["CONTROL"]["start"]
+    fm.params["DOMAIN"]["tmax"] = 400 + fm.params["CONTROL"]["start"]
     fm.params["SOLVER"]["dtout"] = 0.5
-    fm.params["CONTROL"]["M"] = M
+    fm.params["CONTROL"]["rom"] = rom
+    fm.params["CONTROL"]["strategy"] = "lqr"  # TODO: rerun with dynamic
 
-    fm.multi_run(REs, CAs, rom=rom, uid=uid)
-    fm.multi_read(REs, CAs, rom=rom, uid=uid)
+    # print(REs)
+    # print(CAs)
+    # print(Ms)
+    # print(Ps)
+
+    fm.multi_run2(REs, CAs, Ms, Ps, rom="wr", uid=uid)
 
 
 if __name__ == "__main__":

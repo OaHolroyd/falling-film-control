@@ -1,5 +1,6 @@
 #include "linalg.h"
 
+#include <stdio.h>
 #include <math.h>
 #include <lapacke.h>
 
@@ -57,8 +58,9 @@ void dsr(double **A, int n, double *l) {
   free(wi);
 }
 
-/* solves AX + XA' + Q = 0 for X, overwriting Q. All matrices are n-by-n */
-void dlyap(double **A, double **Q, int n) {
+/* solves AX + XA' + Q = 0 (if transpose is 0) or A'X + XA + Q = 0 (otherwise)
+   for X, overwriting Q. All matrices are n-by-n */
+void dlyap(double **A, double **Q, int n, int transpose) {
   double *wr = malloc(n*sizeof(double));
   double *wi = malloc(n*sizeof(double));
 
@@ -78,6 +80,9 @@ void dlyap(double **A, double **Q, int n) {
     } // j end
   } // i end
 
+  // fprintf(stderr, "Q\n  %15lf %15lf\n  %15lf %15lf\n", Q[0][0], Q[0][1], Q[1][0], Q[1][1]);
+  // fprintf(stderr, "F\n  %15lf %15lf\n  %15lf %15lf\n", F[0][0], F[0][1], F[1][0], F[1][1]);
+
   /* compute Q = -FZ */
   for (int i = 0; i < n; i++) {
     for (int j = 0; j < n; j++) {
@@ -88,9 +93,21 @@ void dlyap(double **A, double **Q, int n) {
     } // j end
   } // i end
 
-  /* solve Schur version (AY + YA' = -Q) */
+  // fprintf(stderr, "Z\n  %15lf %15lf\n  %15lf %15lf\n", Z[0][0], Z[0][1], Z[1][0], Z[1][1]);
+  // fprintf(stderr, "Q\n  %15lf %15lf\n  %15lf %15lf\n", Q[0][0], Q[0][1], Q[1][0], Q[1][1]);
+  // ABORT("expected");
+
+  /* solve Schur version */
   double s;
-  LAPACKE_dtrsyl(LAPACK_ROW_MAJOR, 'N', 'T', 1, n, n, *A, n, *A, n, *Q, n, &s);
+  if (transpose == 0) {
+    /* AY + YA' = Q */
+    double scale = LAPACKE_dtrsyl(LAPACK_ROW_MAJOR, 'N', 'T', 1, n, n, *A, n, *A, n, *Q, n, &s);
+  } else {
+    /* A'Y + YA = Q */
+    double scale = LAPACKE_dtrsyl(LAPACK_ROW_MAJOR, 'T', 'N', 1, n, n, *A, n, *A, n, *Q, n, &s);
+    // fprintf(stderr, "scale: %lf\n", scale);
+  }
+
   s = 1/s;
 
   /* convert back to original system */

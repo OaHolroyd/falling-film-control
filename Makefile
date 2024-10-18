@@ -7,7 +7,7 @@
 # =============== #
 # Compilers
 BC=qcc # Basilisk
-CC=gcc # C99
+CC=gcc-14 # C99
 LD=$(CC) # linker
 
 # C flags
@@ -22,7 +22,9 @@ CFLAGS=-O3 -Wall -Wextra -pedantic -Wno-unused-parameter -Wshadow \
 
 # required libraries
 # TODO: use openblas if on ORAC
-LDFLAGS=-fopenmp -lm -lopenblas
+# LDFLAGS=-fopenmp -lm -lopenblas
+LDFLAGS=-lm -llapacke -L/opt/homebrew/opt/lapack/lib
+IFLAGS=-I/opt/homebrew/opt/lapack/include
 
 # file/folder names
 EXE_BE=film-benney

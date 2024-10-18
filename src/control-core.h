@@ -2,6 +2,7 @@
 #define CONTROL_CORE_H
 
 #include <stdlib.h>
+#include <stdio.h>
 #include <math.h>
 #include <complex.h>
 
@@ -209,12 +210,12 @@ void internal_control_output(void) {
   wr_actuator(Psi);
 
   /* observer matrix (actually the transpose) */
-  Phi = malloc_f2d(2*N, 2*P);
+  Phi = malloc_f2d(2*N, P);
   wr_observer(Phi);
 
   output_d2d("out/J_wr.dat", J, 2*N, 2*N);
   output_d2d("out/Psi_wr.dat", Psi, 2*N, M);
-  output_d2d("out/Phi_wr.dat", Phi, 2*N, 2*P);
+  output_d2d("out/Phi_wr.dat", Phi, 2*N, P);
 
   free_2d(F);
   free_2d(J);
@@ -421,12 +422,12 @@ void wr_actuator(double **Psi) {
   free_2d(F);
 }
 
-/* (the transpose of the) Observer (2N-by-2P) */
+/* (the transpose of the) Observer (2N-by-P) */
 void wr_observer(double **Phi) {
   /* P < N use approximate delta-functions */
   if (P != N) {
     for (int i = 0; i < 2*N; i++) {
-      for (int j = 0; j < 2*P; j++) {
+      for (int j = 0; j < P; j++) {
         Phi[i][j] = 0.0;
       } // j end
     } // i end
@@ -439,17 +440,18 @@ void wr_observer(double **Phi) {
     } // i end
 
     /* observe flux */ // TODO: should the q = 2/3 h assumption be here?
-    for (int i = 0; i < N; i++) {
-      for (int j = 0; j < P; j++) {
-        Phi[N+i][P+j] = DX*actuator(ITOX(i)-Oloc[j]);
-      } // j end
-    } // i end
+    // fprintf(stderr, "WARNING: this should use the flux approximation\n");
+    // for (int i = 0; i < N; i++) {
+    //   for (int j = 0; j < P; j++) {
+    //     Phi[N+i][P+j] = DX*actuator(ITOX(i)-Oloc[j]);
+    //   } // j end
+    // } // i end
   }
 
   /* if P == N then just pass all the information */
   else {
     for (int i = 0; i < 2*N; i++) {
-      for (int j = 0; j < 2*N; j++) {
+      for (int j = 0; j < P; j++) {
         Phi[i][j] = 0.0;
       } // j end
       Phi[i][i] = 1.0;

@@ -53,12 +53,11 @@ double control(double x) {
 double control_cost(double *h) {
   double cost = 0.0;
 
-  double xi, ai;
   for (int i = 0; i < N; i++) {
-    xi = ITOX(i);
+    double xi = ITOX(i);
 
     /* control cost */
-    ai = actuator(xi);
+    double ai = control(xi);
     cost += (1-MU) * ai*ai;
 
     /* interfacial cost */
