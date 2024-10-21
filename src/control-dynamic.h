@@ -382,7 +382,7 @@ void dynamic_free(void) {
 }
 
 /* [REQUIRED] steps the system forward in time given the interfacial height */
-void dynamic_step(double dt, double *h) {
+void dynamic_step(double dt, double *h, double *q) {
   /* update system */
   dynamic_update(dt, h);
 

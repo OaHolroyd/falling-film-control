@@ -52,6 +52,10 @@ void zlusv(double complex **LU, double complex *b, int n);
 /* =============== */
 /*   LQR SOLVERS   */
 /* =============== */
+/* solves the Riccati problem associated with (A, B, u, v), filling P with the
+   solution. P have space for n*n COMPLEXes. */
+int riccati(double **A, double **B, double u, double v, int n, int m, double complex *P);
+
 /* computes the optimal gain matrix K for the system (A, B) with quadratic cost
    given by (u, v). n is the system size and m is the control dimension. */
 int dlqr(double **A, double **B, double u, double v, int n, int m, double **K);

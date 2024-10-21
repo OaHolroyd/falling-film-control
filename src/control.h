@@ -4,7 +4,7 @@
 #include <complex.h>
 
 
-typedef enum { PAIR, LQR, STATIC, DYNAMIC } control_t;
+typedef enum { PAIR, LQR, STATIC, DYNAMIC, QQR } control_t;
 typedef enum { BENNEY, WR } rom_t;
 
 
@@ -30,8 +30,8 @@ void control_output(void);
 extern void (*control_matrix)(double **CM);
 
 /* steps the specific control system forward in time given the interfacial
-   height */
-extern void (*control_step)(double dt, double *h);
+   height and flux */
+extern void (*control_step)(double dt, double *h, double *q);
 
 /* returns the estimator as a function of x */
 extern double (*estimator)(double x);

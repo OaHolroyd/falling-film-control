@@ -74,6 +74,7 @@ double C_DEL = 1.0; // observer/control displacement
 double C_MU = 0.1; // control cost parameter
 rom_t C_ROM = BENNEY; // reduced order model
 control_t C_STRAT = STATIC; // control strategy
+int C_EXACT_FLUX = 1;
 
 
 /* ========================================================================== */
@@ -217,7 +218,7 @@ int read_params(const char *fname) {
     }
 
     else if (jsoneq(s, &t[i], "CONTROL") == 0) {
-      n = 9;
+      n = 10;
       m = n;
       for (int j = i+2; j < i+2+2*m; j++) {
         if (jsoneq(s, &t[j], "M") == 0) {
@@ -227,6 +228,10 @@ int read_params(const char *fname) {
         } else if (jsoneq(s, &t[j], "P") == 0) {
           j++;
           C_P = atoi(s+t[j].start);
+          n--;
+        } else if (jsoneq(s, &t[j], "exact_flux") == 0) {
+          j++;
+          C_EXACT_FLUX = atoi(s+t[j].start);
           n--;
         } else if (jsoneq(s, &t[j], "start") == 0) {
           j++;
@@ -268,6 +273,8 @@ int read_params(const char *fname) {
             C_STRAT = STATIC;
           } else if (!strncmp(s+t[j].start, "dynamic", t[j].end-t[j].start)) {
             C_STRAT = DYNAMIC;
+          } else if (!strncmp(s+t[j].start, "qqr", t[j].end-t[j].start)) {
+            C_STRAT = QQR;
           } else {
             ABORT("invalid control strategy");
           }

@@ -232,10 +232,9 @@ void zlusv(double complex **LU, double complex *b, int n) {
 /* =============== */
 /*   LQR SOLVERS   */
 /* =============== */
-/* computes the optimal gain matrix K for the system (A, B) with quadratic cost
-   given by (u, v). n is the system size and m is the control dimension. */
-   // TODO: add a lqr_work variant for repeated computations
-int dlqr(double **A, double **B, double u, double v, int n, int m, double **K) {
+/* solves the Riccati problem associated with (A, B, u, v), filling P with the
+   solution. P have space for n*n COMPLEXes. */
+int riccati(double **A, double **B, double u, double v, int n, int m, COMPLEX *P) {
   int i, j, k;
   double c = -1/v;
 
@@ -284,7 +283,6 @@ int dlqr(double **A, double **B, double u, double v, int n, int m, double **K) {
   /* extract stable eigenvectors */ // TODO: remove the need for E
   COMPLEX *E = malloc(2*n*2*n*sizeof(COMPLEX));
   COMPLEX *Q = malloc(n*n*sizeof(COMPLEX));
-  COMPLEX *P = malloc(n*n*sizeof(COMPLEX));
   k = 0;
   for (i = 0; i < 2*n; i++) {
     if (creal(w[i]) < 0) {
@@ -307,12 +305,31 @@ int dlqr(double **A, double **B, double u, double v, int n, int m, double **K) {
   int *ipiv = malloc(n*sizeof(int));
   info = LAPACKE_zgesv(LAPACK_COL_MAJOR, n, n, Q, n, ipiv, P, n); // use COL_MAJOR to solve XA=B
 
+  /* free workspace */
+  free(H);
+  free(E);
+  free(Q);
+  free(w);
+  free(vr);
+  free(ipiv);
+
+  return info;
+}
+
+/* computes the optimal gain matrix K for the system (A, B) with quadratic cost
+   given by (u, v). n is the system size and m is the control dimension. */
+   // TODO: add a lqr_work variant for repeated computations
+int dlqr(double **A, double **B, double u, double v, int n, int m, double **K) {
+  /* compute P (solution to Riccati equation) */
+  COMPLEX *P = malloc(n*n*sizeof(COMPLEX));
+  int info = riccati(A, B, u, v, n, m, P);
 
   /* compute K */
-  for (i = 0; i < m; i++) {
-    for (j = 0; j < n; j++) {
+  const double c = -1/v;
+  for (int i = 0; i < m; i++) {
+    for (int j = 0; j < n; j++) {
       K[i][j] = 0.0;
-      for (k = 0; k < n; k++) {
+      for (int k = 0; k < n; k++) {
         K[i][j] -= B[k][i] * creal(P[k*n+j]);
       } // k end
       K[i][j] *= c;
@@ -321,13 +338,7 @@ int dlqr(double **A, double **B, double u, double v, int n, int m, double **K) {
 
 
   /* free workspace */
-  free(H);
-  free(E);
-  free(Q);
   free(P);
-  free(w);
-  free(vr);
-  free(ipiv);
 
   return info;
 }
