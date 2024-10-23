@@ -112,6 +112,8 @@ void init_fluid() {
 /* outputs dimensionless numbers and other details */
 void output_numbers(void) {
   FILE *fp = fopen("out/numbers.dat", "w");
+  fprintf(fp, "DX %lf\n", DX);
+  fprintf(fp, "MU %lf\n", C_MU);
   fprintf(fp, "RE %lf\n", RE);
   fprintf(fp, "CA %lf\n", CA);
   fprintf(fp, "THETA %lf\n", THETA);
@@ -160,6 +162,7 @@ int main(int argc, char const *argv[]) {
   fprintf(stderr, "Us: %.8lf\n", US);
   fprintf(stderr, "Re: %.8lf\n", RE);
   fprintf(stderr, "Ca: %.8lf\n", CA);
+  fprintf(stderr, "Nu: %d (M: %d)\n", N_U, C_M);
   output_numbers();
 
 

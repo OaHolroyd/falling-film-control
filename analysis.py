@@ -92,7 +92,8 @@ class FilmModel():
                              "del": 0.0,
                              "mu": 0.5,
                              "rom": "benney",
-                             "strategy": "lqr"
+                             "strategy": "lqr",
+                             "exact_flux": 1
                            }
                        }
         self.set_params(Re, Ca)

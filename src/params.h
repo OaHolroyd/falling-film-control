@@ -76,6 +76,8 @@ rom_t C_ROM = BENNEY; // reduced order model
 control_t C_STRAT = STATIC; // control strategy
 int C_EXACT_FLUX = 1;
 
+#define N_U (1 + 2 * (int)floor(0.5*LX/M_PI * sqrt(CA*(1.6*RE-2.0/tan(THETA))))) // number of unstable modes
+
 
 /* ========================================================================== */
 /*   FUNCTION DEFINITIONS                                                     */

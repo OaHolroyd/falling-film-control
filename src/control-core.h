@@ -177,50 +177,50 @@ void internal_control_output(void) {
   forcing_matrix(F);
   output_d2d("out/F.dat", F, N, M);
 
-  double **J, **Psi, **Phi;
+  double **A, **B, **C;
 
   /* BENNEY */
   /* Jacobian */
-  J = malloc_f2d(N, N);
-  benney_jacobian(J);
+  A = malloc_f2d(N, N);
+  benney_jacobian(A);
 
   /* actuator matrix */
-  Psi = malloc_f2d(N, M);
-  benney_actuator(Psi);
+  B = malloc_f2d(N, M);
+  benney_actuator(B);
 
   /* observer matrix (actually the transpose) */
-  Phi = malloc_f2d(N, P);
-  benney_observer(Phi);
+  C = malloc_f2d(N, P);
+  benney_observer(C);
 
-  output_d2d("out/J_be.dat", J, N, N);
-  output_d2d("out/Psi_be.dat", Psi, N, M);
-  output_d2d("out/Phi_be.dat", Phi, N, P);
+  output_d2d("out/A_be.dat", A, N, N);
+  output_d2d("out/B_be.dat", B, N, M);
+  output_d2d("out/C_be.dat", C, N, P);
 
-  free_2d(J);
-  free_2d(Psi);
-  free_2d(Phi);
+  free_2d(A);
+  free_2d(B);
+  free_2d(C);
 
   /* WR */
   /* Jacobian */
-  J = malloc_f2d(2*N, 2*N);
-  wr_jacobian(J);
+  A = malloc_f2d(2*N, 2*N);
+  wr_jacobian(A);
 
   /* actuator matrix */
-  Psi = malloc_f2d(2*N, M);
-  wr_actuator(Psi);
+  B = malloc_f2d(2*N, M);
+  wr_actuator(B);
 
   /* observer matrix (actually the transpose) */
-  Phi = malloc_f2d(2*N, P);
-  wr_observer(Phi);
+  C = malloc_f2d(2*N, P);
+  wr_observer(C);
 
-  output_d2d("out/J_wr.dat", J, 2*N, 2*N);
-  output_d2d("out/Psi_wr.dat", Psi, 2*N, M);
-  output_d2d("out/Phi_wr.dat", Phi, 2*N, P);
+  output_d2d("out/A_wr.dat", A, 2*N, 2*N);
+  output_d2d("out/B_wr.dat", B, 2*N, M);
+  output_d2d("out/C_wr.dat", C, 2*N, P);
 
   free_2d(F);
-  free_2d(J);
-  free_2d(Psi);
-  free_2d(Phi);
+  free_2d(A);
+  free_2d(B);
+  free_2d(C);
 }
 
 

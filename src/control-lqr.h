@@ -34,27 +34,18 @@ void lqr_benney_compute_K(double **lqr_k) {
 /* compute the control matrix in the weighted-residuals case */
 void lqr_wr_compute_K(double **lqr_k) {
     /* Jacobian */
-  double **J = malloc_f2d(2*N, 2*N);
-  wr_jacobian(J);
+  double **A = malloc_f2d(2*N, 2*N);
+  wr_jacobian(A);
 
   /* actuator matrix */
-  double **Psi = malloc_f2d(2*N, M);
-  wr_actuator(Psi);
+  double **B = malloc_f2d(2*N, M);
+  wr_actuator(B);
 
   /* full control matrix */
-  double **K = malloc_f2d(M, 2*N);
-  dlqr(J, Psi, DX*MU, 1-MU, 2*N, M, K);
+  dlqr(A, B, DX*MU, 1-MU, 2*N, M, lqr_k);
 
-  /* apply flux approximation */
-  for (int i = 0; i < M; i++) {
-    for (int j = 0; j < N; j++) {
-      lqr_k[i][j] = K[i][j] + (2/3.0) * K[i][j+N]; // TODO: is this correct
-    } // j end
-  } // i end
-
-  free_2d(J);
-  free_2d(Psi);
-  free_2d(K);
+  free_2d(A);
+  free_2d(B);
 }
 
 
@@ -63,14 +54,14 @@ void lqr_wr_compute_K(double **lqr_k) {
 /* ========================================================================== */
 /* [REQUIRED] internal setup */
 void lqr_set(void) {
-  LQR_K = malloc_f2d(M, N);
-
   /* pick from the available ROMs */
   switch (RT) {
     case BENNEY:
+      LQR_K = malloc_f2d(M, N);
       lqr_benney_compute_K(LQR_K);
       break;
     case WR:
+      LQR_K = malloc_f2d(M, 2*N);
       lqr_wr_compute_K(LQR_K);
       break;
     default :
@@ -92,6 +83,10 @@ void lqr_step(double dt, double *h, double *q) {
     for (int j = 0; j < N; j++) {
       Amag[i] += LQR_K[i][j] * (interp(ITOX(j), h) - 1.0);
     } // j end
+
+    for (int j = 0; j < N; j++) {
+      Amag[i] += LQR_K[i][N+j] * (interp(ITOX(j), q) - 2.0/3.0);
+    } // j end
   } // i end
 }
 
@@ -103,7 +98,11 @@ double lqr_estimator(double x) {
 
 /* [REQUIRED] outputs the internal matrices */
 void lqr_output(void) {
-  output_d2d("out/K.dat", LQR_K, M, N);
+  if (RT == BENNEY) {
+    output_d2d("out/K.dat", LQR_K, M, N);
+  } else {
+    output_d2d("out/K.dat", LQR_K, M, 2*N);
+  }
 }
 
 /* [REQUIRED] generates the control matrix CM = F*K */
@@ -113,7 +112,7 @@ void lqr_matrix(double **CM) {
   forcing_matrix(F);
 
   for (int i = 0; i < N; i++) {
-    for (int j = 0; j < N; j++) {
+    for (int j = 0; j < 2 * N; j++) {
       CM[i][j] = 0.0;
       for (int k = 0; k < M; k++) {
         CM[i][j] += F[i][k]*LQR_K[k][j];

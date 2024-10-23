@@ -42,11 +42,66 @@ void qqr_wr_compute_matrices(double **qqr_c0, double **qqr_c1) {
   double **B = malloc_f2d(2*N, M);
   wr_actuator(B);
 
-  /* full control matrix */
+  /* linear control matrix */
   dlqr(A, B, DX*MU, 1-MU, 2*N, M, qqr_c0);
+
+  /* work out quadratic control matrix */
+  double complex **QQR_P = malloc_z2d(2*N, 2*N);
+  riccati(A, B, DX*MU, 1-MU, 2*N, M, QQR_P[0]);
+
+  // BBt = B * B'
+  double **BBt = malloc_f2d(2*N, 2*N);
+  for (int i = 0; i < 2*N; i++) {
+    for (int j = 0; j < 2*N; j++) {
+      BBt[i][j] = 0.0;
+      for (int k = 0; k < M; k++) {
+        BBt[i][j] += B[i][k] * B[j][k];
+      }
+    }
+  }
+
+  // C = A' - 1/(1-MU) * P*B*B';
+  double **C = malloc_f2d(2*N, 2*N);
+  for (int i = 0; i < 2*N; i++) {
+    for (int j = 0; j < 2*N; j++) {
+      C[i][j] = 0.0;
+      for (int k = 0; k < 2*N; k++) {
+        C[i][j] += creal(QQR_P[i][k]) * BBt[k][j];
+      }
+      C[i][j] *= -1.0 / (1.0 - MU);
+      C[i][j] += A[j][i];
+    }
+  }
+
+  // D = C * P = [A' - 1/(1-MU) * P*B*B'] * P
+  double **D = malloc_f2d(2*N, 2*N);
+  for (int i = 0; i < 2*N; i++) {
+    for (int j = 0; j < 2*N; j++) {
+      D[i][j] = 0.0;
+      for (int k = 0; k < 2*N; k++) {
+        D[i][j] += C[i][k] * creal(QQR_P[k][j]);
+      }
+    }
+  }
+
+  // qqr_c1 = -1/(1-MU) * B' * D = -1/(1-MU) * B' * [A' - 1/(1-MU) * P*B*B'] * P
+  for (int i = 0; i < M; i++) {
+    for (int j = 0; j < 2*N; j++) {
+      qqr_c1[i][j] = 0.0;
+      for (int k = 0; k < 2*N; k++) {
+        qqr_c1[i][j] += B[k][i] * D[k][j];
+      } // k end
+      qqr_c1[i][j] *= -1.0 / (1.0 - MU);
+    } // j end
+  } // i end
+
 
   free_2d(A);
   free_2d(B);
+  free_2d(QQR_P);
+  free_2d(BBt);
+  free_2d(C);
+  free_2d(D);
 }
 
 
@@ -79,14 +134,16 @@ void qqr_free(void) {
 
 /* [REQUIRED] steps the system forward in time given the interfacial height */
 void qqr_step(double dt, double *h, double *q) {
+  double H[5];
+  double Q[3];
+
   /* f = K * (h-1) */
   for (int i = 0; i < M; i++) {
     Amag[i] = 0.0;
 
     /* height component */
     for (int j = 0; j < N; j++) {
-      // TODO: compute nonlinear bit correctly
-      const double hj = interp(ITOX(j), h) - 1.0;
+      const double hj = h[j] - 1.0;
       const double hhj = 0.0;
 
       Amag[i] += QQR_C0[i][j] * hj + QQR_C1[i][j] * hhj;
@@ -94,11 +151,70 @@ void qqr_step(double dt, double *h, double *q) {
 
     /* flux component */
     for (int j = 0; j < N; j++) {
-      // TODO: compute nonlinear bit correctly
-      const double qj = interp(ITOX(j), q) - 2.0/3.0;
-      const double qqj = 0.0;
+      /* get data at j and its neighbours */
+      if (j == 0) {
+        H[0] = h[N-2] - 1.0;
+        H[1] = h[N-1] - 1.0;
+        H[2] = h[0] - 1.0;
+        H[3] = h[1] - 1.0;
+        H[4] = h[2] - 1.0;
 
-      Amag[i] += QQR_C0[i][N+j] * qj + QQR_C1[i][j] * qqj;
+        Q[0] = q[N-1] - 2.0/3.0;
+        Q[1] = q[0] - 2.0/3.0;
+        Q[2] = q[1] - 2.0/3.0;
+      } else if (j == 1) {
+        H[0] = h[N-1] - 1.0;
+        H[1] = h[0] - 1.0;
+        H[2] = h[1] - 1.0;
+        H[3] = h[2] - 1.0;
+        H[4] = h[3] - 1.0;
+
+        Q[0] = q[0] - 2.0/3.0;
+        Q[1] = q[1] - 2.0/3.0;
+        Q[2] = q[2] - 2.0/3.0;
+      } else if (j == N-2) {
+        H[0] = h[N-4] - 1.0;
+        H[1] = h[N-3] - 1.0;
+        H[2] = h[N-2] - 1.0;
+        H[3] = h[N-1] - 1.0;
+        H[4] = h[0] - 1.0;
+
+        Q[0] = q[N-3] - 2.0/3.0;
+        Q[1] = q[N-2] - 2.0/3.0;
+        Q[2] = q[N-1] - 2.0/3.0;
+      } else if (j == N-1) {
+        H[0] = h[N-3] - 1.0;
+        H[1] = h[N-2] - 1.0;
+        H[2] = h[N-1] - 1.0;
+        H[3] = h[0] - 1.0;
+        H[4] = h[1] - 1.0;
+
+        Q[0] = q[N-2] - 2.0/3.0;
+        Q[1] = q[N-1] - 2.0/3.0;
+        Q[2] = q[0] - 2.0/3.0;
+      } else {
+        H[0] = h[j-2] - 1.0;
+        H[1] = h[j-1] - 1.0;
+        H[2] = h[j] - 1.0;
+        H[3] = h[j+1] - 1.0;
+        H[4] = h[j+2] - 1.0;
+
+        Q[0] = q[j-1] - 2.0/3.0;
+        Q[1] = q[j] - 2.0/3.0;
+        Q[2] = q[j+1] - 2.0/3.0;
+      }
+
+      /* compute derivatives */
+      const double hx = 0.5 * (H[3]-H[1]) / DX;
+      const double hxxx = 0.5 * (H[4] - 2*H[3] + 2*H[1] - H[0]) / (DX*DX*DX);
+      const double qx = 0.5 * (Q[2]-Q[0]) / DX;
+
+      // TODO: compute nonlinear bit correctly
+      const double hj = h[j] - 1.0;
+      const double qj = q[j] - 2.0/3.0;
+      const double qqj = -(72.0*RE*qj*hx-68.0*RE*hj*qx-102.0*RE*qj*qx+120*hj*hj-210*hj*hx+105*hj*hxxx/CA)/105.0;
+
+      Amag[i] += QQR_C0[i][N+j] * qj + DEL * QQR_C1[i][N+j] * qqj;
     } // j end
   } // i end
 }

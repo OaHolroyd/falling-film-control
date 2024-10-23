@@ -17,19 +17,19 @@
    },
    "SOLVER":{
       "level":8,
-      "dtout":0.5,
+      "dtout":0.1,
       "output":1
    },
    "CONTROL":{
-      "M":5,
+      "M":8,
       "P":5,
       "start":50,
       "width":0.1,
       "alpha":1.0,
-      "del":0.0,
+      "del":0.00,
       "mu":0.5,
       "rom":"wr",
       "strategy":"qqr",
-      "exact_flux": 0
+      "exact_flux": 1
    }
 }
