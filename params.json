@@ -4,7 +4,7 @@
       "Lx":30.0,
       "Ly":8.0,
       "theta":1.047197551,
-      "tmax":150,
+      "tmax":110,
       "t0":0
    },
    "PHYSICAL":{
@@ -21,12 +21,12 @@
       "output":1
    },
    "CONTROL":{
-      "M":8,
+      "M":9,
       "P":5,
       "start":50,
       "width":0.1,
       "alpha":1.0,
-      "del":0.00,
+      "del":-1.00,
       "mu":0.5,
       "rom":"wr",
       "strategy":"qqr",

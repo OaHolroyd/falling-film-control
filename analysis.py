@@ -6,6 +6,7 @@
 #   - plot damping rates accross multiple runs
 
 import os
+import copy
 import math
 import json
 import datetime
@@ -127,6 +128,13 @@ class FilmModel():
         self.params["PHYSICAL"]["rho_l"] = 4*mu/(Re*(T**3)*((grav*sinth)**2))
         self.params["PHYSICAL"]["rho_g"] = self.params["PHYSICAL"]["rho_l"]/1000
         self.params["PHYSICAL"]["gamma"] = (Re*T*grav*mu*sinth)/(2*Ca)
+
+    def load_params(self, file):
+        """
+        Load params from a file
+        """
+        with open(file, 'r', encoding='utf-8') as f:
+            self.params = json.load(f)
 
     def dump_params(self, file="params.json"):
         """
@@ -331,6 +339,85 @@ class FilmModel():
                 break
         comm.Barrier()
 
+    def multi_run3(self, params_list, uid=1):
+        """
+        Runs the code over all of the supplied parameters. The lengths must
+        either match or one must have a single value
+        """
+        # get length and convert to lists if required
+        N = len(params_list)
+
+        # get comms details
+        comm = MPI.COMM_WORLD
+        my_rank = comm.Get_rank()
+        p = comm.Get_size()
+        M = 0  # number of runs this task has to perform
+        for i in range(N):
+            if i % p != my_rank:
+                continue
+            M = M + 1
+
+        # set up "queue"
+        work_dir = f"py-work-{uid:04d}"
+        output_dir = f"py-out-{uid:04d}"
+        queue_dir = f"{work_dir}/queue"
+        if my_rank == 0:
+            os.system(f"mkdir -p {output_dir}")
+            os.system(f"mkdir -p {work_dir}")
+            if not os.path.isdir(f"mkdir -p {queue_dir}"):
+                os.system(f"mkdir -p {queue_dir}")
+                for i in range(N):
+                    # The queue consists of a dummy file and the relevant
+                    # params file
+                    os.system(f"touch {queue_dir}/{i:04d}.txt")
+                    self.params = params_list[i]
+                    self.dump_params(f"{queue_dir}/params-{i:04d}.json")
+        comm.Barrier()
+
+        while True:
+            # find next task
+            ongoing = 0
+            for i in range(N):
+                try:
+                    subprocess.run(["rm", f"{work_dir}/queue/{i:04d}.txt"],
+                                   stderr=subprocess.DEVNULL,
+                                   stdout=subprocess.DEVNULL,
+                                   check=True)
+                    ongoing = 1
+
+                    # read parameters from file
+                    self.load_params(f"{work_dir}/queue/params-{i:04d}.json")
+
+                    # set up directories, executable and parameter file
+                    os.system(f"mkdir {work_dir}/run-{i:04d}")
+                    os.system(f"mkdir {work_dir}/run-{i:04d}/out")
+                    os.system(f"mkdir {work_dir}/run-{i:04d}/dump")
+                    os.system(f"cp film-ns {work_dir}/run-{i:04d}/film-ns")
+                    self.dump_params(file=f"{work_dir}/run-{i:04d}/params.json")
+
+                    # check if (static) K0 file exists and the move it
+                    if self.params["CONTROL"]["strategy"] == "static":
+                        pass
+                        # filename = f'k0/{self.params["CONTROL"]["M"]}_{self.params["CONTROL"]["P"]}_{REs[i]:06.2f}.dat'
+                        # if os.path.isfile(filename):
+                        #     os.system(f"mv {filename} {work_dir}/run-{i:04d}/k0.dat")
+                        # else:
+                        #     continue
+
+                    # run the code
+                    M = N-len([f for f in os.listdir(queue_dir) if f.endswith('.txt')])
+                    mp_worker(['./film-ns', f'./{work_dir}/run-{i:04d}/', i, N, my_rank, M])
+
+                    break
+                except subprocess.CalledProcessError:
+                    # failed to rm queue file means the ith job is taken
+                    continue
+            # if we ever finish the loop if means that all the jobs are taken
+            # and we are done
+            if not ongoing:
+                break
+        comm.Barrier()
+
     def multi_read(self, REs, CAs, rom="benney", uid=1):
         """
         Reads the output from multirun
@@ -495,8 +582,8 @@ class FilmModel():
 
         # BENNEY
         # compute the linear damping rate
-        J = np.loadtxt(f"{root}/out/J_be.dat")
-        Psi = np.loadtxt(f"{root}/out/Psi_be.dat")
+        J = np.loadtxt(f"{root}/out/A_be.dat")
+        Psi = np.loadtxt(f"{root}/out/B_be.dat")
         K = np.loadtxt(f"{root}/out/K.dat")
 
         val, _ = np.linalg.eig(J - np.matmul(Psi, K))
@@ -520,8 +607,8 @@ class FilmModel():
 
         # WR
         # compute the linear damping rate
-        J = np.loadtxt(f"{root}/out/J_wr.dat")
-        Psi = np.loadtxt(f"{root}/out/Psi_wr.dat")
+        J = np.loadtxt(f"{root}/out/A_wr.dat")
+        Psi = np.loadtxt(f"{root}/out/B_wr.dat")
         K = np.concatenate((K, np.zeros(K.shape)), axis=1)
 
         val, _ = np.linalg.eig(J - np.matmul(Psi, K))
@@ -569,6 +656,37 @@ class FilmModel():
         plt.legend()
         plt.savefig(f"analysis-out/plot-{self.params['CONTROL']['rom']}-{n}-{self.Re:09.6f}.png")
         plt.clf()
+
+def other_main():
+    # get comms details
+    comm = MPI.COMM_WORLD
+    my_rank = comm.Get_rank()
+    p = comm.Get_size()
+
+    # Load params from the default file
+    with open("params.json", 'r') as f:
+        default_params = json.load(f)
+
+    params_list = []
+    n_dels = 40
+    for i in range(n_dels):
+        # for m in [5, 6, 7, 8, 9, 10, 11]:
+        for m in [10]:
+            DELs = np.linspace(0.0, 0.05 * m / 5.0, n_dels)
+
+            params = copy.deepcopy(default_params)
+            params["CONTROL"]["del"] = DELs[i]
+            params["CONTROL"]["M"] = m
+            params_list.append(params)
+
+            params = copy.deepcopy(default_params)
+            params["CONTROL"]["del"] = -DELs[i]
+            params["CONTROL"]["M"] = m
+            params_list.append(params)
+
+    fm = FilmModel()
+    fm.multi_run3(params_list)
+
 
 
 def main(rom, n, uid, M):
@@ -619,6 +737,9 @@ def main(rom, n, uid, M):
 
 
 if __name__ == "__main__":
+    other_main()
+    exit(0)
+
     # process args
     parser = argparse.ArgumentParser()
     parser.add_argument('-n', action='store', type=int, default=10,

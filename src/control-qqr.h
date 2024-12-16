@@ -37,10 +37,12 @@ void qqr_wr_compute_matrices(double **qqr_c0, double **qqr_c1) {
   /* Jacobian */
   double **A = malloc_f2d(2*N, 2*N);
   wr_jacobian(A);
+  output_d2d("out/A.dat", A, 2*N, 2*N);
 
   /* actuator matrix */
   double **B = malloc_f2d(2*N, M);
   wr_actuator(B);
+  output_d2d("out/B.dat", B, 2*N, M);
 
   /* linear control matrix */
   dlqr(A, B, DX*MU, 1-MU, 2*N, M, qqr_c0);
@@ -48,6 +50,7 @@ void qqr_wr_compute_matrices(double **qqr_c0, double **qqr_c1) {
   /* work out quadratic control matrix */
   double complex **QQR_P = malloc_z2d(2*N, 2*N);
   riccati(A, B, DX*MU, 1-MU, 2*N, M, QQR_P[0]);
+  output_z2d("out/P.dat", QQR_P, 2*N, 2*N);
 
   // BBt = B * B'
   double **BBt = malloc_f2d(2*N, 2*N);
@@ -59,6 +62,7 @@ void qqr_wr_compute_matrices(double **qqr_c0, double **qqr_c1) {
       }
     }
   }
+  output_d2d("out/BBt.dat", BBt, 2*N, 2*N);
 
   // C = A' - 1/(1-MU) * P*B*B';
   double **C = malloc_f2d(2*N, 2*N);
@@ -72,19 +76,21 @@ void qqr_wr_compute_matrices(double **qqr_c0, double **qqr_c1) {
       C[i][j] += A[j][i];
     }
   }
+  output_d2d("out/C.dat", C, 2*N, 2*N);
 
-  // D = C * P = [A' - 1/(1-MU) * P*B*B'] * P
+  // D = C \ P = [A' - 1/(1-MU) * P*B*B']^-1 * P
   double **D = malloc_f2d(2*N, 2*N);
   for (int i = 0; i < 2*N; i++) {
     for (int j = 0; j < 2*N; j++) {
-      D[i][j] = 0.0;
-      for (int k = 0; k < 2*N; k++) {
-        D[i][j] += C[i][k] * creal(QQR_P[k][j]);
-      }
+      D[i][j] = creal(QQR_P[i][j]);
     }
   }
+  output_d2d("out/Preal.dat", D, 2*N, 2*N);
 
-  // qqr_c1 = -1/(1-MU) * B' * D = -1/(1-MU) * B' * [A' - 1/(1-MU) * P*B*B'] * P
+  dgesv(C, D, 2*N);
+  output_d2d("out/D.dat", D, 2*N, 2*N);
+
+  // qqr_c1 = -1/(1-MU) * B' * D = -1/(1-MU) * B' * [A' - 1/(1-MU) * P*B*B'] \ P
   for (int i = 0; i < M; i++) {
     for (int j = 0; j < 2*N; j++) {
       qqr_c1[i][j] = 0.0;
@@ -94,6 +100,8 @@ void qqr_wr_compute_matrices(double **qqr_c0, double **qqr_c1) {
       qqr_c1[i][j] *= -1.0 / (1.0 - MU);
     } // j end
   } // i end
+  output_d2d("out/C1.dat", qqr_c1, M, 2*N);
+  // exit(1);
 
 
   free_2d(A);

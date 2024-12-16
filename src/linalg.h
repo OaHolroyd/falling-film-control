@@ -48,6 +48,9 @@ void dlusv(double **LU, double *b, int n);
    solves LUz = b in place. */
 void zlusv(double complex **LU, double complex *b, int n);
 
+/* solves AX = B for square A, X, B, storing the solution in B. */
+void dgesv(double **A, double **B, int n);
+
 
 /* =============== */
 /*   LQR SOLVERS   */

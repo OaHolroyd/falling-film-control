@@ -89,7 +89,7 @@ int output_z1d(const char *fname, double complex *A, int ni) {
   if (!fp) { return 1; }
 
   for (int i = 0; i < ni; i++) {
-    fprintf(fp, "%lf+%lfi\n", creal(A[i]), cimag(A[i]));
+    fprintf(fp, "%.16lf+%.16lfi\n", creal(A[i]), cimag(A[i]));
   } // i end
   fclose(fp);
 
@@ -104,7 +104,7 @@ int output_d2d(const char *fname, double **A, int ni, int nj) {
 
   for (int i = 0; i < ni; i++) {
     for (int j = 0; j < nj; j++) {
-      fprintf(fp, "%lf ", A[i][j]);
+      fprintf(fp, "%.16lf ", A[i][j]);
     } // j end
     fprintf(fp, "\n");
   } // i end

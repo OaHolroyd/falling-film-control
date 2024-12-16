@@ -228,6 +228,15 @@ void zlusv(double complex **LU, double complex *b, int n) {
   } // i end
 }
 
+/* solves AX = B for square A, X, B, storing the solution in B. */
+void dgesv(double **A, double **B, int n) {
+  int *ipiv = malloc(n*sizeof(int));
+  int info = LAPACKE_dgesv(LAPACK_ROW_MAJOR, n, n, A[0], n, ipiv, B[0], n);
+  fprintf(stderr, "INFO: %d\n", info);
+
+  free(ipiv);
+}
+
 
 /* =============== */
 /*   LQR SOLVERS   */
