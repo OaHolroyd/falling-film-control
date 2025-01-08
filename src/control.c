@@ -5,7 +5,7 @@
 #include "control-lqr.h"
 #include "control-static.h"
 #include "control-dynamic.h"
-#include "control-qqr.h"
+#include "control-sdre.h"
 
 #include "c-utils.h"
 
@@ -112,13 +112,13 @@ void control_set(control_t ct, rom_t rt, int m, int p, double w, double alpha, d
       s_output = &dynamic_output;
       control_matrix = NULL;
       break;
-    case QQR:
-      s_set = &qqr_set;
-      s_free = &qqr_free;
-      control_step = &qqr_step;
-      estimator = &qqr_estimator;
-      s_output = &qqr_output;
-      control_matrix = &qqr_matrix;
+    case SDRE:
+      s_set = &sdre_set;
+      s_free = &sdre_free;
+      control_step = &sdre_step;
+      estimator = &sdre_estimator;
+      s_output = &sdre_output;
+      control_matrix = &sdre_matrix;
       break;
     default :
       ABORT("invalid control type %d", ct);
