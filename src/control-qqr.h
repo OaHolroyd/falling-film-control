@@ -2,14 +2,15 @@
 #define CONTROL_QQR_H
 
 #include <math.h>
+#include <string.h>
 
 #include "c-utils.h"
 #include "linalg.h"
 #include "control-core.h"
 
 
-static double **QQR_C0; /* control operator */
-static double **QQR_C1; /* control operator */
+static double **QQR_K; // linear gain matrix
+static double ***QQR_K2; // basis matrices for the quadratic correction term
 
 
 /* ========================================================================== */
@@ -33,10 +34,27 @@ void qqr_benney_compute_matrices(double **qqr_c0, double **qqr_c1) {
 }
 
 /* compute the control matrix in the weighted-residuals case */
-void qqr_wr_compute_matrices(double **qqr_c0, double **qqr_c1) {
-  /* Jacobian */
+void qqr_wr_compute_matrices(void) {
+  /* Jacobian (note this is not the standard WR Jacobian) */
   double **A = malloc_f2d(2*N, 2*N);
-  wr_jacobian(A);
+  memset(A[0], 0, 4*N*N*sizeof(double));
+  /* lower-left sub-matrix */
+  const double ll = 5.0/3.0/RE;
+  for (int i = 0; i < N; i++) {
+    A[i][N+i] = ll;
+  } // i end
+
+  /* top right sub-matrix */
+  const double tr1 = 1/(2*DX);
+  const double tr3 = -1/(2*DX);
+  for (int i = 1; i < N-1; i++) {
+    A[i][N+i-1] = tr1;
+    A[i][N+i+1] = tr3;
+  } // i end
+  A[0][N+N-1] = tr1;
+  A[0][N+1] = tr3;
+  A[N-1][N+N-2] = tr1;
+  A[N-1][N+0] = tr3;
   output_d2d("out/A.dat", A, 2*N, 2*N);
 
   /* actuator matrix */
@@ -44,13 +62,23 @@ void qqr_wr_compute_matrices(double **qqr_c0, double **qqr_c1) {
   wr_actuator(B);
   output_d2d("out/B.dat", B, 2*N, M);
 
-  /* linear control matrix */
-  dlqr(A, B, DX*MU, 1-MU, 2*N, M, qqr_c0);
+  /* work out the linear gain matrix */
+  dlqr(A, B, DX*MU, 1-MU, 2*N, M, QQR_K);
+  output_d2d("out/K0.dat", QQR_K, M, 2*N);
 
-  /* work out quadratic control matrix */
-  double complex **QQR_P = malloc_z2d(2*N, 2*N);
-  riccati(A, B, DX*MU, 1-MU, 2*N, M, QQR_P[0]);
-  output_z2d("out/P.dat", QQR_P, 2*N, 2*N);
+  /* compute P */
+  double complex **_cP = malloc_z2d(2*N, 2*N);
+  riccati(A, B, DX*MU, 1-MU, 2*N, M, _cP[0]);
+  output_z2d("out/P.dat", _cP, 2*N, 2*N);
+
+  // convert P to real
+  double **_P = malloc_f2d(2*N, 2*N);
+  for (int i = 0; i < 2*N; i++) {
+    for (int j = 0; j < 2*N; j++) {
+      _P[i][j] = creal(_cP[i][j]);
+    }
+  }
+  output_d2d("out/P.dat", _P, 2*N, 2*N);
 
   // BBt = B * B'
   double **BBt = malloc_f2d(2*N, 2*N);
@@ -64,52 +92,91 @@ void qqr_wr_compute_matrices(double **qqr_c0, double **qqr_c1) {
   }
   output_d2d("out/BBt.dat", BBt, 2*N, 2*N);
 
-  // C = A' - 1/(1-MU) * P*B*B';
-  double **C = malloc_f2d(2*N, 2*N);
+  // A_lyap = A - 1/(1-MU) * B*B' * P;
+  double **A_lyap = malloc_f2d(2*N, 2*N);
   for (int i = 0; i < 2*N; i++) {
     for (int j = 0; j < 2*N; j++) {
-      C[i][j] = 0.0;
+      A_lyap[i][j] = 0.0;
       for (int k = 0; k < 2*N; k++) {
-        C[i][j] += creal(QQR_P[i][k]) * BBt[k][j];
+        A_lyap[i][j] += BBt[i][k] * _P[k][j];
       }
-      C[i][j] *= -1.0 / (1.0 - MU);
-      C[i][j] += A[j][i];
+      A_lyap[i][j] *= -1.0 / (1.0 - MU);
+      A_lyap[i][j] += A[j][i];
     }
   }
-  output_d2d("out/C.dat", C, 2*N, 2*N);
+  output_d2d("out/A_lyap.dat", A_lyap, 2*N, 2*N);
 
-  // D = C \ P = [A' - 1/(1-MU) * P*B*B']^-1 * P
-  double **D = malloc_f2d(2*N, 2*N);
-  for (int i = 0; i < 2*N; i++) {
-    for (int j = 0; j < 2*N; j++) {
-      D[i][j] = creal(QQR_P[i][j]);
+  // for each row, compute the basis matrix for the quadratic correction
+  double **Q_lyap = malloc_f2d(2*N, 2*N);
+  // 0 to N-1
+  for (int k = 0; k < N; k++) {
+    // compute q_lyap
+    memset(Q_lyap[0], 0, 4*N*N*sizeof(double));
+
+    for (int i = 0; i < 2*N; i++) {
+      Q_lyap[i][k] += _P[i][k+N];
     }
+
+    for (int i = 0; i < 2*N; i++) {
+      Q_lyap[k][i] += _P[k+N][i];
+    }
+
+    // solve lyapunov equation
+    dlyap(A_lyap, Q_lyap, 2*N, 0);
+
+    // pre-multiply by inv(R) * B'
+    double **K2k = QQR_K2[k];
+    for (int i = 0; i < M; i++) {
+      for (int j = 0; j < 2*N; j++) {
+        K2k[i][j] = 0.0;
+
+        for (int l = 0; l < 2*N; l++) {
+          K2k[i][j] -= B[l][i] * Q_lyap[l][j];
+        } // k end
+
+        K2k[i][j] *= -1.0 / (1.0 - MU); // TODO: check sign
+      } // j end
+    } // i end
   }
-  output_d2d("out/Preal.dat", D, 2*N, 2*N);
 
-  dgesv(C, D, 2*N);
-  output_d2d("out/D.dat", D, 2*N, 2*N);
+  // N to 2*N-1
+  for (int k = N; k < 2*N; k++) {
+    // compute q_lyap
+    memset(Q_lyap[0], 0, 4*N*N*sizeof(double));
 
-  // qqr_c1 = -1/(1-MU) * B' * D = -1/(1-MU) * B' * [A' - 1/(1-MU) * P*B*B'] \ P
-  for (int i = 0; i < M; i++) {
-    for (int j = 0; j < 2*N; j++) {
-      qqr_c1[i][j] = 0.0;
-      for (int k = 0; k < 2*N; k++) {
-        qqr_c1[i][j] += B[k][i] * D[k][j];
-      } // k end
-      qqr_c1[i][j] *= -1.0 / (1.0 - MU);
-    } // j end
-  } // i end
-  output_d2d("out/C1.dat", qqr_c1, M, 2*N);
-  // exit(1);
+    for (int i = 0; i < 2*N; i++) {
+      Q_lyap[i][k] += _P[i][k];
+    }
 
+    for (int i = 0; i < 2*N; i++) {
+      Q_lyap[k][i] += _P[k][i];
+    }
+
+    // solve lyapunov equation
+    dlyap(A_lyap, Q_lyap, 2*N, 0);
+
+    // pre-multiply by inv(R) * B'
+    double **K2k = QQR_K2[k];
+    for (int i = 0; i < M; i++) {
+      for (int j = 0; j < 2*N; j++) {
+        K2k[i][j] = 0.0;
+
+        for (int l = 0; l < 2*N; l++) {
+          K2k[i][j] -= B[l][i] * Q_lyap[l][j];
+        } // k end
+
+        K2k[i][j] *= -1.0 / (1.0 - MU); // TODO: check sign
+      } // j end
+    } // i end
+  }
 
   free_2d(A);
   free_2d(B);
-  free_2d(QQR_P);
   free_2d(BBt);
-  free_2d(C);
-  free_2d(D);
+  free_2d(_cP);
+  free_2d(_P);
+  free_2d(A_lyap);
+  free_2d(Q_lyap);
 }
 
 
@@ -118,16 +185,21 @@ void qqr_wr_compute_matrices(double **qqr_c0, double **qqr_c1) {
 /* ========================================================================== */
 /* [REQUIRED] internal setup */
 void qqr_set(void) {
-  QQR_C0 = malloc_f2d(M, 2*N);
-  QQR_C1 = malloc_f2d(M, 2*N);
+  QQR_K = malloc_f2d(M, 2*N);
+
+  // TODO: do this properly
+  QQR_K2 = malloc(2*N * sizeof(double**));
+  for (int i = 0; i < 2*N; i++) {
+    QQR_K2[i] = malloc_f2d(M, 2*N);
+  }
 
   /* pick from the available ROMs */
   switch (RT) {
     case BENNEY:
-      qqr_benney_compute_matrices(QQR_C0, QQR_C1);
+      ABORT("BENNEY QQR not implemented");
       break;
     case WR:
-      qqr_wr_compute_matrices(QQR_C0, QQR_C1);
+      qqr_wr_compute_matrices();
       break;
     default :
       ABORT("invalid ROM type %d", RT);
@@ -136,8 +208,11 @@ void qqr_set(void) {
 
 /* [REQUIRED] internal free */
 void qqr_free(void) {
-  free(QQR_C0);
-  free(QQR_C1);
+  free(QQR_K);
+  for (int i = 0; i < 2*N; i++) {
+    free(QQR_K2[i]);
+  }
+  free(QQR_K2);
 }
 
 /* [REQUIRED] steps the system forward in time given the interfacial height */
@@ -235,28 +310,28 @@ double qqr_estimator(double x) {
 
 /* [REQUIRED] outputs the internal matrices */
 void qqr_output(void) {
-  output_d2d("out/C0.dat", QQR_C0, M, 2*N);
-  output_d2d("out/C1.dat", QQR_C1, M, 2*N);
+  // output_d2d("out/C0.dat", QQR_C0, M, 2*N);
+  // output_d2d("out/C1.dat", QQR_C1, M, 2*N);
 }
 
 /* [REQUIRED] generates the control matrix CM = F*K */
 void qqr_matrix(double **CM) {
-  exit(1);
+  // exit(1);
 
-  /* forcing matrix */
-  double **F = malloc_f2d(N, M);
-  forcing_matrix(F);
+  // /* forcing matrix */
+  // double **F = malloc_f2d(N, M);
+  // forcing_matrix(F);
 
-  for (int i = 0; i < N; i++) {
-    for (int j = 0; j < N; j++) {
-      CM[i][j] = 0.0;
-      for (int k = 0; k < M; k++) {
-        CM[i][j] += F[i][k]*QQR_C0[k][j];
-      } // k end
-    } // j end
-  } // i end
+  // for (int i = 0; i < N; i++) {
+  //   for (int j = 0; j < N; j++) {
+  //     CM[i][j] = 0.0;
+  //     for (int k = 0; k < M; k++) {
+  //       CM[i][j] += F[i][k]*QQR_C0[k][j];
+  //     } // k end
+  //   } // j end
+  // } // i end
 
-  free_2d(F);
+  // free_2d(F);
 }
 
 #endif
