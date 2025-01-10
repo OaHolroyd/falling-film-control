@@ -275,8 +275,8 @@ int read_params(const char *fname) {
             C_STRAT = STATIC;
           } else if (!strncmp(s+t[j].start, "dynamic", t[j].end-t[j].start)) {
             C_STRAT = DYNAMIC;
-          } else if (!strncmp(s+t[j].start, "qqr", t[j].end-t[j].start)) {
-            C_STRAT = QQR;
+          } else if (!strncmp(s+t[j].start, "sdre", t[j].end-t[j].start)) {
+            C_STRAT = SDRE;
           } else {
             ABORT("invalid control strategy");
           }

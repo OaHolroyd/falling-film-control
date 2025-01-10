@@ -283,7 +283,6 @@ event output_dat(t=0.0; t<=TMAX; t += DTOUT) {
   }
 
 
-
   /* output 1D/2D data */
   if (OUTPUT >= 1) {
     /* shift datcount to prevent file overwrites */

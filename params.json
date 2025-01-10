@@ -23,13 +23,13 @@
    "CONTROL":{
       "M":9,
       "P":5,
-      "start":50,
+      "start":10,
       "width":0.1,
       "alpha":1.0,
       "del":-1.00,
       "mu":0.5,
-      "rom":"wr",
-      "strategy":"qqr",
+      "rom":"benney",
+      "strategy":"sdre",
       "exact_flux": 1
    }
 }
