@@ -78,7 +78,7 @@ void init_fluid() {
     // fraction(f, y < 1);
 
     /* cosine perturbation */
-    fraction(f, 1.0-y+0.05*sin(1.0*(2.0/(LX))*M_PI*(x+10)));
+    fraction(f, 1.0-y+0.005*sin(1.0*(2.0/(LX))*M_PI*(x+10)));
 
     /* initialise with Nusselt velocity */
     foreach () {
@@ -162,6 +162,7 @@ int main(int argc, char const *argv[]) {
   fprintf(stderr, "Us: %.8lf\n", US);
   fprintf(stderr, "Re: %.8lf\n", RE);
   fprintf(stderr, "Ca: %.8lf\n", CA);
+  fprintf(stderr, "cot(THETA): %.8lf\n", 1.0/tan(THETA));
   fprintf(stderr, "Nu: %d (M: %d)\n", N_U, C_M);
   output_numbers();
 

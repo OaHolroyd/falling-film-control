@@ -244,11 +244,11 @@ void benney_jacobian(double **J) {
     } // j end
   } // i end
 
-  double c0 = -1/(3*CA) * (1/(DX*DX*DX*DX));
-  double c1 = 1/DX + (2/tan(THETA)/3 - 8*RE/15) * (1/(DX*DX)) + 1/(3*CA) * (4/(DX*DX*DX*DX));
-  double c2 = (2/tan(THETA)/3 - 8*RE/15) * (-2/(DX*DX)) - 1/(3*CA) * (6/(DX*DX*DX*DX));
-  double c3 = -1/DX + (2/tan(THETA)/3 - 8*RE/15) * (1/(DX*DX)) + 1/(3*CA) * (4/(DX*DX*DX*DX));
-  double c4 = -1/(3*CA) * (1/(DX*DX*DX*DX));
+  double c0 = -1.0/(3.0*CA) * (1.0/(DX*DX*DX*DX));
+  double c1 = 1.0/DX + (2.0/tan(THETA)/3.0 - 8.0*RE/15.0) * (1.0/(DX*DX)) + 1.0/(3.0*CA) * (4.0/(DX*DX*DX*DX));
+  double c2 = (2.0/tan(THETA)/3.0 - 8.0*RE/15.0) * (-2.0/(DX*DX)) - 1.0/(3.0*CA) * (6.0/(DX*DX*DX*DX));
+  double c3 = -1.0/DX + (2.0/tan(THETA)/3.0 - 8.0*RE/15.0) * (1.0/(DX*DX)) + 1.0/(3.0*CA) * (4.0/(DX*DX*DX*DX));
+  double c4 = -1.0/(3.0*CA) * (1.0/(DX*DX*DX*DX));
   for (int i = 2; i < N-2; i++) {
     J[i][i-2] = c0;
     J[i][i-1] = c1;
@@ -335,8 +335,8 @@ void wr_jacobian(double **J) {
   double c0, c1, c2, c3, c4;
 
   /* top right */
-  c1 = 1/(2*DX);
-  c3 = -1/(2*DX);
+  c1 = 0.5/DX;
+  c3 = -0.5/DX;
   for (int i = 1; i < N-1; i++) {
     J[i][N+i-1] = c1;
     J[i][N+i+1] = c3;
@@ -349,11 +349,11 @@ void wr_jacobian(double **J) {
   J[N-1][N+0] = c3;
 
   /* bottom left */
-  c0 = (5/(6*RE*CA)) * (-1/(2*DX*DX*DX));
-  c1 = (4/7.0 - 5/(3*RE*tan(THETA))) * (-1/(2*DX)) + (5/(6*RE*CA)) * (1/(DX*DX*DX));
-  c2 = 5/RE;
-  c3 = (4/7.0 - 5/(3*RE*tan(THETA))) * (1/(2*DX)) + (5/(6*RE*CA)) * (-1/(DX*DX*DX));
-  c4 = (5/(6*RE*CA)) * (1/(2*DX*DX*DX));
+  c0 = (5.0/(6.0*RE*CA)) * (-0.5/(DX*DX*DX));
+  c1 = (4.0/7.0 - 5.0/(3.0*RE*tan(THETA))) * (-0.5/DX) + (5.0/(6.0*RE*CA)) * (1.0/(DX*DX*DX));
+  c2 = 5.0/RE;
+  c3 = (4.0/7.0 - 5.0/(3.0*RE*tan(THETA))) * (0.5/DX) + (5.0/(6.0*RE*CA)) * (-1.0/(DX*DX*DX));
+  c4 = (5.0/(6.0*RE*CA)) * (0.5/(DX*DX*DX));
   for (int i = 2; i < N-2; i++) {
     J[N+i][i-2] = c0;
     J[N+i][i-1] = c1;
@@ -387,9 +387,9 @@ void wr_jacobian(double **J) {
   J[N+N-1][1] = c4;
 
   /* bottom right */
-  c1 = -(34/21.0) * (-1/(2*DX));
-  c2 = -(5/(2*RE));
-  c3 = -(34/21.0) * (1/(2*DX));
+  c1 = -(34.0/21.0) * (-0.5/DX);
+  c2 = -(2.5/RE);
+  c3 = -(34.0/21.0) * (0.5/DX);
   for (int i = 1; i < N-1; i++) {
     J[N+i][N+i-1] = c1;
     J[N+i][N+i] = c2;
@@ -415,7 +415,7 @@ void wr_actuator(double **Psi) {
   for (int i = 0; i < N; i++) {
     for (int j = 0; j < M; j++) {
       Psi[i][j] = F[i][j];
-      Psi[i+N][j] = (1/3.0) * F[i][j];
+      Psi[i+N][j] = (1.0/3.0) * F[i][j];
     } // j end
   } // i end
 

@@ -695,49 +695,57 @@ def main(rom, n, uid, M):
     """
     fm = FilmModel()
 
-    Re0 = 1.0
-    Re1 = 100.0
-    Ca0 = 0.05
-    Ca1 = 0.05
+    # Re0 = 1.0
+    # Re1 = 100.0
+    # Ca0 = 0.05
+    # Ca1 = 0.05
 
-    Res = np.logspace(np.log10(Re0), np.log10(Re1), num=n)
-    Ca = 0.05
-    ms = [M]
+    # Res = np.logspace(np.log10(Re0), np.log10(Re1), num=n)
+    # Ca = 0.05
+    # ms = [M]
 
-    NN = len(Res)*len(ms)*4
+    # NN = len(Res)*len(ms)*4
 
-    REs = np.zeros([NN])
-    CAs = np.zeros([NN])
-    Ms = np.zeros([NN], dtype=int)
-    Ps = np.zeros([NN], dtype=int)
+    # REs = np.zeros([NN])
+    # CAs = np.zeros([NN])
+    # Ms = np.zeros([NN], dtype=int)
+    # Ps = np.zeros([NN], dtype=int)
 
-    k = 0
-    for Re in Res:
-        for m in ms:
-            # for P in [m-1, m, m+1, m+2]:
-            for P in [m]:
-                REs[k] = Re
-                CAs[k] = Ca
-                Ms[k] = m
-                Ps[k] = P
-                k += 1
+    # k = 0
+    # for Re in Res:
+    #     for m in ms:
+    #         # for P in [m-1, m, m+1, m+2]:
+    #         for P in [m]:
+    #             REs[k] = Re
+    #             CAs[k] = Ca
+    #             Ms[k] = m
+    #             Ps[k] = P
+    #             k += 1
 
-    fm.params["CONTROL"]["start"] = 50
-    fm.params["DOMAIN"]["tmax"] = 400 + fm.params["CONTROL"]["start"]
-    fm.params["SOLVER"]["dtout"] = 0.5
-    fm.params["CONTROL"]["rom"] = rom
-    fm.params["CONTROL"]["strategy"] = "lqr"  # TODO: rerun with dynamic
+    # fm.params["CONTROL"]["start"] = 50
+    # fm.params["DOMAIN"]["tmax"] = 400 + fm.params["CONTROL"]["start"]
+    # fm.params["SOLVER"]["dtout"] = 0.5
+    # fm.params["CONTROL"]["rom"] = rom
+    # fm.params["CONTROL"]["strategy"] = "lqr"  # TODO: rerun with dynamic
 
-    # print(REs)
-    # print(CAs)
-    # print(Ms)
-    # print(Ps)
+    # # print(REs)
+    # # print(CAs)
+    # # print(Ms)
+    # # print(Ps)
 
-    fm.multi_run2(REs, CAs, Ms, Ps, rom="wr", uid=uid)
+    # fm.multi_run2(REs, CAs, Ms, Ps, rom="wr", uid=uid)
+
+
+    fm.params["CONTROL"]["start"] = 9999
+    fm.params["DOMAIN"]["tmax"] = 5000 * 0.025
+    fm.params["DOMAIN"]["Lx"] = 20.0
+    fm.params["DOMAIN"]["theta"] = np.pi / 4
+    fm.params["SOLVER"]["dtout"] = 0.025 * 25
+    fm.multi_run2([15.0], [0.05], [1], [1], rom="wr", uid=uid)
 
 
 if __name__ == "__main__":
-    other_main()
+    main("wr", 1, 0, 1)
     exit(0)
 
     # process args

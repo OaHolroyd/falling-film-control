@@ -333,7 +333,7 @@ int dlqr(double **A, double **B, double u, double v, int n, int m, double **K) {
   COMPLEX *P = malloc(n*n*sizeof(COMPLEX));
   int info = riccati(A, B, u, v, n, m, P);
 
-  /* compute K */
+  /* compute K = -1/v * B' * P */
   const double c = -1/v;
   for (int i = 0; i < m; i++) {
     for (int j = 0; j < n; j++) {

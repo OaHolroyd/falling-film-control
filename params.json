@@ -4,7 +4,7 @@
       "Lx":30.0,
       "Ly":8.0,
       "theta":1.047197551,
-      "tmax":110,
+      "tmax":150,
       "t0":0
    },
    "PHYSICAL":{
@@ -23,12 +23,12 @@
    "CONTROL":{
       "M":9,
       "P":5,
-      "start":10,
+      "start":100,
       "width":0.1,
       "alpha":1.0,
       "del":-1.00,
       "mu":0.5,
-      "rom":"benney",
+      "rom":"wr",
       "strategy":"sdre",
       "exact_flux": 1
    }
