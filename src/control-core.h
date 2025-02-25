@@ -237,10 +237,10 @@ void forcing_matrix(double **F) {
 }
 
 /* Jacobian (N-by-N) */
-void benney_jacobian(double **J) {
+void benney_jacobian(double **A) {
   for (int i = 0; i < N; i++) {
     for (int j = 0; j < N; j++) {
-      J[i][j] = 0.0;
+      A[i][j] = 0.0;
     } // j end
   } // i end
 
@@ -250,40 +250,40 @@ void benney_jacobian(double **J) {
   double c3 = -1.0/DX + (2.0/tan(THETA)/3.0 - 8.0*RE/15.0) * (1.0/(DX*DX)) + 1.0/(3.0*CA) * (4.0/(DX*DX*DX*DX));
   double c4 = -1.0/(3.0*CA) * (1.0/(DX*DX*DX*DX));
   for (int i = 2; i < N-2; i++) {
-    J[i][i-2] = c0;
-    J[i][i-1] = c1;
-    J[i][i] = c2;
-    J[i][i+1] = c3;
-    J[i][i+2] = c4;
+    A[i][i-2] = c0;
+    A[i][i-1] = c1;
+    A[i][i] = c2;
+    A[i][i+1] = c3;
+    A[i][i+2] = c4;
   } // i end
 
-  J[0][N-2] = c0;
-  J[0][N-1] = c1;
-  J[0][0] = c2;
-  J[0][1] = c3;
-  J[0][2] = c4;
+  A[0][N-2] = c0;
+  A[0][N-1] = c1;
+  A[0][0] = c2;
+  A[0][1] = c3;
+  A[0][2] = c4;
 
-  J[1][N-1] = c0;
-  J[1][0] = c1;
-  J[1][1] = c2;
-  J[1][1+1] = c3;
-  J[1][1+2] = c4;
+  A[1][N-1] = c0;
+  A[1][0] = c1;
+  A[1][1] = c2;
+  A[1][1+1] = c3;
+  A[1][1+2] = c4;
 
-  J[N-2][N-4] = c0;
-  J[N-2][N-3] = c1;
-  J[N-2][N-2] = c2;
-  J[N-2][N-1] = c3;
-  J[N-2][0] = c4;
+  A[N-2][N-4] = c0;
+  A[N-2][N-3] = c1;
+  A[N-2][N-2] = c2;
+  A[N-2][N-1] = c3;
+  A[N-2][0] = c4;
 
-  J[N-1][N-3] = c0;
-  J[N-1][N-2] = c1;
-  J[N-1][N-1] = c2;
-  J[N-1][0] = c3;
-  J[N-1][1] = c4;
+  A[N-1][N-3] = c0;
+  A[N-1][N-2] = c1;
+  A[N-1][N-1] = c2;
+  A[N-1][0] = c3;
+  A[N-1][1] = c4;
 }
 
 /* Actuator (N-by-M) */
-void benney_actuator(double **Psi) {
+void benney_actuator(double **B) {
   /* forcing matrix */
   double **F = malloc_f2d(N, M);
   forcing_matrix(F);
@@ -291,24 +291,24 @@ void benney_actuator(double **Psi) {
   /* actuator matrix */
   for (int i = 1; i < N-1; i++) {
     for (int j = 0; j < M; j++) {
-      Psi[i][j] = F[i][j] + (RE/(3*DX)) * (F[i+1][j]-F[i-1][j]);
+      B[i][j] = F[i][j] + (RE/(3.0*DX)) * (F[i+1][j]-F[i-1][j]);
     } // j end
   } // i end
   for (int j = 0; j < M; j++) {
-    Psi[0][j] = F[0][j] + (RE/(3*DX)) * (F[1][j]-F[N-1][j]);
-    Psi[N-1][j] = F[N-1][j] + (RE/(3*DX)) * (F[0][j]-F[N-2][j]);
+    B[0][j] = F[0][j] + (RE/(3.0*DX)) * (F[1][j]-F[N-1][j]);
+    B[N-1][j] = F[N-1][j] + (RE/(3.0*DX)) * (F[0][j]-F[N-2][j]);
   } // j end
 
   free_2d(F);
 }
 
 /* (the transpose of the) Observer (N-by-P) */
-void benney_observer(double **Phi) {
+void benney_observer(double **C) {
   /* P < N use approximate delta-functions */
   if (P != N) {
     for (int i = 0; i < N; i++) {
       for (int j = 0; j < P; j++) {
-        Phi[i][j] = DX*actuator(ITOX(i)-Oloc[j]);
+        C[i][j] = DX*actuator(ITOX(i)-Oloc[j]);
       } // j end
     } // i end
   }
@@ -317,18 +317,18 @@ void benney_observer(double **Phi) {
   else {
     for (int i = 0; i < N; i++) {
       for (int j = 0; j < N; j++) {
-        Phi[i][j] = 0.0;
+        C[i][j] = 0.0;
       } // j end
-      Phi[i][i] = 1.0;
+      C[i][i] = 1.0;
     } // i end
   }
 }
 
 /* Jacobian (2N-by-2N) */
-void wr_jacobian(double **J) {
+void wr_jacobian(double **A) {
   for (int i = 0; i < 2*N; i++) {
     for (int j = 0; j < 2*N; j++) {
-      J[i][j] = 0.0;
+      A[i][j] = 0.0;
     } // j end
   } // i end
 
@@ -338,15 +338,15 @@ void wr_jacobian(double **J) {
   c1 = 0.5/DX;
   c3 = -0.5/DX;
   for (int i = 1; i < N-1; i++) {
-    J[i][N+i-1] = c1;
-    J[i][N+i+1] = c3;
+    A[i][N+i-1] = c1;
+    A[i][N+i+1] = c3;
   } // i end
 
-  J[0][N+N-1] = c1;
-  J[0][N+1] = c3;
+  A[0][N+N-1] = c1;
+  A[0][N+1] = c3;
 
-  J[N-1][N+N-2] = c1;
-  J[N-1][N+0] = c3;
+  A[N-1][N+N-2] = c1;
+  A[N-1][N+0] = c3;
 
   /* bottom left */
   c0 = (5.0/(6.0*RE*CA)) * (-0.5/(DX*DX*DX));
@@ -355,58 +355,58 @@ void wr_jacobian(double **J) {
   c3 = (4.0/7.0 - 5.0/(3.0*RE*tan(THETA))) * (0.5/DX) + (5.0/(6.0*RE*CA)) * (-1.0/(DX*DX*DX));
   c4 = (5.0/(6.0*RE*CA)) * (0.5/(DX*DX*DX));
   for (int i = 2; i < N-2; i++) {
-    J[N+i][i-2] = c0;
-    J[N+i][i-1] = c1;
-    J[N+i][i] = c2;
-    J[N+i][i+1] = c3;
-    J[N+i][i+2] = c4;
+    A[N+i][i-2] = c0;
+    A[N+i][i-1] = c1;
+    A[N+i][i] = c2;
+    A[N+i][i+1] = c3;
+    A[N+i][i+2] = c4;
   } // i end
 
-  J[N+0][N-2] = c0;
-  J[N+0][N-1] = c1;
-  J[N+0][0] = c2;
-  J[N+0][1] = c3;
-  J[N+0][2] = c4;
+  A[N+0][N-2] = c0;
+  A[N+0][N-1] = c1;
+  A[N+0][0] = c2;
+  A[N+0][1] = c3;
+  A[N+0][2] = c4;
 
-  J[N+1][N-1] = c0;
-  J[N+1][0] = c1;
-  J[N+1][1] = c2;
-  J[N+1][1+1] = c3;
-  J[N+1][1+2] = c4;
+  A[N+1][N-1] = c0;
+  A[N+1][0] = c1;
+  A[N+1][1] = c2;
+  A[N+1][1+1] = c3;
+  A[N+1][1+2] = c4;
 
-  J[N+N-2][N-4] = c0;
-  J[N+N-2][N-3] = c1;
-  J[N+N-2][N-2] = c2;
-  J[N+N-2][N-1] = c3;
-  J[N+N-2][0] = c4;
+  A[N+N-2][N-4] = c0;
+  A[N+N-2][N-3] = c1;
+  A[N+N-2][N-2] = c2;
+  A[N+N-2][N-1] = c3;
+  A[N+N-2][0] = c4;
 
-  J[N+N-1][N-3] = c0;
-  J[N+N-1][N-2] = c1;
-  J[N+N-1][N-1] = c2;
-  J[N+N-1][0] = c3;
-  J[N+N-1][1] = c4;
+  A[N+N-1][N-3] = c0;
+  A[N+N-1][N-2] = c1;
+  A[N+N-1][N-1] = c2;
+  A[N+N-1][0] = c3;
+  A[N+N-1][1] = c4;
 
   /* bottom right */
   c1 = -(34.0/21.0) * (-0.5/DX);
   c2 = -(2.5/RE);
   c3 = -(34.0/21.0) * (0.5/DX);
   for (int i = 1; i < N-1; i++) {
-    J[N+i][N+i-1] = c1;
-    J[N+i][N+i] = c2;
-    J[N+i][N+i+1] = c3;
+    A[N+i][N+i-1] = c1;
+    A[N+i][N+i] = c2;
+    A[N+i][N+i+1] = c3;
   } // i end
 
-  J[N+0][N+N-1] = c1;
-  J[N+0][N+0] = c2;
-  J[N+0][N+1] = c3;
+  A[N+0][N+N-1] = c1;
+  A[N+0][N+0] = c2;
+  A[N+0][N+1] = c3;
 
-  J[N+N-1][N+N-2] = c1;
-  J[N+N-1][N+N-1] = c2;
-  J[N+N-1][N+0] = c3;
+  A[N+N-1][N+N-2] = c1;
+  A[N+N-1][N+N-1] = c2;
+  A[N+N-1][N+0] = c3;
 }
 
 /* Actuator (2N-by-M) */
-void wr_actuator(double **Psi) {
+void wr_actuator(double **B) {
   /* forcing matrix (TODO: see if rotating this makes it faster) */
   double **F = malloc_f2d(N, M);
   forcing_matrix(F);
@@ -414,8 +414,8 @@ void wr_actuator(double **Psi) {
   /* actuator matrix */
   for (int i = 0; i < N; i++) {
     for (int j = 0; j < M; j++) {
-      Psi[i][j] = F[i][j];
-      Psi[i+N][j] = (1.0/3.0) * F[i][j];
+      B[i][j] = F[i][j];
+      B[i+N][j] = (1.0/3.0) * F[i][j];
     } // j end
   } // i end
 
@@ -423,19 +423,19 @@ void wr_actuator(double **Psi) {
 }
 
 /* (the transpose of the) Observer (2N-by-P) */
-void wr_observer(double **Phi) {
+void wr_observer(double **C) {
   /* P < N use approximate delta-functions */
   if (P != N) {
     for (int i = 0; i < 2*N; i++) {
       for (int j = 0; j < P; j++) {
-        Phi[i][j] = 0.0;
+        C[i][j] = 0.0;
       } // j end
     } // i end
 
     /* observe interfacial height */
     for (int i = 0; i < N; i++) {
       for (int j = 0; j < P; j++) {
-        Phi[i][j] = DX*actuator(ITOX(i)-Oloc[j]);
+        C[i][j] = DX*actuator(ITOX(i)-Oloc[j]);
       } // j end
     } // i end
 
@@ -452,9 +452,9 @@ void wr_observer(double **Phi) {
   else {
     for (int i = 0; i < 2*N; i++) {
       for (int j = 0; j < P; j++) {
-        Phi[i][j] = 0.0;
+        C[i][j] = 0.0;
       } // j end
-      Phi[i][i] = 1.0;
+      C[i][i] = 1.0;
     } // i end
   }
 }
