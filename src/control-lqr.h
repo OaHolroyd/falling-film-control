@@ -17,33 +17,33 @@ static double **LQR_K; /* control operator */
 /* compute the control matrix in the Benney case */
 void lqr_benney_compute_K(double **lqr_k) {
   /* Jacobian */
-  double **J = malloc_f2d(N, N);
-  benney_jacobian(J);
+  double **A = malloc_f2d(N, N);
+  benney_jacobian(A);
 
   /* actuator matrix */
-  double **Psi = malloc_f2d(N, M);
-  benney_actuator(Psi);
+  double **B = malloc_f2d(N, M);
+  benney_actuator(B);
 
   /* control matrix */
-  dlqr(J, Psi, DX*MU, 1-MU, N, M, lqr_k);
+  dlqr(A, B, DX*MU, 1-MU, N, M, lqr_k);
 
-  free_2d(J);
-  free_2d(Psi);
+  free_2d(A);
+  free_2d(B);
 }
 
 /* compute the control matrix in the weighted-residuals case */
 void lqr_wr_compute_K(double **lqr_k) {
     /* Jacobian */
-  double **J = malloc_f2d(2*N, 2*N);
-  wr_jacobian(J);
+  double **A = malloc_f2d(2*N, 2*N);
+  wr_jacobian(A);
 
   /* actuator matrix */
-  double **Psi = malloc_f2d(2*N, M);
-  wr_actuator(Psi);
+  double **B = malloc_f2d(2*N, M);
+  wr_actuator(B);
 
   /* full control matrix */
   double **K = malloc_f2d(M, 2*N);
-  dlqr(J, Psi, DX*MU, 1-MU, 2*N, M, K);
+  dlqr(A, B, DX*MU, 1-MU, 2*N, M, K);
 
   /* apply flux approximation */
   for (int i = 0; i < M; i++) {
@@ -52,8 +52,8 @@ void lqr_wr_compute_K(double **lqr_k) {
     } // j end
   } // i end
 
-  free_2d(J);
-  free_2d(Psi);
+  free_2d(A);
+  free_2d(B);
   free_2d(K);
 }
 

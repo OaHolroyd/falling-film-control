@@ -28,8 +28,8 @@ def main():
     x = data[:, 0]
 
     hplot, = plt.plot(x, x)
-    fplot, = plt.plot(x, x)
-    # zplot, = plt.plot(x, x)
+    # fplot, = plt.plot(x, x)
+    zplot, = plt.plot(x, x)
 
     plt.axis([0, 30, -2, 2])
 
@@ -45,8 +45,8 @@ def main():
 
         # TODO: could be faster if we just change the ydata
         hplot.set_ydata(h-1)
-        fplot.set_ydata(f)
-        # zplot.set_ydata(z)
+        # fplot.set_ydata(f)
+        zplot.set_ydata(z-1)
         plt.title(f'time {t[i]} [step {i}]')
 
         fig.savefig(f"plots/{i}.png")

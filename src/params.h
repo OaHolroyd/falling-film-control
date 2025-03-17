@@ -254,6 +254,12 @@ int read_params(const char *fname) {
             C_ROM = BENNEY;
           } else if (!strncmp(s+t[j].start, "wr", t[j].end-t[j].start)) {
             C_ROM = WR;
+          } else if (!strncmp(s+t[j].start, "ama", t[j].end-t[j].start)) {
+            C_ROM = AMA;
+          } else if (!strncmp(s+t[j].start, "rct", t[j].end-t[j].start)) {
+            C_ROM = RCT;
+          } else if (!strncmp(s+t[j].start, "pwr", t[j].end-t[j].start)) {
+            C_ROM = PWR;
           } else {
             ABORT("invalid ROM type");
           }
@@ -268,6 +274,8 @@ int read_params(const char *fname) {
             C_STRAT = STATIC;
           } else if (!strncmp(s+t[j].start, "dynamic", t[j].end-t[j].start)) {
             C_STRAT = DYNAMIC;
+          } else if (!strncmp(s+t[j].start, "estimator", t[j].end-t[j].start)) {
+            C_STRAT = ESTIMATOR;
           } else {
             ABORT("invalid control strategy");
           }

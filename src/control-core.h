@@ -52,23 +52,60 @@ static double *Amag; // actuator magnitudes
 /* forcing matrix (N-by-M) */
 void forcing_matrix(double **F);
 
+
+/* BENNEY EQUATION */
 /* Jacobian (N-by-N) */
-void benney_jacobian(double **J);
+void benney_jacobian(double **A);
 
 /* Actuator (N-by-M) */
-void benney_actuator(double **Psi);
+void benney_actuator(double **B);
 
 /* (the transpose of the) Observer (N-by-P) */
-void benney_observer(double **Phi);
+void benney_observer(double **C);
 
+
+/* WEIGHTED RESIDUALS MODEL (RQ & M 2000) */
 /* Jacobian (2N-by-2N) */
-void wr_jacobian(double **J);
+void wr_jacobian(double **A);
 
 /* Actuator (2N-by-M) */
-void wr_actuator(double **Psi);
+void wr_actuator(double **B);
 
 /* (the transpose of the) Observer (2N-by-2P) */
-void wr_observer(double **Phi);
+void wr_observer(double **C);
+
+
+/* FLEXIBLE WR MODEL (A, M, & A, 2004) */
+/* Jacobian (2N-by-2N) */
+void ama_jacobian(double **A);
+
+/* Actuator (2N-by-M) */
+void ama_actuator(double **B);
+
+/* (the transpose of the) Observer (2N-by-2P) */
+void ama_observer(double **C);
+
+
+/* FLEXIBLE ENERGY INTEGRAL MODEL (R, C, & T, 2020) */
+/* Jacobian (2N-by-2N) */
+void rct_jacobian(double **A);
+
+/* Actuator (2N-by-M) */
+void rct_actuator(double **B);
+
+/* (the transpose of the) Observer (2N-by-2P) */
+void rct_observer(double **C);
+
+
+/* PARABOLIC WR MODEL (M, RQ, & U, 2022) */
+/* Jacobian (2N-by-2N) */
+void pwr_jacobian(double **A);
+
+/* Actuator (2N-by-M) */
+void pwr_actuator(double **B);
+
+/* (the transpose of the) Observer (2N-by-2P) */
+void pwr_observer(double **C);
 
 
 /* ========================================================================== */
@@ -89,15 +126,20 @@ double interp(double x, double *h) {
   double _i1 = ceil(i);
   int i0 = (int) _i0;
   int i1 = (int) _i1;
-
+  double di0 = i - i0;
+  double di1 = i1 - i;
 
   /* cover the case that x is on a gridpoint */
   if (i0 == i1) {
     return h[i0];
   }
 
+  /* account for periodicity in the indices */
+  i0 = (i0 + N) % N;
+  i1 = (i1 + N) % N;
+
   /* linear interpolation */
-  return h[i0]*(i1-i) + h[i1]*(i-i0);
+  return h[i0]*di1 + h[i1]*di0;
 }
 
 /* (periodic) actuator function (only valid on [-3Lx/2, 3Lx/2]) */
@@ -457,6 +499,51 @@ void wr_observer(double **C) {
       C[i][i] = 1.0;
     } // i end
   }
+}
+
+/* Jacobian (2N-by-2N) */
+void ama_jacobian(double **A) {
+  ABORT("not implemented yet");
+}
+
+/* Actuator (2N-by-M) */
+void ama_actuator(double **B) {
+  ABORT("not implemented yet");
+}
+
+/* (the transpose of the) Observer (2N-by-2P) */
+void ama_observer(double **C) {
+  ABORT("not implemented yet");
+}
+
+/* Jacobian (2N-by-2N) */
+void rct_jacobian(double **A) {
+  ABORT("not implemented yet");
+}
+
+/* Actuator (2N-by-M) */
+void rct_actuator(double **B) {
+  ABORT("not implemented yet");
+}
+
+/* (the transpose of the) Observer (2N-by-2P) */
+void rct_observer(double **C) {
+  ABORT("not implemented yet");
+}
+
+/* Jacobian (2N-by-2N) */
+void pwr_jacobian(double **A) {
+  ABORT("not implemented yet");
+}
+
+/* Actuator (2N-by-M) */
+void pwr_actuator(double **B) {
+  ABORT("not implemented yet");
+}
+
+/* (the transpose of the) Observer (2N-by-2P) */
+void pwr_observer(double **C) {
+  ABORT("not implemented yet");
 }
 
 

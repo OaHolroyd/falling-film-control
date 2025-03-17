@@ -9,6 +9,10 @@ dump*/**
 _film.c
 remote.sh
 multi_run.sh
+film-ns
+film-benney
+film-wr
+.idea
 
 __pycache__
 
