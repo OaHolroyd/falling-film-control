@@ -161,7 +161,6 @@ int main(int argc, char const *argv[]) {
   fprintf(stderr, "Ca: %.8lf\n", CA);
   output_numbers();
 
-
   run();
 
   control_free();

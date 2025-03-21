@@ -7,25 +7,251 @@
 #include "control-core.h"
 #include "linalg.h"
 
-static double *EST_h; // height estimate
+static double *EST_y;   // height observations
+static double *EST_yy;  // mock height observations (of the estimator)
+static double *EST_f;   // forcing term
+static double *EST_h;   // height estimate
+static double *EST_q;   // flux estimate
+static double *EST_h0;  // height estimate (previous time step)
+static double *EST_q0;  // flux estimate (previous time step)
+static double *EST_res; // residual (for time stepping)
+static double **EST_J;  // Jacobian (for time stepping)
+static double **EST_L;  // forcing matrix TODO: work out with LQR
+static double **EST_C;  // observer matrix
+
+// derivative macros
+#define wrap(i) ((i + N) % N)
+#define D1(z, i) (0.5 * ((z[(i + 1 + N) % N] - z[(i - 1 + N) % N]) / DX))
+#define D2(z, i)                                                               \
+  ((z[(i + 1 + N) % N] - 2.0 * z[i] + z[(i - 1 + N) % N]) / (DX * DX))
+#define D3(z, i)                                                               \
+  ((z[(i + 2 + N) % N] - 2.0 * z[(i + 1 + N) % N] + 2.0 * z[(i - 1 + N) % N] - \
+    z[(i - 2 + N) % N]) /                                                      \
+   (2.0 * DX * DX * DX))
+#define D4(z, i)                                                               \
+  ((z[(i + 2 + N) % N] - 4.0 * z[(i + 1 + N) % N] + 6.0 * z[i] -               \
+    4.0 * z[(i - 1 + N) % N] + z[(i - 2 + N) % N]) /                           \
+   (DX * DX * DX * DX))
 
 /* ========================================================================== */
 /*   AUXILIARY FUNCTION DEFINITIONS                                           */
 /* ========================================================================== */
-/**/
-void est_update(double dt, double *h) {
+/* compute the residual and return the square of the norm */
+double est_compute_residual(double dt, double *res) {
+  double res_norm_2 = 0.0;
+  double *h = EST_h;
+  double *h0 = EST_h0;
+  double *q = EST_q;
+  double *q0 = EST_q0;
+  double *f = EST_f;
+
   for (int i = 0; i < N; i++) {
-    EST_h[i] = 1.0 + 0.8 * (h[i] - 1.0);
+    // H component
+    res[i] = 2.0 * h[i] + dt * D1(q, i) - 2.0 * dt * f[i] - 2.0 * h0[i] +
+             dt * D1(q0, i);
+
+    // Q component
+    res[i + N] = 2.0 * q[i] - 0.5 * dt * f[i] * q[i] / h[i] -
+                 9.0 / 7.0 * dt * q[i] * q[i] / h[i] / h[i] * D1(h, i) +
+                 5.0 * dt / 3.0 / RE / tan(THETA) * h[i] * D1(h, i) +
+                 17.0 * dt / 7.0 * q[i] / h[i] * D1(q, i) -
+                 5.0 * dt / 3.0 / RE * h[i] -
+                 5.0 * dt / 6.0 / CA / RE * h[i] * D3(h, i) +
+                 5.0 * dt / 2.0 / RE * q[i] / h[i] / h[i] - 2.0 * q0[i] -
+                 0.5 * dt * f[i] * q0[i] / h0[i] -
+                 9.0 / 7.0 * dt * q0[i] * q0[i] / h0[i] / h0[i] * D1(h0, i) +
+                 5.0 * dt / 3.0 / RE / tan(THETA) * h0[i] * D1(h0, i) +
+                 17.0 * dt / 7.0 * q0[i] / h0[i] * D1(q0, i) -
+                 5.0 * dt / 3.0 / RE * h0[i] -
+                 5.0 * dt / 6.0 / CA / RE * h0[i] * D3(h0, i) +
+                 5.0 * dt / 2.0 / RE * q0[i] / h0[i] / h0[i];
+    res_norm_2 += res[i] * res[i];
+    res_norm_2 += res[i + N] * res[i + N];
+  }
+
+  return res_norm_2;
+}
+
+void est_compute_jacobian(double dt, double **J) {
+  double *h = EST_h;
+  double *q = EST_q;
+  double *f = EST_f;
+
+  // TODO: use memset
+  for (int i = 0; i < 2 * N; i++) {
+    for (int j = 0; j < 2 * N; j++) {
+      J[i][j] = 0.0;
+    }
+  }
+
+  // dFh/dh (top left)
+  for (int i = 0; i < N; i++) {
+    J[i][i] = 2.0;
+  }
+
+  // dFh/dq (top right)
+  for (int i = 0; i < N; i++) {
+    J[i][N + wrap(i - 1)] = dt * (-0.5 / DX);
+    J[i][N + wrap(i + 1)] = dt * (0.5 / DX);
+  }
+
+  // dFq/dh (bottom left)
+  for (int i = 0; i < N; i++) {
+    double c1 = dt * (9.0 / 7.0 * q[i] * q[i] / h[i] / h[i] +
+                      5.0 / 3.0 / RE / tan(THETA) * h[i]);
+    double c3 = -dt * 5.0 / 6.0 / CA / RE * h[i];
+    J[N + i][wrap(i - 2)] = (-0.5 / DX / DX / DX) * c3;
+    J[N + i][wrap(i - 1)] = (-0.5 / DX) * c1 + (1.0 / DX / DX / DX) * c3;
+    J[N + i][wrap(i + 0)] =
+        dt *
+        (0.5 * f[i] * q[i] / h[i] / h[i] +
+         18.0 / 7.0 * q[i] * q[i] / h[i] / h[i] / h[i] * D1(h, i) +
+         5.0 / 3.0 / RE / tan(THETA) * D1(h, i) -
+         17.0 / 7.0 * q[i] / h[i] / h[i] * D1(q, i) - 5.0 / 3.0 / RE -
+         5.0 / 6.0 / CA / RE * D3(h, i) - 5.0 / RE * q[i] / h[i] / h[i] / h[i]);
+    J[N + i][wrap(i + 1)] = (0.5 / DX) * c1 + (-1.0 / DX / DX / DX) * c3;
+    J[N + i][wrap(i + 2)] = (0.5 / DX / DX / DX) * c3;
+  }
+
+  // dFq/dq (bottom right)
+  for (int i = 0; i < N; i++) {
+    double c1 = dt * 17.0 / 7.0 * q[i] / h[i];
+    J[N + i][N + wrap(i - 1)] = (-0.5 / DX) * c1;
+    J[N + i][N + wrap(i + 0)] =
+        2.0 +
+        dt * (-0.5 * f[i] / h[i] - 18.0 / 7.0 * q[i] / h[i] / h[i] * D1(h, i) +
+              17.0 / 7.0 / h[i] * D1(q, i) + 5.0 / 2.0 / RE / h[i] / h[i]);
+    J[N + i][N + wrap(i + 1)] = (0.5 / DX) * c1;
   }
 }
 
+/* step the estimator forward in time using observations of the real height H */
+void est_update(double dt, double *H) {
+  // static int is_initial = 1;
+  // if (is_initial) {
+  //   for (int i = 0; i < N; i++) {
+  //     EST_h[i] = H[i];
+  //     EST_h0[i] = EST_h[i];
+  //     // EST_q[i] = 2.0 / 3.0 * H[i];
+  //     // EST_q0[i] = 2.0 / 3.0 * H[i];
+  //     EST_q[i] = 0.0;
+  //     EST_q0[i] = EST_q[i];
+  //   }
+  // }
+  // is_initial = 0;
+
+  // don't bother doing anything if EST_h < 0.0 or is nan
+  for (int i = 0; i < N; i++) {
+    if (EST_h[i] < 0.0 || isnan(EST_h[i])) {
+      return;
+    }
+  }
+
+  // work out height observations (stored in `EST_y`)
+  // and mock observations (stored in `EST_yy`)
+  for (int i = 0; i < P; i++) {
+    // using direct observer
+    EST_y[i] = interp(Oloc[i], H) - 1.0;
+    EST_yy[i] = interp(Oloc[i], EST_h) - 1.0;
+
+    // // using the observer matrix
+    // EST_y[i] = 0.0;
+    // EST_yy[i] = 0.0;
+    // for (int j = 0; j < N; j++) {
+    //   EST_y[i] += EST_C[j][i] * (h[j] - 1.0);
+    //   EST_yy[i] += EST_C[j][i] * (EST_h[j] - 1.0);
+    // } // j end
+  }
+
+  // compute forcing term and rhs
+  for (int i = 0; i < N; i++) {
+    // purely proportional control
+    EST_f[i] = 0.0;
+    // for (int j = 0; j < P; j++) {
+    //   EST_f[i] += EST_L[i][j] * (EST_y[j] - EST_yy[j]);
+    // } // j end
+  }
+
+  // implicit time-stepping (for stability)
+  // iterate to the solution for the next timestep
+  const int iter_max = 100;
+  const double res_tol_2 = 1.0e-10; // square of the residual tolerance
+  for (int k = 0; k < iter_max; k++) {
+    /* compute res */
+    double res_norm_2 = est_compute_residual(dt, EST_res);
+
+    /* end if converged */
+    if (res_norm_2 < res_tol_2) {
+      break;
+    }
+
+    /* compute Jacobian and solve linear system */
+    // TODO: use sparse/banded matrix representation and solver
+    // TODO: since the top block-row of the Jacobian is constant we could
+    //       decompose it into a 2x2 block system and a lot of work
+    est_compute_jacobian(dt, EST_J);
+    dsv(EST_J, EST_res, 2 * N);
+
+    /* update variables */
+    for (int i = 0; i < N; i++) {
+      EST_h[i] -= EST_res[i];
+    } // i end
+    for (int i = 0; i < N; i++) {
+      EST_q[i] -= EST_res[N + i];
+    } // i end
+  } // k end
+
+  /* set estimate at prev time to current time */
+  // TODO: pointer swap would be faster
+  for (int i = 0; i < N; i++) {
+    EST_h0[i] = EST_h[i];
+    EST_q0[i] = EST_q[i];
+  } // i end
+}
 
 /* ========================================================================== */
 /*   FUNCTION DEFINITIONS                                                     */
 /* ========================================================================== */
 /* [REQUIRED] internal setup */
 void est_set(void) {
+  if (M != P) {
+    ABORT("M != P for the estimator");
+  }
+
+  // height observations
+  EST_y = malloc(P * sizeof(double));
+  EST_yy = malloc(P * sizeof(double));
+
+  // (transpose of the) observer matrix
+  EST_C = malloc_f2d(N, P);
+  benney_observer(EST_C);
+
+  // forcing matrix
+  EST_L = malloc_f2d(N, M);
+  forcing_matrix(EST_L);
+
+  // forcing term
+  EST_f = malloc(N * sizeof(double));
+
+  // height estimator
   EST_h = malloc(N * sizeof(double));
+  EST_h0 = malloc(N * sizeof(double));
+  for (int i = 0; i < N; i++) {
+    EST_h[i] = 1.0;
+    EST_h0[i] = 1.0;
+  }
+
+  // flux estimator
+  EST_q = malloc(N * sizeof(double));
+  EST_q0 = malloc(N * sizeof(double));
+  for (int i = 0; i < N; i++) {
+    EST_q[i] = 2.0 / 3.0;
+    EST_q0[i] = 2.0 / 3.0;
+  }
+
+  // residual and Jacobian (for time stepping)
+  EST_res = malloc(2 * N * sizeof(double));
+  EST_J = malloc_f2d(2 * N, 2 * N);
 
   /* pick from the available ROMs */
   switch (RT) {
@@ -41,7 +267,19 @@ void est_set(void) {
 }
 
 /* [REQUIRED] internal free */
-void est_free(void) { free(EST_h); }
+void est_free(void) {
+  free(EST_h);
+  free(EST_h0);
+  free(EST_q);
+  free(EST_q0);
+  free(EST_res);
+  free(EST_f);
+  free(EST_y);
+  free(EST_yy);
+  free_2d(EST_L);
+  free_2d(EST_C);
+  free_2d(EST_J);
+}
 
 /* [REQUIRED] steps the system forward in time given the interfacial height */
 void est_step(double dt, double *h) {
