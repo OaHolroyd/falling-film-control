@@ -10,6 +10,7 @@
 static double *EST_y;   // height observations
 static double *EST_yy;  // mock height observations (of the estimator)
 static double *EST_f;   // forcing term
+static double *EST_ff;  // forcing term (of the main system)
 static double *EST_h;   // height estimate
 static double *EST_q;   // flux estimate
 static double *EST_h0;  // height estimate (previous time step)
@@ -36,6 +37,52 @@ static double **EST_C;  // observer matrix
 /* ========================================================================== */
 /*   AUXILIARY FUNCTION DEFINITIONS                                           */
 /* ========================================================================== */
+/* solve the (transpose) LQR problem to compute L. This requires EST_C to have
+ * been filled with the Benney or WR observer. */
+void est_forcing_matrix(double **L) {
+  // transpose of L
+  double **Lt = malloc_f2d(P, 2 * N);
+
+  // transpose of the system matrix
+  double **At = malloc_f2d(2 * N, 2 * N);
+  wr_jacobian(At);
+  for (int i = 0; i < 2 * N; i++) {
+    for (int j = 0; j < 2 * N; j++) {
+      double tmp = At[i][j];
+      At[i][j] = At[j][i];
+      At[j][i] = tmp;
+    } // j end
+  } // i end
+
+  // transpose of the observer matrix
+  double **Ct = malloc_f2d(2 * N, P);
+  for (int i = 0; i < 2 * N; i++) {
+    for (int j = 0; j < P; j++) {
+      Ct[i][j] = 0.0;
+    } // j end
+  }
+  for (int i = 0; i < N; i++) { // only allowed to observe the height
+    for (int j = 0; j < P; j++) {
+      Ct[i][j] = EST_C[i][j];
+    } // j end
+  }
+
+  /* compute L using LQR */
+  double u = 1.0; // cost of estimator error
+  double v = 0.1; // cost of control effort (don't care)
+  dlqr(At, Ct, u, v, 2 * N, P, Lt);
+
+  for (int i = 0; i < 2 * N; i++) {
+    for (int j = 0; j < P; j++) {
+      L[i][j] = Lt[j][i];
+    } // j end
+  }
+
+  free_2d(Lt);
+  free_2d(At);
+  free_2d(Ct);
+}
+
 /* compute the residual and return the square of the norm */
 double est_compute_residual(double dt, double *res) {
   double res_norm_2 = 0.0;
@@ -44,27 +91,28 @@ double est_compute_residual(double dt, double *res) {
   double *q = EST_q;
   double *q0 = EST_q0;
   double *f = EST_f;
+  double *ff = EST_ff;
 
   for (int i = 0; i < N; i++) {
     // H component
-    res[i] = 2.0 * h[i] + dt * D1(q, i) - 2.0 * dt * f[i] - 2.0 * h0[i] +
-             dt * D1(q0, i);
+    res[i] = 2.0 * h[i] + dt * D1(q, i) - 2.0 * dt * f[i] - 2.0 * dt * ff[i] -
+             2.0 * h0[i] + dt * D1(q0, i);
 
     // Q component
-    res[i + N] = 2.0 * q[i] - 0.5 * dt * f[i] * q[i] / h[i] -
-                 9.0 / 7.0 * dt * q[i] * q[i] / h[i] / h[i] * D1(h, i) +
-                 5.0 * dt / 3.0 / RE / tan(THETA) * h[i] * D1(h, i) +
-                 17.0 * dt / 7.0 * q[i] / h[i] * D1(q, i) -
-                 5.0 * dt / 3.0 / RE * h[i] -
-                 5.0 * dt / 6.0 / CA / RE * h[i] * D3(h, i) +
-                 5.0 * dt / 2.0 / RE * q[i] / h[i] / h[i] - 2.0 * q0[i] -
-                 0.5 * dt * f[i] * q0[i] / h0[i] -
-                 9.0 / 7.0 * dt * q0[i] * q0[i] / h0[i] / h0[i] * D1(h0, i) +
-                 5.0 * dt / 3.0 / RE / tan(THETA) * h0[i] * D1(h0, i) +
-                 17.0 * dt / 7.0 * q0[i] / h0[i] * D1(q0, i) -
-                 5.0 * dt / 3.0 / RE * h0[i] -
-                 5.0 * dt / 6.0 / CA / RE * h0[i] * D3(h0, i) +
-                 5.0 * dt / 2.0 / RE * q0[i] / h0[i] / h0[i];
+    res[i + N] =
+        2.0 * q[i] - 2.0 * dt * ff[i + N] - 0.5 * dt * f[i] * q[i] / h[i] -
+        9.0 / 7.0 * dt * q[i] * q[i] / h[i] / h[i] * D1(h, i) +
+        5.0 * dt / 3.0 / RE / tan(THETA) * h[i] * D1(h, i) +
+        17.0 * dt / 7.0 * q[i] / h[i] * D1(q, i) - 5.0 * dt / 3.0 / RE * h[i] -
+        5.0 * dt / 6.0 / CA / RE * h[i] * D3(h, i) +
+        5.0 * dt / 2.0 / RE * q[i] / h[i] / h[i] - 2.0 * q0[i] -
+        0.5 * dt * ff[i] * q0[i] / h0[i] -
+        9.0 / 7.0 * dt * q0[i] * q0[i] / h0[i] / h0[i] * D1(h0, i) +
+        5.0 * dt / 3.0 / RE / tan(THETA) * h0[i] * D1(h0, i) +
+        17.0 * dt / 7.0 * q0[i] / h0[i] * D1(q0, i) -
+        5.0 * dt / 3.0 / RE * h0[i] -
+        5.0 * dt / 6.0 / CA / RE * h0[i] * D3(h0, i) +
+        5.0 * dt / 2.0 / RE * q0[i] / h0[i] / h0[i];
     res_norm_2 += res[i] * res[i];
     res_norm_2 += res[i + N] * res[i + N];
   }
@@ -72,10 +120,12 @@ double est_compute_residual(double dt, double *res) {
   return res_norm_2;
 }
 
+/* compute the Jacobian matrix for solving the WR implicit time-stepping problem
+ */
 void est_compute_jacobian(double dt, double **J) {
   double *h = EST_h;
   double *q = EST_q;
-  double *f = EST_f;
+  double *ff = EST_ff;
 
   // TODO: use memset
   for (int i = 0; i < 2 * N; i++) {
@@ -104,7 +154,7 @@ void est_compute_jacobian(double dt, double **J) {
     J[N + i][wrap(i - 1)] = (-0.5 / DX) * c1 + (1.0 / DX / DX / DX) * c3;
     J[N + i][wrap(i + 0)] =
         dt *
-        (0.5 * f[i] * q[i] / h[i] / h[i] +
+        (0.5 * ff[i] * q[i] / h[i] / h[i] +
          18.0 / 7.0 * q[i] * q[i] / h[i] / h[i] / h[i] * D1(h, i) +
          5.0 / 3.0 / RE / tan(THETA) * D1(h, i) -
          17.0 / 7.0 * q[i] / h[i] / h[i] * D1(q, i) - 5.0 / 3.0 / RE -
@@ -119,7 +169,7 @@ void est_compute_jacobian(double dt, double **J) {
     J[N + i][N + wrap(i - 1)] = (-0.5 / DX) * c1;
     J[N + i][N + wrap(i + 0)] =
         2.0 +
-        dt * (-0.5 * f[i] / h[i] - 18.0 / 7.0 * q[i] / h[i] / h[i] * D1(h, i) +
+        dt * (-0.5 * ff[i] / h[i] - 18.0 / 7.0 * q[i] / h[i] / h[i] * D1(h, i) +
               17.0 / 7.0 / h[i] * D1(q, i) + 5.0 / 2.0 / RE / h[i] / h[i]);
     J[N + i][N + wrap(i + 1)] = (0.5 / DX) * c1;
   }
@@ -151,25 +201,30 @@ void est_update(double dt, double *H) {
   // and mock observations (stored in `EST_yy`)
   for (int i = 0; i < P; i++) {
     // using direct observer
-    EST_y[i] = interp(Oloc[i], H) - 1.0;
-    EST_yy[i] = interp(Oloc[i], EST_h) - 1.0;
+    // EST_y[i] = interp(Oloc[i], H) - 1.0;
+    // EST_yy[i] = interp(Oloc[i], EST_h) - 1.0;
 
     // // using the observer matrix
-    // EST_y[i] = 0.0;
-    // EST_yy[i] = 0.0;
-    // for (int j = 0; j < N; j++) {
-    //   EST_y[i] += EST_C[j][i] * (h[j] - 1.0);
-    //   EST_yy[i] += EST_C[j][i] * (EST_h[j] - 1.0);
-    // } // j end
+    EST_y[i] = 0.0;
+    EST_yy[i] = 0.0;
+    for (int j = 0; j < N; j++) {
+      EST_y[i] += EST_C[j][i] * (H[j] - 1.0);
+      EST_yy[i] += EST_C[j][i] * (EST_h[j] - 1.0);
+    } // j end
   }
 
   // compute forcing term and rhs
-  for (int i = 0; i < N; i++) {
+  for (int i = 0; i < 2 * N; i++) {
     // purely proportional control
     EST_f[i] = 0.0;
-    // for (int j = 0; j < P; j++) {
-    //   EST_f[i] += EST_L[i][j] * (EST_y[j] - EST_yy[j]);
-    // } // j end
+    for (int j = 0; j < P; j++) {
+      EST_f[i] += EST_L[i][j] * (EST_y[j] - EST_yy[j]);
+    } // j end
+  }
+
+  // compute the forcing term for the main system
+  for (int i = 0; i < N; i++) {
+    EST_ff[i] = control(ITOX(i));
   }
 
   // implicit time-stepping (for stability)
@@ -214,10 +269,6 @@ void est_update(double dt, double *H) {
 /* ========================================================================== */
 /* [REQUIRED] internal setup */
 void est_set(void) {
-  if (M != P) {
-    ABORT("M != P for the estimator");
-  }
-
   // height observations
   EST_y = malloc(P * sizeof(double));
   EST_yy = malloc(P * sizeof(double));
@@ -227,11 +278,12 @@ void est_set(void) {
   benney_observer(EST_C);
 
   // forcing matrix
-  EST_L = malloc_f2d(N, M);
-  forcing_matrix(EST_L);
+  EST_L = malloc_f2d(2 * N, P);
+  est_forcing_matrix(EST_L);
 
   // forcing term
-  EST_f = malloc(N * sizeof(double));
+  EST_f = malloc(2 * N * sizeof(double));
+  EST_ff = malloc(N * sizeof(double));
 
   // height estimator
   EST_h = malloc(N * sizeof(double));
@@ -274,6 +326,7 @@ void est_free(void) {
   free(EST_q0);
   free(EST_res);
   free(EST_f);
+  free(EST_ff);
   free(EST_y);
   free(EST_yy);
   free_2d(EST_L);
@@ -283,17 +336,26 @@ void est_free(void) {
 
 /* [REQUIRED] steps the system forward in time given the interfacial height */
 void est_step(double dt, double *h) {
-  /* update the estimator */
-  est_update(dt, h);
+  static double t = 0.0;
+  t += dt;
 
-  /* f = K * (h-1) */
-  // no control
+  /* u = K * (h-1) */
   for (int i = 0; i < M; i++) {
     Amag[i] = 0.0;
-    //    for (int j = 0; j < N; j++) {
-    //      Amag[i] += LQR_K[i][j] * (interp(ITOX(j), h) - 1.0);
-    //    } // j end
+    for (int j = 0; j < N; j++) {
+      // TODO: do we need to use the interpolation function?
+      // Amag[i] += LQR_K[i][j] * (h[j] - 1.0);
+      // Amag[i] += LQR_K[i][j] * (interp(ITOX(j), h) - 1.0);
+    } // j end
   } // i end
+
+  if (30.0 < t && t < 32.0) {
+    Amag[2] = 0.1;
+    Amag[3] = -0.1;
+  }
+
+  /* update the estimator */
+  est_update(dt, h);
 }
 
 /* [REQUIRED] returns the estimator as a function of x */
@@ -303,9 +365,7 @@ double est_estimator(double x) {
 }
 
 /* [REQUIRED] outputs the internal matrices */
-void est_output(void) {
-  //  output_d2d("out/K.dat", LQR_K, M, N);
-}
+void est_output(void) { output_d2d("out/L.dat", EST_L, 2 * N, P); }
 
 /* [REQUIRED] generates the control matrix CM = F*K */
 void est_matrix(double **CM) {

@@ -4,12 +4,10 @@
 #include <math.h>
 
 #include "c-utils.h"
-#include "linalg.h"
 #include "control-core.h"
-
+#include "linalg.h"
 
 static double **LQR_K; /* control operator */
-
 
 /* ========================================================================== */
 /*   AUXILIARY FUNCTION DEFINITIONS                                           */
@@ -25,7 +23,7 @@ void lqr_benney_compute_K(double **lqr_k) {
   benney_actuator(B);
 
   /* control matrix */
-  dlqr(A, B, DX*MU, 1-MU, N, M, lqr_k);
+  dlqr(A, B, DX * MU, 1 - MU, N, M, lqr_k);
 
   free_2d(A);
   free_2d(B);
@@ -33,22 +31,22 @@ void lqr_benney_compute_K(double **lqr_k) {
 
 /* compute the control matrix in the weighted-residuals case */
 void lqr_wr_compute_K(double **lqr_k) {
-    /* Jacobian */
-  double **A = malloc_f2d(2*N, 2*N);
+  /* Jacobian */
+  double **A = malloc_f2d(2 * N, 2 * N);
   wr_jacobian(A);
 
   /* actuator matrix */
-  double **B = malloc_f2d(2*N, M);
+  double **B = malloc_f2d(2 * N, M);
   wr_actuator(B);
 
   /* full control matrix */
-  double **K = malloc_f2d(M, 2*N);
-  dlqr(A, B, DX*MU, 1-MU, 2*N, M, K);
+  double **K = malloc_f2d(M, 2 * N);
+  dlqr(A, B, DX * MU, 1 - MU, 2 * N, M, K);
 
   /* apply flux approximation */
   for (int i = 0; i < M; i++) {
     for (int j = 0; j < N; j++) {
-      lqr_k[i][j] = K[i][j] + (2/3.0) * K[i][j+N]; // TODO: is this correct
+      lqr_k[i][j] = K[i][j] + (2 / 3.0) * K[i][j + N]; // TODO: is this correct
     } // j end
   } // i end
 
@@ -56,7 +54,6 @@ void lqr_wr_compute_K(double **lqr_k) {
   free_2d(B);
   free_2d(K);
 }
-
 
 /* ========================================================================== */
 /*   FUNCTION DEFINITIONS                                                     */
@@ -67,22 +64,19 @@ void lqr_set(void) {
 
   /* pick from the available ROMs */
   switch (RT) {
-    case BENNEY:
-      lqr_benney_compute_K(LQR_K);
-      break;
-    case WR:
-      lqr_wr_compute_K(LQR_K);
-      break;
-    default :
-      ABORT("invalid ROM type %d", RT);
+  case BENNEY:
+    lqr_benney_compute_K(LQR_K);
+    break;
+  case WR:
+    lqr_wr_compute_K(LQR_K);
+    break;
+  default:
+    ABORT("invalid ROM type %d", RT);
   }
 }
 
 /* [REQUIRED] internal free */
-void lqr_free(void) {
-
-  free(LQR_K);
-}
+void lqr_free(void) { free(LQR_K); }
 
 /* [REQUIRED] steps the system forward in time given the interfacial height */
 void lqr_step(double dt, double *h) {
@@ -96,15 +90,10 @@ void lqr_step(double dt, double *h) {
 }
 
 /* [REQUIRED] returns the estimator as a function of x */
-double lqr_estimator(double x) {
-
-  return 0.0;
-}
+double lqr_estimator(double x) { return 0.0; }
 
 /* [REQUIRED] outputs the internal matrices */
-void lqr_output(void) {
-  output_d2d("out/K.dat", LQR_K, M, N);
-}
+void lqr_output(void) { output_d2d("out/K.dat", LQR_K, M, N); }
 
 /* [REQUIRED] generates the control matrix CM = F*K */
 void lqr_matrix(double **CM) {
@@ -116,7 +105,7 @@ void lqr_matrix(double **CM) {
     for (int j = 0; j < N; j++) {
       CM[i][j] = 0.0;
       for (int k = 0; k < M; k++) {
-        CM[i][j] += F[i][k]*LQR_K[k][j];
+        CM[i][j] += F[i][k] * LQR_K[k][j];
       } // k end
     } // j end
   } // i end

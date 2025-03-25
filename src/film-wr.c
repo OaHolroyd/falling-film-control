@@ -505,7 +505,7 @@ int main(int argc, char const *argv[]) {
   /* ensure that T0 is 0.0 */
   if (T0 != 0.0) {
     T0 = 0.0;
-    fprintf(stderr, "WARNING: Benney solver does not support dump/restore\n");
+    fprintf(stderr, "WARNING: WR solver does not support dump/restore\n");
   }
 
   /* set up the model */
@@ -517,7 +517,7 @@ int main(int argc, char const *argv[]) {
   control_set(C_STRAT, C_ROM, C_M, C_P, C_W, C_ALPHA, C_MU, C_DEL,
               LX, N, RE, CA, THETA);
   control_output();
-  control_matrix(CM);
+  // control_matrix(CM);
 
   /* sanity check the dimensionless numbers and Nusselt velocity */
   fprintf(stderr, "Us: %.8lf\n", US);
@@ -540,6 +540,8 @@ int main(int argc, char const *argv[]) {
 
     /* turn off controls before C_START */
     int use_CM = t>=C_START;
+    use_CM = 0;
+    control_step(DT, h);
 
     /* iterate to a solution */
     for (int k = 0; k < ITERMAX; k++) {

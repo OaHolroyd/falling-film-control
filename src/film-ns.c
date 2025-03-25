@@ -260,7 +260,7 @@ event output_dat(t=0.0; t<=TMAX; t += DTOUT) {
     /* L2 estimator deviation */
     double de = 0.0;
     for (int i = 0; i < N; i++) {
-      de += (H[i]-1.0-estimator(ITOX(i)))*(H[i]-1.0-estimator(ITOX(i)));
+      de += (H[i]-estimator(ITOX(i)))*(H[i]-estimator(ITOX(i)));
     } // i end
     de = sqrt(DX*de);
 
