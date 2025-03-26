@@ -16,7 +16,8 @@ static double *EST_h0;  // height estimate (previous time step)
 static double *EST_q0;  // flux estimate (previous time step)
 static double *EST_res; // residual (for time stepping)
 static double **EST_J;  // Jacobian (for time stepping)
-static double **EST_L;  // forcing matrix TODO: work out with LQR
+static double **EST_L;  // estimator forcing matrix
+static double **EST_K;  // main forcing matrix
 static double **EST_C;  // observer matrix
 
 // derivative macros
@@ -81,6 +82,22 @@ void est_forcing_matrix(double **L) {
   free_2d(Lt);
   free_2d(At);
   free_2d(Ct);
+}
+
+void est_gain_matrix(double **K) {
+  /* Jacobian */
+  double **A = malloc_f2d(2 * N, 2 * N);
+  wr_jacobian(A);
+
+  /* actuator matrix */
+  double **B = malloc_f2d(2 * N, M);
+  wr_actuator(B);
+
+  /* full control matrix */
+  dlqr(A, B, DX * MU, 1 - MU, 2 * N, M, K);
+
+  free_2d(A);
+  free_2d(B);
 }
 
 /* compute the residual and return the square of the norm */
@@ -268,9 +285,13 @@ void est_set(void) {
   EST_C = malloc_f2d(N, P);
   benney_observer(EST_C);
 
-  // forcing matrix
+  // estimator forcing matrix
   EST_L = malloc_f2d(2 * N, P);
   est_forcing_matrix(EST_L);
+
+  // main forcing matrix
+  EST_K = malloc_f2d(M, 2 * N);
+  est_gain_matrix(EST_K);
 
   // forcing term
   EST_f = malloc(2 * N * sizeof(double));
@@ -299,8 +320,8 @@ void est_set(void) {
   /* pick from the available ROMs */
   switch (RT) {
   // case BENNEY:
-    //      lqr_benney_compute_K(LQR_K);
-    // break;
+  //      lqr_benney_compute_K(LQR_K);
+  // break;
   case WR:
     //      lqr_wr_compute_K(LQR_K);
     break;
@@ -320,6 +341,7 @@ void est_free(void) {
   free(EST_ff);
   free(EST_y);
   free_2d(EST_L);
+  free_2d(EST_K);
   free_2d(EST_C);
   free_2d(EST_J);
 }
@@ -332,17 +354,14 @@ void est_step(double dt, double *h) {
   /* u = K * (h-1) */
   for (int i = 0; i < M; i++) {
     Amag[i] = 0.0;
-    for (int j = 0; j < N; j++) {
-      // TODO: do we need to use the interpolation function?
-      // Amag[i] += LQR_K[i][j] * (h[j] - 1.0);
-      // Amag[i] += LQR_K[i][j] * (interp(ITOX(j), h) - 1.0);
-    } // j end
-  } // i end
 
-  if (30.0 < t && t < 32.0) {
-    Amag[2] = 0.1;
-    Amag[3] = -0.1;
-  }
+    if (t > 200.0) {
+      for (int j = 0; j < N; j++) {
+        Amag[i] += EST_K[i][j] * (EST_h[j] - 1.0);
+        Amag[i] += EST_K[i][j] * (EST_q[j] - 2.0 / 3.0);
+      } // j end
+    }
+  } // i end
 
   /* update the estimator */
   est_update(dt, h);
