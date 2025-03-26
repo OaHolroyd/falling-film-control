@@ -60,7 +60,6 @@ def main():
     ax.semilogy(t, dh)
     ax.semilogy(t, de)
     fig.savefig(f"plots/lines2.png")
-    plt.show()
     plt.close(fig)
 
     # Turn plots into a gif

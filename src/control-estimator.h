@@ -21,17 +21,17 @@ static double **EST_K;  // main forcing matrix
 static double **EST_C;  // observer matrix
 
 // derivative macros
-#define wrap(i) ((i + N) % N)
-#define D1(z, i) (0.5 * ((z[(i + 1 + N) % N] - z[(i - 1 + N) % N]) / DX))
+#define WRAP(i) ((i + N) % N)
+#define D1(z, i) (0.5 * ((z[WRAP(i + 1)] - z[WRAP(i - 1)]) / DX))
 #define D2(z, i)                                                               \
-  ((z[(i + 1 + N) % N] - 2.0 * z[i] + z[(i - 1 + N) % N]) / (DX * DX))
+  ((z[WRAP(i + 1)] - 2.0 * z[WRAP(i)] + z[WRAP(i - 1)]) / (DX * DX))
 #define D3(z, i)                                                               \
-  ((z[(i + 2 + N) % N] - 2.0 * z[(i + 1 + N) % N] + 2.0 * z[(i - 1 + N) % N] - \
-    z[(i - 2 + N) % N]) /                                                      \
+  ((z[WRAP(i + 2)] - 2.0 * z[WRAP(i + 1)] + 2.0 * z[WRAP(i - 1)] -             \
+    z[WRAP(i - 2)]) /                                                          \
    (2.0 * DX * DX * DX))
 #define D4(z, i)                                                               \
-  ((z[(i + 2 + N) % N] - 4.0 * z[(i + 1 + N) % N] + 6.0 * z[i] -               \
-    4.0 * z[(i - 1 + N) % N] + z[(i - 2 + N) % N]) /                           \
+  ((z[WRAP(i + 2)] - 4.0 * z[WRAP(i + 1)] + 6.0 * z[WRAP(i)] -                 \
+    4.0 * z[WRAP(i - 1)] + z[WRAP(i - 2)]) /                                   \
    (DX * DX * DX * DX))
 
 /* ========================================================================== */
@@ -158,8 +158,8 @@ void est_compute_jacobian(double dt, double **J) {
 
   // dFh/dq (top right)
   for (int i = 0; i < N; i++) {
-    J[i][N + wrap(i - 1)] = dt * (-0.5 / DX);
-    J[i][N + wrap(i + 1)] = dt * (0.5 / DX);
+    J[i][N + WRAP(i - 1)] = dt * (-0.5 / DX);
+    J[i][N + WRAP(i + 1)] = dt * (0.5 / DX);
   }
 
   // dFq/dh (bottom left)
@@ -167,46 +167,33 @@ void est_compute_jacobian(double dt, double **J) {
     double c1 = dt * (9.0 / 7.0 * q[i] * q[i] / h[i] / h[i] +
                       5.0 / 3.0 / RE / tan(THETA) * h[i]);
     double c3 = -dt * 5.0 / 6.0 / CA / RE * h[i];
-    J[N + i][wrap(i - 2)] = (-0.5 / DX / DX / DX) * c3;
-    J[N + i][wrap(i - 1)] = (-0.5 / DX) * c1 + (1.0 / DX / DX / DX) * c3;
-    J[N + i][wrap(i + 0)] =
+    J[N + i][WRAP(i - 2)] = (-0.5 / DX / DX / DX) * c3;
+    J[N + i][WRAP(i - 1)] = (-0.5 / DX) * c1 + (1.0 / DX / DX / DX) * c3;
+    J[N + i][WRAP(i + 0)] =
         dt *
         (0.5 * ff[i] * q[i] / h[i] / h[i] +
          18.0 / 7.0 * q[i] * q[i] / h[i] / h[i] / h[i] * D1(h, i) +
          5.0 / 3.0 / RE / tan(THETA) * D1(h, i) -
          17.0 / 7.0 * q[i] / h[i] / h[i] * D1(q, i) - 5.0 / 3.0 / RE -
          5.0 / 6.0 / CA / RE * D3(h, i) - 5.0 / RE * q[i] / h[i] / h[i] / h[i]);
-    J[N + i][wrap(i + 1)] = (0.5 / DX) * c1 + (-1.0 / DX / DX / DX) * c3;
-    J[N + i][wrap(i + 2)] = (0.5 / DX / DX / DX) * c3;
+    J[N + i][WRAP(i + 1)] = (0.5 / DX) * c1 + (-1.0 / DX / DX / DX) * c3;
+    J[N + i][WRAP(i + 2)] = (0.5 / DX / DX / DX) * c3;
   }
 
   // dFq/dq (bottom right)
   for (int i = 0; i < N; i++) {
     double c1 = dt * 17.0 / 7.0 * q[i] / h[i];
-    J[N + i][N + wrap(i - 1)] = (-0.5 / DX) * c1;
-    J[N + i][N + wrap(i + 0)] =
+    J[N + i][N + WRAP(i - 1)] = (-0.5 / DX) * c1;
+    J[N + i][N + WRAP(i + 0)] =
         2.0 +
         dt * (-0.5 * ff[i] / h[i] - 18.0 / 7.0 * q[i] / h[i] / h[i] * D1(h, i) +
               17.0 / 7.0 / h[i] * D1(q, i) + 5.0 / 2.0 / RE / h[i] / h[i]);
-    J[N + i][N + wrap(i + 1)] = (0.5 / DX) * c1;
+    J[N + i][N + WRAP(i + 1)] = (0.5 / DX) * c1;
   }
 }
 
 /* step the estimator forward in time using observations of the real height H */
 void est_update(double dt, double *H) {
-  // static int is_initial = 1;
-  // if (is_initial) {
-  //   for (int i = 0; i < N; i++) {
-  //     EST_h[i] = H[i];
-  //     EST_h0[i] = EST_h[i];
-  //     // EST_q[i] = 2.0 / 3.0 * H[i];
-  //     // EST_q0[i] = 2.0 / 3.0 * H[i];
-  //     EST_q[i] = 0.0;
-  //     EST_q0[i] = EST_q[i];
-  //   }
-  // }
-  // is_initial = 0;
-
   // don't bother doing anything if EST_h < 0.0 or is nan
   for (int i = 0; i < N; i++) {
     if (EST_h[i] < 0.0 || isnan(EST_h[i])) {
