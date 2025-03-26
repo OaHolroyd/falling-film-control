@@ -7,8 +7,7 @@
 #include "control-core.h"
 #include "linalg.h"
 
-static double *EST_y;   // height observations
-static double *EST_yy;  // mock height observations (of the estimator)
+static double *EST_y;   // difference in observation between real and estimator
 static double *EST_f;   // forcing term
 static double *EST_ff;  // forcing term (of the main system)
 static double *EST_h;   // height estimate
@@ -72,6 +71,7 @@ void est_forcing_matrix(double **L) {
   double v = 0.1; // cost of control effort (don't care)
   dlqr(At, Ct, u, v, 2 * N, P, Lt);
 
+  // transpose Lt to get L
   for (int i = 0; i < 2 * N; i++) {
     for (int j = 0; j < P; j++) {
       L[i][j] = Lt[j][i];
@@ -197,19 +197,11 @@ void est_update(double dt, double *H) {
     }
   }
 
-  // work out height observations (stored in `EST_y`)
-  // and mock observations (stored in `EST_yy`)
+  // work out the difference in observed height and the estimate
   for (int i = 0; i < P; i++) {
-    // using direct observer
-    // EST_y[i] = interp(Oloc[i], H) - 1.0;
-    // EST_yy[i] = interp(Oloc[i], EST_h) - 1.0;
-
-    // // using the observer matrix
     EST_y[i] = 0.0;
-    EST_yy[i] = 0.0;
     for (int j = 0; j < N; j++) {
-      EST_y[i] += EST_C[j][i] * (H[j] - 1.0);
-      EST_yy[i] += EST_C[j][i] * (EST_h[j] - 1.0);
+      EST_y[i] += EST_C[j][i] * (H[j] - EST_h[j]);
     } // j end
   }
 
@@ -218,13 +210,14 @@ void est_update(double dt, double *H) {
     // purely proportional control
     EST_f[i] = 0.0;
     for (int j = 0; j < P; j++) {
-      EST_f[i] += EST_L[i][j] * (EST_y[j] - EST_yy[j]);
+      EST_f[i] += EST_L[i][j] * EST_y[j];
     } // j end
   }
 
   // compute the forcing term for the main system
   for (int i = 0; i < N; i++) {
     EST_ff[i] = control(ITOX(i));
+    EST_ff[i] = 0.0;
   }
 
   // implicit time-stepping (for stability)
@@ -243,7 +236,7 @@ void est_update(double dt, double *H) {
     /* compute Jacobian and solve linear system */
     // TODO: use sparse/banded matrix representation and solver
     // TODO: since the top block-row of the Jacobian is constant we could
-    //       decompose it into a 2x2 block system and a lot of work
+    //       decompose it into a 2x2 block system and save a lot of work
     est_compute_jacobian(dt, EST_J);
     dsv(EST_J, EST_res, 2 * N);
 
@@ -271,7 +264,6 @@ void est_update(double dt, double *H) {
 void est_set(void) {
   // height observations
   EST_y = malloc(P * sizeof(double));
-  EST_yy = malloc(P * sizeof(double));
 
   // (transpose of the) observer matrix
   EST_C = malloc_f2d(N, P);
@@ -307,9 +299,9 @@ void est_set(void) {
 
   /* pick from the available ROMs */
   switch (RT) {
-  case BENNEY:
+  // case BENNEY:
     //      lqr_benney_compute_K(LQR_K);
-    break;
+    // break;
   case WR:
     //      lqr_wr_compute_K(LQR_K);
     break;
@@ -328,7 +320,6 @@ void est_free(void) {
   free(EST_f);
   free(EST_ff);
   free(EST_y);
-  free(EST_yy);
   free_2d(EST_L);
   free_2d(EST_C);
   free_2d(EST_J);
