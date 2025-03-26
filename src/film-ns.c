@@ -304,9 +304,10 @@ event output_dat(t=0.0; t<=TMAX; t += DTOUT) {
     if (!fp) { ABORT("'%s' could not be opened", fname); }
     fprintf(fp, "# t: %lf\n", t-C_START);
     double dx = LX/((double)(NOUT));
-    for (int i = 0; i < NOUT+1; i++) {
-      double h = interfacial_height(i*dx);
-      fprintf(fp, "%lf %lf %lf %lf %lf\n", i*dx, h, control(i*dx), estimator(i*dx), flux(i*dx, h, u.x, f));
+    for (int i = 0; i < NOUT; i++) {
+      double xx = i*dx + 0.5*dx;
+      double h = interfacial_height(xx);
+      fprintf(fp, "%lf %lf %lf %lf %lf\n", xx, h, control(xx), estimator(xx), flux(xx, h, u.x, f));
     } // i end
     fclose(fp);
 

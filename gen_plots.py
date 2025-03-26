@@ -30,10 +30,10 @@ def main():
     dx = x[1] - x[0]
 
     hplot, = plt.plot(x, x)
-    # fplot, = plt.plot(x, x)
+    fplot, = plt.plot(x, x)
     zplot, = plt.plot(x, x)
 
-    plt.axis([0, 30, 0.75, 1.25])
+    plt.axis([0, 30, 0.95, 1.05])
 
 
     for i in range(len(t)):
@@ -41,15 +41,15 @@ def main():
         data = np.loadtxt(f'out/{pde}-1-{i:010d}.dat')
         x = data[:, 0]
         h = data[:, 1]
-        # f = data[:, 2]
+        f = data[:, 2]
         z = data[:, 3]
         # q = data[:, 4]
 
-        de[i] = np.sqrt(np.sum((h-z)*(h-z))*dx)
+        dc[i] = np.sqrt(np.sum((h-z)*(h-z))*dx)
 
         # TODO: could be faster if we just change the ydata
         hplot.set_ydata(h)
-        # fplot.set_ydata(f)
+        fplot.set_ydata(1+f)
         zplot.set_ydata(z)
         plt.title(f'time {t[i]} [step {i}]')
 
@@ -59,6 +59,7 @@ def main():
     fig, ax = plt.subplots()
     ax.semilogy(t, dh)
     ax.semilogy(t, de)
+    ax.semilogy(t, dc)
     fig.savefig(f"plots/lines2.png")
     plt.close(fig)
 
