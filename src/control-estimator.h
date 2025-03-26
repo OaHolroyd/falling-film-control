@@ -358,7 +358,7 @@ void est_step(double dt, double *h) {
     if (t > 200.0) {
       for (int j = 0; j < N; j++) {
         Amag[i] += EST_K[i][j] * (EST_h[j] - 1.0);
-        Amag[i] += EST_K[i][j] * (EST_q[j] - 2.0 / 3.0);
+        Amag[i] += EST_K[i][j + N] * (EST_q[j] - 2.0 / 3.0);
       } // j end
     }
   } // i end
@@ -368,13 +368,13 @@ void est_step(double dt, double *h) {
 }
 
 /* [REQUIRED] returns the estimator as a function of x */
-double est_estimator(double x) {
-  /* interpolate from EST_h to x */
-  return interp(x, EST_h);
-}
+double est_estimator(double x) { return interp(x, EST_h); }
 
 /* [REQUIRED] outputs the internal matrices */
-void est_output(void) { output_d2d("out/L.dat", EST_L, 2 * N, P); }
+void est_output(void) {
+  output_d2d("out/L.dat", EST_L, 2 * N, P);
+  output_d2d("out/K.dat", EST_K, M, 2 * N);
+}
 
 /* [REQUIRED] generates the control matrix CM = F*K */
 void est_matrix(double **CM) {

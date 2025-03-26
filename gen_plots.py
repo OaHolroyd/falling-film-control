@@ -27,6 +27,7 @@ def main():
     fig, ax = plt.subplots()
     data = np.loadtxt(f'out/{pde}-1-{0:010d}.dat')
     x = data[:, 0]
+    dx = x[1] - x[0]
 
     hplot, = plt.plot(x, x)
     # fplot, = plt.plot(x, x)
@@ -40,9 +41,11 @@ def main():
         data = np.loadtxt(f'out/{pde}-1-{i:010d}.dat')
         x = data[:, 0]
         h = data[:, 1]
-        f = data[:, 2]
+        # f = data[:, 2]
         z = data[:, 3]
-        q = data[:, 4]
+        # q = data[:, 4]
+
+        de[i] = np.sqrt(np.sum((h-z)*(h-z))*dx)
 
         # TODO: could be faster if we just change the ydata
         hplot.set_ydata(h)
@@ -51,6 +54,14 @@ def main():
         plt.title(f'time {t[i]} [step {i}]')
 
         fig.savefig(f"plots/{i}.png")
+
+    # Plot 1D data
+    fig, ax = plt.subplots()
+    ax.semilogy(t, dh)
+    ax.semilogy(t, de)
+    fig.savefig(f"plots/lines2.png")
+    plt.show()
+    plt.close(fig)
 
     # Turn plots into a gif
     # TODO
