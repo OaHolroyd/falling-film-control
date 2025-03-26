@@ -100,7 +100,7 @@ double est_compute_residual(double dt, double *res) {
 
     // Q component
     res[i + N] =
-        2.0 * q[i] - 2.0 * dt * ff[i + N] - 0.5 * dt * f[i] * q[i] / h[i] -
+        2.0 * q[i] - 2.0 * dt * f[i + N] - 0.5 * dt * ff[i] * q[i] / h[i] -
         9.0 / 7.0 * dt * q[i] * q[i] / h[i] / h[i] * D1(h, i) +
         5.0 * dt / 3.0 / RE / tan(THETA) * h[i] * D1(h, i) +
         17.0 * dt / 7.0 * q[i] / h[i] * D1(q, i) - 5.0 * dt / 3.0 / RE * h[i] -
@@ -217,7 +217,6 @@ void est_update(double dt, double *H) {
   // compute the forcing term for the main system
   for (int i = 0; i < N; i++) {
     EST_ff[i] = control(ITOX(i));
-    EST_ff[i] = 0.0;
   }
 
   // implicit time-stepping (for stability)
