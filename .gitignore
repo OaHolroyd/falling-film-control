@@ -6,7 +6,7 @@
 *.pdf
 *.mov
 dump*/**
-_film.c
+src/_*.c
 remote.sh
 multi_run.sh
 film-ns
