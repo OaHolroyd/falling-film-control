@@ -681,7 +681,11 @@ void static_free(void) {
 }
 
 /* [REQUIRED] steps the system forward in time given the interfacial height */
-void static_step(double dt, double *h) {
+int static_step(double dt, double *h, int control_on) {
+  if (!control_on) {
+    return 0;
+  }
+
   /* f = K * Phi * (h-1) */
   for (int i = 0; i < M; i++) {
     Amag[i] = 0.0;
@@ -689,6 +693,8 @@ void static_step(double dt, double *h) {
       Amag[i] += STATIC_KPHI[i][j] * (interp(ITOX(j), h) - 1.0);
     } // j end
   } // i end
+
+  return 0;
 }
 
 /* [REQUIRED] returns the estimator as a function of x */

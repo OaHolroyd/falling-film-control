@@ -192,12 +192,13 @@ void est_compute_jacobian(double dt, double **J) {
   }
 }
 
-/* step the estimator forward in time using observations of the real height H */
-void est_update(double dt, double *H) {
+/* step the estimator forward in time using observations of the real height H.
+ * Returns the number of iterations used. */
+int est_update(double dt, double *H) {
   // don't bother doing anything if EST_h < 0.0 or is nan
   for (int i = 0; i < N; i++) {
     if (EST_h[i] < 0.0 || isnan(EST_h[i])) {
-      return;
+      return 0;
     }
   }
 
@@ -227,7 +228,8 @@ void est_update(double dt, double *H) {
   // iterate to the solution for the next timestep
   const int iter_max = 100;
   const double res_tol_2 = 1.0e-10; // square of the residual tolerance
-  for (int k = 0; k < iter_max; k++) {
+  int k = 0;
+  for (; k < iter_max; k++) {
     /* compute res */
     double res_norm_2 = est_compute_residual(dt, EST_res);
 
@@ -258,6 +260,8 @@ void est_update(double dt, double *H) {
     EST_h0[i] = EST_h[i];
     EST_q0[i] = EST_q[i];
   } // i end
+
+  return k + 1;
 }
 
 /* ========================================================================== */
@@ -334,15 +338,12 @@ void est_free(void) {
 }
 
 /* [REQUIRED] steps the system forward in time given the interfacial height */
-void est_step(double dt, double *h) {
-  static double t = 0.0;
-  t += dt;
-
+int est_step(double dt, double *h, int control_on) {
   /* u = K * (h-1) */
   for (int i = 0; i < M; i++) {
     Amag[i] = 0.0;
 
-    if (t > 100.0) {
+    if (control_on) {
       for (int j = 0; j < N; j++) {
         Amag[i] += EST_K[i][j] * (EST_h[j] - 1.0);
         Amag[i] += EST_K[i][j + N] * (EST_q[j] - 2.0 / 3.0);
@@ -351,7 +352,7 @@ void est_step(double dt, double *h) {
   } // i end
 
   /* update the estimator */
-  est_update(dt, h);
+  return est_update(dt, h);
 }
 
 /* [REQUIRED] returns the estimator as a function of x */

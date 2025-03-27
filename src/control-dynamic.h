@@ -382,9 +382,13 @@ void dynamic_free(void) {
 }
 
 /* [REQUIRED] steps the system forward in time given the interfacial height */
-void dynamic_step(double dt, double *h) {
+int dynamic_step(double dt, double *h, int control_on) {
   /* update system */
   dynamic_update(dt, h);
+
+  if (!control_on) {
+    return 0;
+  }
 
   /* f = K * (h-1) */
   for (int i = 0; i < M; i++) {
@@ -393,6 +397,8 @@ void dynamic_step(double dt, double *h) {
       Amag[i] += creal(DYNAMIC_K[i][j] * DYNAMIC_z[j]); // ensure this is real
     } // j end
   } // i end
+
+  return 0;
 }
 
 /* [REQUIRED] returns the estimator as a function of x */

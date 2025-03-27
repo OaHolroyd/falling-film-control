@@ -4,7 +4,6 @@
 #include "c-utils.h"
 #include "control-core.h"
 
-
 /* ========================================================================== */
 /*   FUNCTION DEFINITIONS                                                     */
 /* ========================================================================== */
@@ -20,17 +19,20 @@ void pair_set(void) {
 void pair_free(void) {}
 
 /* [REQUIRED] steps the system forward in time given the interfacial height */
-void pair_step(double dt, double *h) {
+int pair_step(double dt, double *h, int control_on) {
+  if (!control_on) {
+    return 0;
+  }
+
   for (int i = 0; i < M; i++) {
-    Amag[i] = ALPHA*(interp(Aloc[i]-DEL, h) - 1.0);
+    Amag[i] = ALPHA * (interp(Aloc[i] - DEL, h) - 1.0);
   } // i end
+
+  return 0;
 }
 
 /* [REQUIRED] returns the estimator as a function of x */
-double pair_estimator(double x) {
-
-  return 0.0;
-}
+double pair_estimator(double x) { return 0.0; }
 
 /* [REQUIRED] outputs the internal matrices */
 void pair_output(void) {
@@ -51,13 +53,12 @@ void pair_matrix(double **CM) {
     for (int j = 0; j < N; j++) {
       CM[i][j] = 0.0;
       for (int k = 0; k < M; k++) {
-        CM[i][j] += ALPHA*F[i][k]*Phi[j][k];
+        CM[i][j] += ALPHA * F[i][k] * Phi[j][k];
       } // k end
     } // j end
   } // i end
 
   free_2d(F);
 }
-
 
 #endif

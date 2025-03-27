@@ -79,7 +79,11 @@ void lqr_set(void) {
 void lqr_free(void) { free(LQR_K); }
 
 /* [REQUIRED] steps the system forward in time given the interfacial height */
-void lqr_step(double dt, double *h) {
+int lqr_step(double dt, double *h, int control_on) {
+  if (!control_on) {
+    return 0;
+  }
+
   /* f = K * (h-1) */
   for (int i = 0; i < M; i++) {
     Amag[i] = 0.0;
@@ -87,6 +91,8 @@ void lqr_step(double dt, double *h) {
       Amag[i] += LQR_K[i][j] * (interp(ITOX(j), h) - 1.0);
     } // j end
   } // i end
+
+  return 0;
 }
 
 /* [REQUIRED] returns the estimator as a function of x */

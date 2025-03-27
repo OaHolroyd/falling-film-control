@@ -210,8 +210,8 @@ event controls(i++) {
     H[i] = interfacial_height(ITOX(i));
   } // i end
 
+  control_step(dt, H, t >= C_START);
   if (t >= C_START) {
-    control_step(dt, H);
     Ccost += dt * control_cost(H);
 
     boundary({u.x, u.y}); // update boundary velocities
