@@ -45,8 +45,6 @@ def main():
         z = data[:, 3]
         # q = data[:, 4]
 
-        dc[i] = np.sqrt(np.sum((h-z)*(h-z))*dx)
-
         # TODO: could be faster if we just change the ydata
         hplot.set_ydata(h)
         fplot.set_ydata(1+f)
@@ -54,14 +52,6 @@ def main():
         plt.title(f'time {t[i]} [step {i}]')
 
         fig.savefig(f"plots/{i}.png")
-
-    # Plot 1D data
-    fig, ax = plt.subplots()
-    ax.semilogy(t, dh)
-    ax.semilogy(t, de)
-    ax.semilogy(t, dc)
-    fig.savefig(f"plots/lines2.png")
-    plt.close(fig)
 
     # Turn plots into a gif
     # TODO

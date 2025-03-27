@@ -1,146 +1,277 @@
 import numpy as np
 import matplotlib.pyplot as plt
+from scipy.sparse.linalg import spsolve
+from scipy.sparse import coo_array
 
 
-def der_mat(o, n, dx):
-    """Compute derivative matrices"""
-    D = np.zeros((n, n))
+# grid parameters
+N = 128
+L = 30.0
+DX = L / N
 
-    def wrap(i):
-        # i is the row index (z), j is the col index (x)
-        return (i + n) % n
+# PDE parameters
+THETA = np.pi / 4.0
+RE = 15.0
+CA = 0.05
+W = 0.1
+BETA = 1.0 / np.tan(THETA)
 
-    # x
-    if o == 0:
-        for i in range(n):
-            D[i, i] = 0.0
 
-    # x
-    elif o == 1:
-        for i in range(n):
-            D[i, wrap(i-1)] = -0.5
-            D[i, wrap(i+1)] = 0.5
+def WRAP(i):
+    """Periodically wrap an index"""
+    return (i + N) % N
 
-    # xxx
-    elif o == 3:
-        for i in range(n):
-            D[i, wrap(i-2)] = -0.5
-            D[i, wrap(i-1)] = 1.0
-            D[i, wrap(i+1)] = -1.0
-            D[i, wrap(i+2)] = 0.5
 
-    return D / (dx ** o)
+def der_mat_centre(order):
+    """
+    Compute a derivative matrix of the desired order.
+
+    This evaluates the derivative at a point from a vector of relatively
+    cell-centred values.
+    """
+    D = np.zeros((N, N))
+
+    # I
+    if order == 0:
+        for i in range(N):
+            D[i, i] = 1.0
+
+    # Dx
+    elif order == 1:
+        for i in range(N):
+            D[i, WRAP(i-1)] = -0.5
+            D[i, WRAP(i+1)] = 0.5
+
+    # Dxxx
+    elif order == 3:
+        for i in range(N):
+            D[i, WRAP(i-2)] = -0.5
+            D[i, WRAP(i-1)] = 1.0
+            D[i, WRAP(i+1)] = -1.0
+            D[i, WRAP(i+2)] = 0.5
+
+    return D / (DX ** order)
+
+
+def der_mat_left(order):
+    """
+    Compute a derivative matrix of the desired order.
+
+    This evaluates the derivative at a point from a vector of relatively
+    face-centred values, where the ith face is the left face of the ith cell.
+    """
+    D = np.zeros((N, N))
+
+    # I
+    if order == 0:
+        for i in range(N):
+            D[i, i] = 0.5
+            D[i, WRAP(i+1)] = 0.5
+
+    # Dx
+    elif order == 1:
+        for i in range(N):
+            D[i, i] = -1.0
+            D[i, WRAP(i+1)] = 1.0
+
+    # Dxxx
+    elif order == 3:
+        for i in range(N):
+            D[i, WRAP(i-1)] = -1.0
+            D[i, i] = 3.0
+            D[i, WRAP(i+1)] = -3.0
+            D[i, WRAP(i+2)] = 1.0
+
+    return D / (DX ** order)
+
+
+def der_mat_right(order):
+    """
+    Compute a derivative matrix of the desired order.
+
+    This evaluates the derivative at a point from a vector of relatively
+    face-centred values, where the ith face is the right face of the ith cell.
+    """
+    D = np.zeros((N, N))
+
+    # I
+    if order == 0:
+        for i in range(N):
+            D[i, WRAP(i-1)] = 0.5
+            D[i, i] = 0.5
+
+    # Dx
+    elif order == 1:
+        for i in range(N):
+            D[i, WRAP(i-1)] = -1.0
+            D[i, i] = 1.0
+
+    # Dxxx
+    elif order == 3:
+        for i in range(N):
+            D[i, WRAP(i-2)] = -1.0
+            D[i, WRAP(i-1)] = 3.0
+            D[i, i] = -3.0
+            D[i, WRAP(i+1)] = 1.0
+
+    return D / (DX ** order)
 
 
 def main():
-    L = np.loadtxt('out/L.dat')
-    L0 = L[:, 0]
-    L1 = L[:, 1]
-    x = np.arange(len(L0))
-
-    # Plot
-    fig, ax = plt.subplots()
-
-    ax.plot(x, L0)
-    ax.plot(x, L1)
-
-    plt.show()
-    plt.close()
-
-
-def main1():
-    # grid parameters
-    n = 128
-    l = 30
-    dx = l / n
-
-    def wrap(i):
-        # i is the row index (z), j is the col index (x)
-        return (i + n) % n
-
-    # PDE parameters
-    theta = np.pi / 4
-    Re = 15.0
-    Ca = 0.05
-    W = 0.1
-    beta = 1.0 / np.tan(theta)
-
     # create the grid
-    x = dx * np.arange(n).reshape((n, 1)) + 0.5 * dx
+    xf = DX * np.arange(N).reshape((N, 1))
+    xc = xf + 0.5 * DX
 
     # derivative matrices
-    I = der_mat(0, n, dx)
-    D1 = der_mat(1, n, dx)
-    D3 = der_mat(3, n, dx)
+    D0c = der_mat_centre(0)
+    D1c = der_mat_centre(1)
+    D3c = der_mat_centre(3)
+    D0l = der_mat_left(0)
+    D1l = der_mat_left(1)
+    D3l = der_mat_left(3)
+    D0r = der_mat_right(0)
+    D1r = der_mat_right(1)
+    D3r = der_mat_right(3)
 
-    def compute_residual(dt, h, h0, q, q0):
-        hx = D1 @ h
-        h0x = D1 @ h0
-        hxxx = D3 @ h
-        h0xxx = D3 @ h0
-        qx = D1 @ q
-        q0x = D1 @ q0
+    def compute_residual_cc(dt, h, h0, q, q0):
+        hx = D1c @ h
+        h0x = D1c @ h0
+        hxxx = D3c @ h
+        h0xxx = D3c @ h0
+        qx = D1c @ q
+        q0x = D1c @ q0
 
         res_h = 2.0 * h + dt * qx - 2.0 * h0 + dt * q0x
-        res_q = 2.0 * q - 9.0/7.0*dt*q*q/h/h*hx + 5.0*dt*beta/3.0/Re*h*hx + 17.0*dt/7.0*q/h*qx - 5.0*dt/3.0/Re*h - 5.0*dt/6.0/Ca/Re*h*hxxx + 5.0*dt/2.0/Re*q/h/h - 2.0 * q0 - 9.0/7.0*dt*q0*q0/h0/h0*h0x + 5.0*dt*beta/3.0/Re*h0*h0x + 17.0*dt/7.0*q0/h0*q0x - 5.0*dt/3.0/Re*h0 - 5.0*dt/6.0/Ca/Re*h0*h0xxx + 5.0*dt/2.0/Re*q0/h0/h0
+        res_q = 2.0 * q - 9.0/7.0*dt*q*q/h/h*hx + 5.0*dt*BETA/3.0/RE*h*hx + 17.0*dt/7.0*q/h*qx - 5.0*dt/3.0/RE*h - 5.0*dt/6.0/CA/RE*h*hxxx + 5.0*dt/2.0/RE*q/h/h - 2.0 * q0 - 9.0/7.0*dt*q0*q0/h0/h0*h0x + 5.0*dt*BETA/3.0/RE*h0*h0x + 17.0*dt/7.0*q0/h0*q0x - 5.0*dt/3.0/RE*h0 - 5.0*dt/6.0/CA/RE*h0*h0xxx + 5.0*dt/2.0/RE*q0/h0/h0
 
         res = np.concatenate((res_h, res_q))
         res_norm_2 = np.sum(res*res)
 
         return res_norm_2, res
 
-    def compute_jacobian(dt, h, q):
-        hx = D1 @ h
-        hxxx = D3 @ h
-        qx = D1 @ q
+    def compute_residual_cf(dt, hc, h0c, qf, q0f):
+        qxc = D1l @ qf
+        q0xc = D1l @ q0f
 
-        J = np.zeros((2*n, 2*n))
+        hf = D0r @ hc
+        h0f = D0r @ hc
+        hxf = D1r @ hc
+        h0xf = D1r @ hc
+        hxxxf = D3r @ hc
+        h0xxxf = D3r @ hc
+        qxf = D1c @ qf
+        q0xf = D1c @ q0f
+
+        res_h = 2.0 * hc + dt * qxc - 2.0 * h0c + dt * q0xc
+        res_q = 2.0 * qf - 9.0/7.0*dt*qf*qf/hf/hf*hxf + 5.0*dt*BETA/3.0/RE*hf*hxf + 17.0*dt/7.0*qf/hf*qxf - 5.0*dt/3.0/RE*hf - 5.0*dt/6.0/CA/RE*hf*hxxxf + 5.0*dt/2.0/RE*qf/hf/hf - 2.0 * q0f - 9.0/7.0*dt*q0f*q0f/h0f/h0f*h0xf + 5.0*dt*BETA/3.0/RE*h0f*h0xf + 17.0*dt/7.0*q0f/h0f*q0xf - 5.0*dt/3.0/RE*h0f - 5.0*dt/6.0/CA/RE*h0f*h0xxxf + 5.0*dt/2.0/RE*q0f/h0f/h0f
+
+        res = np.concatenate((res_h, res_q))
+        res_norm_2 = np.sum(res*res)
+
+        return res_norm_2, res
+
+    def compute_jacobian_cc(dt, h, q):
+        hx = D1c @ h
+        hxxx = D3c @ h
+        qx = D1c @ q
+
+        J = np.zeros((2*N, 2*N))
 
         # top left (dFh/dH)
-        for i in range(n):
+        for i in range(N):
             J[i][i] = 2.0
 
         # top right (dFh/dq)
-        for i in range(n):
-            J[i][n+wrap(i-1)] = dt * (-0.5 / dx)
-            J[i][n+wrap(i+1)] = dt * (0.5 / dx)
+        for i in range(N):
+            c1 = dt
+            J[i][N+WRAP(i-1)] = (-0.5 / DX) * c1
+            J[i][N+WRAP(i+1)] = (0.5 / DX) * c1
 
         # bottom left (dFq/dh)
-        for i in range(n):
-            c1 = dt * (9.0/7.0*q[i]*q[i]/h[i]/h[i] + 5.0*beta/3.0/Re*h[i]).item()
-            c3 = (-dt * 5.0/6.0/Ca/Re*h[i]).item()
-            J[n+i][wrap(i-2)] = (-0.5 / dx / dx / dx) * c3
-            J[n+i][wrap(i-1)] = (1.0 / dx / dx / dx) * c3 + (-0.5 / dx) * c1
-            J[n+i][wrap(i+0)] = dt * (18.0/7.0*q[i]*q[i]/h[i]/h[i]/h[i]*hx[i] + 5.0*beta/3.0/Re*hx[i] - 17.0/7.0*q[i]/h[i]/h[i]*qx[i] - 5.0/3.0/Re - 5.0/6.0/Ca/Re*hxxx[i] - 5.0/Re*q[i]/h[i]/h[i]/h[i]).item()
-            J[n+i][wrap(i+1)] = (-1.0 / dx / dx / dx) * c3 + (0.5 / dx) * c1
-            J[n+i][wrap(i+2)] = (0.5 / dx / dx / dx) * c3
+        c0 = 18.0/7.0*dt*q*q/h/h/h*hx + 5.0*dt*BETA/3.0/RE*hx - 17.0*dt/7.0*q/h/h*qx - 5.0*dt/3.0/RE - 5.0*dt/6.0/CA/RE*hxxx - 5.0*dt/RE*q/h/h/h
+        c1 = -9.0/7.0*dt*q*q/h/h + 5.0*dt*BETA/3.0/RE*h
+        c3 = -5.0*dt/6.0/CA/RE*h
+        for i in range(N):
+            J[N+i][WRAP(i-2)] = (-0.5 / DX / DX / DX) * c3[i].item()
+            J[N+i][WRAP(i-1)] = (1.0 / DX / DX / DX) * c3[i].item() + (-0.5 / DX) * c1[i].item()
+            J[N+i][WRAP(i+0)] = c0[i].item()
+            J[N+i][WRAP(i+1)] = (-1.0 / DX / DX / DX) * c3[i].item() + (0.5 / DX) * c1[i].item()
+            J[N+i][WRAP(i+2)] = (0.5 / DX / DX / DX) * c3[i].item()
 
         # bottom right (dFq/dq)
-        for i in range(n):
-            c1 = (dt * 17.0/7.0*q[i]/h[i]).item()
-            J[n+i][n+wrap(i-1)] = (-0.5 / dx) * c1
-            J[n+i][n+wrap(i+0)] = 2.0 + dt * (-18.0/7.0*q[i]/h[i]/h[i]*hx[i] + 17.0/7.0/h[i]*qx[i] + 5.0/2.0/Re/h[i]/h[i]).item()
-            J[n+i][n+wrap(i+1)] = (0.5 / dx) * c1
+        c0 = 2.0 - 18.0/7.0*dt*q/h/h*hx + 17.0*dt/7.0/h*qx + 5.0*dt/2.0/RE/h/h
+        c1 = 17.0*dt/7.0*q/h
+        for i in range(N):
+            J[N+i][N+WRAP(i-1)] = (-0.5 / DX) * c1[i].item()
+            J[N+i][N+WRAP(i+0)] = c0[i].item()
+            J[N+i][N+WRAP(i+1)] = (0.5 / DX) * c1[i].item()
+
+        return J
+
+    def compute_jacobian_cf(dt, hc, qf):
+        qxc = D1l @ qf
+
+        hf = D0r @ hc
+        hxf = D1r @ hc
+        hxxxf = D3r @ hc
+        qxf = D1c @ qf
+
+        J = np.zeros((2*N, 2*N))
+
+        # top left (dFh/dH)
+        for i in range(N):
+            J[i][i] = 2.0
+
+        # top right (dFh/dq)
+        for i in range(N):
+            c0 = dt
+            J[i][N+WRAP(i+0)] = (-1.0 / DX) * c0
+            J[i][N+WRAP(i+1)] = (1.0 / DX) * c0
+
+        # bottom left (dFq/dh)
+        c0 = 18.0/7.0*dt*qf*qf/hf/hf/hf*hxf + 5.0*dt*BETA/3.0/RE*hxf - 17.0*dt/7.0*qf/hf/hf*qxf - 5.0*dt/3.0/RE - 5.0*dt/6.0/CA/RE*hxxxf - 5.0*dt/RE*qf/hf/hf/hf
+        c1 = -9.0/7.0*dt*qf*qf/hf/hf + 5.0*dt*BETA/3.0/RE*hf
+        c3 = -5.0*dt/6.0/CA/RE*hf
+        for i in range(N):
+            J[N+i, WRAP(i-1)] += (0.5) * c0[i].item()
+            J[N+i, WRAP(i+0)] += (0.5) * c0[i].item()
+
+            J[N+i, WRAP(i-1)] += (-1.0 / DX) * c1[i].item()
+            J[N+i, WRAP(i+0)] += (1.0 / DX) * c1[i].item()
+
+            J[N+i, WRAP(i-2)] = (-1.0 / DX/DX/DX) * c3[i].item()
+            J[N+i, WRAP(i-1)] = (3.0 / DX/DX/DX) * c3[i].item()
+            J[N+i, WRAP(i+0)] = (-3.0 / DX/DX/DX) * c3[i].item()
+            J[N+i, WRAP(i+1)] = (1.0 / DX/DX/DX) * c3[i].item()
+
+        # bottom right (dFq/dq)
+        c0 = 2.0 - 18.0/7.0*dt*qf/hf/hf*hxf + 17.0*dt/7.0/hf*qxf + 5.0*dt/2.0/RE/hf/hf
+        c1 = 17.0*dt/7.0*qf/hf
+        for i in range(N):
+            J[N+i][N+WRAP(i-1)] = (-0.5 / DX) * c1[i].item()
+            J[N+i][N+WRAP(i+0)] = c0[i].item()
+            J[N+i][N+WRAP(i+1)] = (0.5 / DX) * c1[i].item()
 
         return J
 
     # initial condition
-    h = 1.0 + 0.01 * np.sin(2.0 * np.pi * x / l)
+    h = 1.0 + 0.01 * np.sin(2.0 * np.pi * xc / L)
     h0 = h
-    q = 2.0 / 3.0 + 0 * x
+    q = 2.0 / 3.0 + 0 * xf
     q0 = q
 
     # Plot 2D frames
-    fig, ax = plt.subplots()
-    hplot, = plt.plot(x, h)
-    plt.axis([0, l, 0, 2])
+    fig, _ = plt.subplots()
+    hplot, = plt.plot(xc, h)
+    qplot, = plt.plot(xf, q)
+    plt.axis([0, L, 0, 2])
 
     # time loop
     iter_max = 100
     res_tol_2 = 1.0e-10
     dt_base = 1.0 / 30.0
     t = 0
-    t_end = 2.0
+    t_end = 100.0
     dt_out = 0.5
     t_out = 0.0
     out_step = 0
@@ -162,19 +293,22 @@ def main1():
 
         for k in range(iter_max):
             # compute the residual
-            res_norm_2, res = compute_residual(dt, h, h0, q, q0)
+            res_norm_2, res = compute_residual_cc(dt, h, h0, q, q0)
 
             # finish early if converged
             if res_norm_2 < res_tol_2:
                 break
 
             # compute Jacobian and solve linear system
-            J = compute_jacobian(dt, h, q)
+            J = compute_jacobian_cc(dt, h, q)
             dhq = np.linalg.solve(J, res)
 
+            # J = coo_array(J)
+            # dhq = spsolve(J, res)[:, None]
+
             # update variables
-            h = h - dhq[0:n]
-            q = q - dhq[n:2*n]
+            h = h - dhq[0:N]
+            q = q - dhq[N:2*N]
 
         tmax.append(t)
         hmax.append(np.max(h0))
@@ -183,36 +317,12 @@ def main1():
         t += dt
 
         if output:
-            print(f"t = {t}")
+            print(f"t = {t} [{k}]")
             hplot.set_ydata(h)
+            qplot.set_ydata(q)
             plt.title(f'time {t}')
             fig.savefig(f"plots/{out_step}.png")
             out_step += 1
-
-    def growth_rate(k):
-        # TODO: rescale k using l
-        k = (2*np.pi / l) * k
-        lam = -17/12 * 1j - 5/4/Re - 1j * np.sqrt(592*Ca*Ca*Re*Re*k*k + 11760*Ca*Ca*Re*k*k/np.tan(theta) + 5880*Ca*Re*k*k*k*k + 21000 * 1j *Ca*Ca*Re*k - 11025*Ca*Ca)/84/Ca/Re
-        return lam
-    k0 = np.sqrt(Ca * (8/5*Re - 2/np.tan(theta)))
-
-    # plot growth rate
-    fig, ax = plt.subplots()
-    plt.semilogy(tmax, hmax)
-    plt.xlabel('t')
-    plt.ylabel('hmax')
-    plt.title('growth rate')
-    fig.savefig("plots/growth.png")
-
-    fig, ax = plt.subplots()
-    ks = [0.1 * k for k in range(100)]
-    lams = [np.real(growth_rate(k)) for k in ks]
-    plt.plot(ks, lams)
-    plt.scatter(k0, 0.0)
-    plt.xlabel('k')
-    plt.ylabel('lam')
-    plt.title('growth rate')
-    fig.savefig("plots/lam.png")
 
 
 if __name__ == '__main__':

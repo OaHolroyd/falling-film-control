@@ -540,7 +540,6 @@ int main(int argc, char const *argv[]) {
 
     /* turn off controls before C_START */
     int use_CM = t>=C_START;
-    use_CM = 0;
     control_step(DT, h);
 
     /* iterate to a solution */

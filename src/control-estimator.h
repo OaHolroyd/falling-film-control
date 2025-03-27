@@ -164,7 +164,7 @@ void est_compute_jacobian(double dt, double **J) {
 
   // dFq/dh (bottom left)
   for (int i = 0; i < N; i++) {
-    double c1 = dt * (9.0 / 7.0 * q[i] * q[i] / h[i] / h[i] +
+    double c1 = dt * (-9.0 / 7.0 * q[i] * q[i] / h[i] / h[i] +
                       5.0 / 3.0 / RE / tan(THETA) * h[i]);
     double c3 = -dt * 5.0 / 6.0 / CA / RE * h[i];
     J[N + i][WRAP(i - 2)] = (-0.5 / DX / DX / DX) * c3;
@@ -342,7 +342,7 @@ void est_step(double dt, double *h) {
   for (int i = 0; i < M; i++) {
     Amag[i] = 0.0;
 
-    if (t > 200.0) {
+    if (t > 100.0) {
       for (int j = 0; j < N; j++) {
         Amag[i] += EST_K[i][j] * (EST_h[j] - 1.0);
         Amag[i] += EST_K[i][j + N] * (EST_q[j] - 2.0 / 3.0);
