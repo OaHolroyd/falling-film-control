@@ -7,6 +7,8 @@
 #include "control-core.h"
 #include "linalg.h"
 
+#include <string.h>
+
 static double *EST_y;   // difference in observation between real and estimator
 static double *EST_f;   // forcing term
 static double *EST_ff;  // forcing term (of the main system)
@@ -22,21 +24,74 @@ static double **EST_C;  // observer matrix
 
 // derivative macros
 #define WRAP(i) ((i + N) % N)
-#define D1(z, i) (0.5 * ((z[WRAP(i + 1)] - z[WRAP(i - 1)]) / DX))
-#define D2(z, i)                                                               \
-  ((z[WRAP(i + 1)] - 2.0 * z[WRAP(i)] + z[WRAP(i - 1)]) / (DX * DX))
-#define D3(z, i)                                                               \
-  ((z[WRAP(i + 2)] - 2.0 * z[WRAP(i + 1)] + 2.0 * z[WRAP(i - 1)] -             \
-    z[WRAP(i - 2)]) /                                                          \
-   (2.0 * DX * DX * DX))
-#define D4(z, i)                                                               \
-  ((z[WRAP(i + 2)] - 4.0 * z[WRAP(i + 1)] + 6.0 * z[WRAP(i)] -                 \
-    4.0 * z[WRAP(i - 1)] + z[WRAP(i - 2)]) /                                   \
-   (DX * DX * DX * DX))
+
+// centre-to-centre spacing
+#define D1C(z, i) (0.5 * ((z[WRAP(i + 1)] - z[WRAP(i - 1)]) / DX))
+
+// left and right spacing
+#define D1L(z, i) ((z[WRAP(i + 1)] - z[WRAP(i)]) / DX)
+#define D0R(z, i) (0.5 * (z[WRAP(i)] + z[WRAP(i - 1)]))
+#define D1R(z, i) ((z[WRAP(i)] - z[WRAP(i - 1)]) / DX)
+#define D3R(z, i)                                                              \
+  ((-z[WRAP(i - 2)] + 3.0 * z[WRAP(i - 1)] - 3.0 * z[WRAP(i)] +                \
+    z[WRAP(i + 1)]) /                                                          \
+   (DX * DX * DX))
 
 /* ========================================================================== */
 /*   AUXILIARY FUNCTION DEFINITIONS                                           */
 /* ========================================================================== */
+/* jacobian matrix for WR using face-centred flux */
+void wr_jacobian_cf(double **A) {
+  memset(A[0], 0, 4 * N * N * sizeof(double));
+
+  // top left (hh): 0
+
+  // top right (hq): -D1L
+  const double chq0 = -1.0;
+  for (int i = 0; i < N; i++) {
+    A[i][N + WRAP(i + 0)] = chq0 * (-1.0 / DX);
+    A[i][N + WRAP(i + 1)] = chq0 * (1.0 / DX);
+  }
+
+  // bottom left (qh): 5/RE D0R + (4/7-5/3/RE/tan(THETA)) D1R + 5/6/CA/RE D3R
+  const double cqh0 = 5.0 / RE;
+  const double cqh1 = 4.0 / 7.0 - 5.0 / 3.0 / RE / tan(THETA);
+  const double cqh3 = 5.0 / 6.0 / CA / RE;
+  for (int i = 0; i < N; i++) {
+    A[N + i][WRAP(i - 1)] = cqh3 * (-1.0 / (DX*DX*DX));
+    A[N + i][WRAP(i + 0)] = cqh3 * (3.0 / (DX*DX*DX)) + cqh1 * (-1.0 / DX) + cqh0 * (0.5);
+    A[N + i][WRAP(i + 1)] = cqh3 * (-3.0 / (DX*DX*DX)) + cqh1 * (1.0 / DX) + cqh0 * (0.5);
+    A[N + i][WRAP(i + 2)] = cqh3 * (1.0 / (DX*DX*DX));
+  }
+
+  // bottom right (qq): -5/2/RE D0C - 34/21 D1C
+  const double cqq0 = -5.0 / 2.0 / RE;
+  const double cqq1 = -34.0 / 21.0;
+  for (int i = 0; i < N; i++) {
+    A[N + i][N + WRAP(i - 1)] = cqq1 * (-0.5 / DX);
+    A[N + i][N + WRAP(i + 0)] = cqq0;
+    A[N + i][N + WRAP(i + 1)] = cqq1 * (0.5 / DX);
+  }
+}
+
+/* actuator matrix for WR using face-centred flux */
+void wr_actuator_cf(double **B) {
+  /* forcing matrix */
+  double **F = malloc_f2d(N, M);
+  forcing_matrix(F);
+
+  /* actuator matrix */
+  for (int i = 0; i < N; i++) {
+    for (int j = 0; j < M; j++) {
+      B[i][j] = F[i][j];
+      // TODO: check this
+      B[N+i][j] = (1.0/3.0) * F[i][j];
+    } // j end
+  } // i end
+
+  free_2d(F);
+}
+
 /* solve the (transpose) LQR problem to compute L. This requires EST_C to have
  * been filled with the Benney or WR observer. */
 void est_forcing_matrix(double **L) {
@@ -45,6 +100,7 @@ void est_forcing_matrix(double **L) {
 
   // transpose of the system matrix
   double **At = malloc_f2d(2 * N, 2 * N);
+  wr_jacobian_cf(At);
   wr_jacobian(At);
   for (int i = 0; i < 2 * N; i++) {
     for (int j = 0; j < 2 * N; j++) {
@@ -56,6 +112,8 @@ void est_forcing_matrix(double **L) {
 
   // transpose of the observer matrix
   double **Ct = malloc_f2d(2 * N, P);
+  // TODO use this to zero out the second half
+  // memset(Ct[N], 0, N * P * sizeof(double));
   for (int i = 0; i < 2 * N; i++) {
     for (int j = 0; j < P; j++) {
       Ct[i][j] = 0.0;
@@ -84,17 +142,23 @@ void est_forcing_matrix(double **L) {
   free_2d(Ct);
 }
 
+/* compute the gain matrix mapping the estimator to actuator strengths for the
+ * main problem */
 void est_gain_matrix(double **K) {
   /* Jacobian */
   double **A = malloc_f2d(2 * N, 2 * N);
+  wr_jacobian_cf(A);
   wr_jacobian(A);
 
   /* actuator matrix */
   double **B = malloc_f2d(2 * N, M);
-  wr_actuator(B);
+  wr_actuator_cf(B);
 
   /* full control matrix */
   dlqr(A, B, DX * MU, 1 - MU, 2 * N, M, K);
+
+  output_d2d("out/Acf.dat", A, 2 * N, 2 * N);
+  output_d2d("out/Bcf.dat", B, 2 * N, M);
 
   free_2d(A);
   free_2d(B);
@@ -103,33 +167,48 @@ void est_gain_matrix(double **K) {
 /* compute the residual and return the square of the norm */
 double est_compute_residual(double dt, double *res) {
   double res_norm_2 = 0.0;
-  double *h = EST_h;
-  double *h0 = EST_h0;
-  double *q = EST_q;
-  double *q0 = EST_q0;
-  double *f = EST_f;
-  double *ff = EST_ff;
 
   for (int i = 0; i < N; i++) {
-    // H component
-    res[i] = 2.0 * h[i] + dt * D1(q, i) - 2.0 * dt * f[i] - 2.0 * dt * ff[i] -
-             2.0 * h0[i] + dt * D1(q0, i);
+    // cell-centred variables
+    const double hc = EST_h[i];
+    const double h0c = EST_h0[i];
+    const double qxc = D1L(EST_q, i);
+    const double q0xc = D1L(EST_q0, i);
+    const double fc = EST_f[i];
+    const double ffc = EST_ff[i];
 
-    // Q component
-    res[i + N] =
-        2.0 * q[i] - 2.0 * dt * f[i + N] - 0.5 * dt * ff[i] * q[i] / h[i] -
-        9.0 / 7.0 * dt * q[i] * q[i] / h[i] / h[i] * D1(h, i) +
-        5.0 * dt / 3.0 / RE / tan(THETA) * h[i] * D1(h, i) +
-        17.0 * dt / 7.0 * q[i] / h[i] * D1(q, i) - 5.0 * dt / 3.0 / RE * h[i] -
-        5.0 * dt / 6.0 / CA / RE * h[i] * D3(h, i) +
-        5.0 * dt / 2.0 / RE * q[i] / h[i] / h[i] - 2.0 * q0[i] -
-        0.5 * dt * ff[i] * q0[i] / h0[i] -
-        9.0 / 7.0 * dt * q0[i] * q0[i] / h0[i] / h0[i] * D1(h0, i) +
-        5.0 * dt / 3.0 / RE / tan(THETA) * h0[i] * D1(h0, i) +
-        17.0 * dt / 7.0 * q0[i] / h0[i] * D1(q0, i) -
-        5.0 * dt / 3.0 / RE * h0[i] -
-        5.0 * dt / 6.0 / CA / RE * h0[i] * D3(h0, i) +
-        5.0 * dt / 2.0 / RE * q0[i] / h0[i] / h0[i];
+    // face-centred variables
+    const double hf = D0R(EST_h, i);
+    const double h0f = D0R(EST_h, i);
+    const double hxf = D1R(EST_h, i);
+    const double h0xf = D1R(EST_h, i);
+    const double hxxxf = D3R(EST_h, i);
+    const double h0xxxf = D3R(EST_h, i);
+    const double qf = EST_q[i];
+    const double q0f = EST_q0[i];
+    const double qxf = D1C(EST_q, i);
+    const double q0xf = D1C(EST_q0, i);
+    const double ff = EST_f[i + N];
+    const double fff = D0R(EST_ff, i);
+
+    // H component (cell-centred)
+    res[i] = 2.0 * hc + dt * qxc - 2.0 * dt * fc - 2.0 * dt * ffc - 2.0 * h0c +
+             dt * q0xc;
+
+    // Q component (face-centred)
+    res[i + N] = 2.0 * qf - 2.0 * dt * ff - 0.5 * dt * fff * qf / hf -
+                 9.0 / 7.0 * dt * qf * qf / hf / hf * hxf +
+                 5.0 * dt / 3.0 / RE / tan(THETA) * hf * hxf +
+                 17.0 * dt / 7.0 * qf / hf * qxf - 5.0 * dt / 3.0 / RE * hf -
+                 5.0 * dt / 6.0 / CA / RE * hf * hxxxf +
+                 5.0 * dt / 2.0 / RE * qf / hf / hf - 2.0 * q0f -
+                 0.5 * dt * fff * q0f / h0f -
+                 9.0 / 7.0 * dt * q0f * q0f / h0f / h0f * h0xf +
+                 5.0 * dt / 3.0 / RE / tan(THETA) * h0f * h0xf +
+                 17.0 * dt / 7.0 * q0f / h0f * q0xf -
+                 5.0 * dt / 3.0 / RE * h0f -
+                 5.0 * dt / 6.0 / CA / RE * h0f * h0xxxf +
+                 5.0 * dt / 2.0 / RE * q0f / h0f / h0f;
     res_norm_2 += res[i] * res[i];
     res_norm_2 += res[i + N] * res[i + N];
   }
@@ -140,16 +219,10 @@ double est_compute_residual(double dt, double *res) {
 /* compute the Jacobian matrix for solving the WR implicit time-stepping problem
  */
 void est_compute_jacobian(double dt, double **J) {
-  double *h = EST_h;
-  double *q = EST_q;
-  double *ff = EST_ff;
+  const double BETA = 1.0 / tan(THETA);
 
   // TODO: use memset
-  for (int i = 0; i < 2 * N; i++) {
-    for (int j = 0; j < 2 * N; j++) {
-      J[i][j] = 0.0;
-    }
-  }
+  memset(J[0], 0, 4 * N * N * sizeof(double));
 
   // dFh/dh (top left)
   for (int i = 0; i < N; i++) {
@@ -158,36 +231,59 @@ void est_compute_jacobian(double dt, double **J) {
 
   // dFh/dq (top right)
   for (int i = 0; i < N; i++) {
-    J[i][N + WRAP(i - 1)] = dt * (-0.5 / DX);
-    J[i][N + WRAP(i + 1)] = dt * (0.5 / DX);
+    const double c0 = dt;
+    J[i][N + WRAP(i + 0)] = (-1.0 / DX) * c0;
+    J[i][N + WRAP(i + 1)] = (1.0 / DX) * c0;
   }
 
   // dFq/dh (bottom left)
   for (int i = 0; i < N; i++) {
-    double c1 = dt * (-9.0 / 7.0 * q[i] * q[i] / h[i] / h[i] +
-                      5.0 / 3.0 / RE / tan(THETA) * h[i]);
-    double c3 = -dt * 5.0 / 6.0 / CA / RE * h[i];
-    J[N + i][WRAP(i - 2)] = (-0.5 / DX / DX / DX) * c3;
-    J[N + i][WRAP(i - 1)] = (-0.5 / DX) * c1 + (1.0 / DX / DX / DX) * c3;
-    J[N + i][WRAP(i + 0)] =
-        dt *
-        (0.5 * ff[i] * q[i] / h[i] / h[i] +
-         18.0 / 7.0 * q[i] * q[i] / h[i] / h[i] / h[i] * D1(h, i) +
-         5.0 / 3.0 / RE / tan(THETA) * D1(h, i) -
-         17.0 / 7.0 * q[i] / h[i] / h[i] * D1(q, i) - 5.0 / 3.0 / RE -
-         5.0 / 6.0 / CA / RE * D3(h, i) - 5.0 / RE * q[i] / h[i] / h[i] / h[i]);
-    J[N + i][WRAP(i + 1)] = (0.5 / DX) * c1 + (-1.0 / DX / DX / DX) * c3;
-    J[N + i][WRAP(i + 2)] = (0.5 / DX / DX / DX) * c3;
+    // face-centred variables
+    const double hf = D0R(EST_h, i);
+    const double hxf = D1R(EST_h, i);
+    const double hxxxf = D3R(EST_h, i);
+    const double qf = EST_q[i];
+    const double qxf = D1C(EST_q, i);
+    const double fff = D0R(EST_ff, i);
+
+    const double c0 = 0.5 * dt * fff * qf / hf / hf +
+                      18.0 / 7.0 * dt * qf * qf / hf / hf / hf * hxf +
+                      5.0 * dt * BETA / 3.0 / RE * hxf -
+                      17.0 * dt / 7.0 * qf / hf / hf * qxf -
+                      5.0 * dt / 3.0 / RE - 5.0 * dt / 6.0 / CA / RE * hxxxf -
+                      5.0 * dt / RE * qf / hf / hf / hf;
+    const double c1 =
+        -9.0 / 7.0 * dt * qf * qf / hf / hf + 5.0 * dt * BETA / 3.0 / RE * hf;
+    const double c3 = -5.0 * dt / 6.0 / CA / RE * hf;
+
+    J[N + i][WRAP(i - 1)] += (0.5) * c0;
+    J[N + i][WRAP(i + 0)] += (0.5) * c0;
+
+    J[N + i][WRAP(i - 1)] += (-1.0 / DX) * c1;
+    J[N + i][WRAP(i + 0)] += (1.0 / DX) * c1;
+
+    J[N + i][WRAP(i - 2)] = (-1.0 / DX / DX / DX) * c3;
+    J[N + i][WRAP(i - 1)] = (3.0 / DX / DX / DX) * c3;
+    J[N + i][WRAP(i + 0)] = (-3.0 / DX / DX / DX) * c3;
+    J[N + i][WRAP(i + 1)] = (1.0 / DX / DX / DX) * c3;
   }
 
   // dFq/dq (bottom right)
   for (int i = 0; i < N; i++) {
-    double c1 = dt * 17.0 / 7.0 * q[i] / h[i];
+    // face-centred variables
+    const double hf = D0R(EST_h, i);
+    const double hxf = D1R(EST_h, i);
+    const double qf = EST_q[i];
+    const double qxf = D1C(EST_q, i);
+    const double fff = D0R(EST_ff, i);
+
+    const double c0 =
+        2.0 - 0.5 * dt * fff / hf - 18.0 / 7.0 * dt * qf / hf / hf * hxf +
+        17.0 * dt / 7.0 / hf * qxf + 5.0 * dt / 2.0 / RE / hf / hf;
+    const double c1 = 17.0 * dt / 7.0 * qf / hf;
+
     J[N + i][N + WRAP(i - 1)] = (-0.5 / DX) * c1;
-    J[N + i][N + WRAP(i + 0)] =
-        2.0 +
-        dt * (-0.5 * ff[i] / h[i] - 18.0 / 7.0 * q[i] / h[i] / h[i] * D1(h, i) +
-              17.0 / 7.0 / h[i] * D1(q, i) + 5.0 / 2.0 / RE / h[i] / h[i]);
+    J[N + i][N + WRAP(i + 0)] = c0;
     J[N + i][N + WRAP(i + 1)] = (0.5 / DX) * c1;
   }
 }
@@ -234,7 +330,7 @@ int est_update(double dt, double *H) {
     double res_norm_2 = est_compute_residual(dt, EST_res);
 
     /* end if converged */
-    if (res_norm_2 < res_tol_2) {
+    if (res_norm_2 < res_tol_2 && k > 0) {
       break;
     }
 
