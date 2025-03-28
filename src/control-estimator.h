@@ -29,6 +29,7 @@ static double **EST_C;  // observer matrix
 #define D1C(z, i) (0.5 * ((z[WRAP(i + 1)] - z[WRAP(i - 1)]) / DX))
 
 // left and right spacing
+#define D0L(z, i) (0.5 * (z[WRAP(i + 1)] + z[WRAP(i)]))
 #define D1L(z, i) ((z[WRAP(i + 1)] - z[WRAP(i)]) / DX)
 #define D0R(z, i) (0.5 * (z[WRAP(i)] + z[WRAP(i - 1)]))
 #define D1R(z, i) ((z[WRAP(i)] - z[WRAP(i - 1)]) / DX)
@@ -86,7 +87,6 @@ void wr_actuator_cf(double **B) {
   for (int i = 0; i < N; i++) {
     for (int j = 0; j < M; j++) {
       B[i][j] = F[i][j];
-      // TODO: check this
       B[N + i][j] = (1.0 / 3.0) * F[i][j];
     } // j end
   } // i end
@@ -102,7 +102,6 @@ void est_forcing_matrix(double **L) {
 
   // transpose of the system matrix
   double **At = malloc_f2d(2 * N, 2 * N);
-  wr_jacobian_cf(At);
   wr_jacobian(At);
   for (int i = 0; i < 2 * N; i++) {
     for (int j = 0; j < 2 * N; j++) {
@@ -113,6 +112,7 @@ void est_forcing_matrix(double **L) {
   } // i end
 
   // transpose of the observer matrix
+  // TODO: maybe have this be self contained
   double **Ct = malloc_f2d(2 * N, P);
   // TODO use this to zero out the second half
   // memset(Ct[N], 0, N * P * sizeof(double));
@@ -149,18 +149,14 @@ void est_forcing_matrix(double **L) {
 void est_gain_matrix(double **K) {
   /* Jacobian */
   double **A = malloc_f2d(2 * N, 2 * N);
-  wr_jacobian_cf(A);
   wr_jacobian(A);
 
   /* actuator matrix */
   double **B = malloc_f2d(2 * N, M);
-  wr_actuator_cf(B);
+  wr_actuator(B);
 
   /* full control matrix */
   dlqr(A, B, DX * MU, 1 - MU, 2 * N, M, K);
-
-  output_d2d("out/Acf.dat", A, 2 * N, 2 * N);
-  output_d2d("out/Bcf.dat", B, 2 * N, M);
 
   free_2d(A);
   free_2d(B);
@@ -190,7 +186,7 @@ double est_compute_residual(double dt, double *res) {
     const double q0f = EST_q0[i];
     const double qxf = D1C(EST_q, i);
     const double q0xf = D1C(EST_q0, i);
-    const double ff = EST_f[i + N];
+    const double ff = D0R((EST_f + N), i);
     const double fff = D0R(EST_ff, i);
 
     // H component (cell-centred)
@@ -442,7 +438,7 @@ int est_step(double dt, double *h, int control_on) {
     if (control_on) {
       for (int j = 0; j < N; j++) {
         Amag[i] += EST_K[i][j] * (EST_h[j] - 1.0);
-        Amag[i] += EST_K[i][j + N] * (EST_q[j] - 2.0 / 3.0);
+        Amag[i] += EST_K[i][j + N] * (D0L(EST_q, j) - 2.0 / 3.0);
       } // j end
     }
   } // i end
