@@ -58,10 +58,12 @@ void wr_jacobian_cf(double **A) {
   const double cqh1 = 4.0 / 7.0 - 5.0 / 3.0 / RE / tan(THETA);
   const double cqh3 = 5.0 / 6.0 / CA / RE;
   for (int i = 0; i < N; i++) {
-    A[N + i][WRAP(i - 1)] = cqh3 * (-1.0 / (DX*DX*DX));
-    A[N + i][WRAP(i + 0)] = cqh3 * (3.0 / (DX*DX*DX)) + cqh1 * (-1.0 / DX) + cqh0 * (0.5);
-    A[N + i][WRAP(i + 1)] = cqh3 * (-3.0 / (DX*DX*DX)) + cqh1 * (1.0 / DX) + cqh0 * (0.5);
-    A[N + i][WRAP(i + 2)] = cqh3 * (1.0 / (DX*DX*DX));
+    A[N + i][WRAP(i - 1)] = cqh3 * (-1.0 / (DX * DX * DX));
+    A[N + i][WRAP(i + 0)] =
+        cqh3 * (3.0 / (DX * DX * DX)) + cqh1 * (-1.0 / DX) + cqh0 * (0.5);
+    A[N + i][WRAP(i + 1)] =
+        cqh3 * (-3.0 / (DX * DX * DX)) + cqh1 * (1.0 / DX) + cqh0 * (0.5);
+    A[N + i][WRAP(i + 2)] = cqh3 * (1.0 / (DX * DX * DX));
   }
 
   // bottom right (qq): -5/2/RE D0C - 34/21 D1C
@@ -85,7 +87,7 @@ void wr_actuator_cf(double **B) {
     for (int j = 0; j < M; j++) {
       B[i][j] = F[i][j];
       // TODO: check this
-      B[N+i][j] = (1.0/3.0) * F[i][j];
+      B[N + i][j] = (1.0 / 3.0) * F[i][j];
     } // j end
   } // i end
 
@@ -192,23 +194,21 @@ double est_compute_residual(double dt, double *res) {
     const double fff = D0R(EST_ff, i);
 
     // H component (cell-centred)
-    res[i] = 2.0 * hc + dt * qxc - 2.0 * dt * fc - 2.0 * dt * ffc - 2.0 * h0c +
-             dt * q0xc;
+    res[i] = hc + 0.5 * dt * qxc - dt * fc - dt * ffc - h0c + 0.5 * dt * q0xc;
 
     // Q component (face-centred)
-    res[i + N] = 2.0 * qf - 2.0 * dt * ff - 0.5 * dt * fff * qf / hf -
-                 9.0 / 7.0 * dt * qf * qf / hf / hf * hxf +
-                 5.0 * dt / 3.0 / RE / tan(THETA) * hf * hxf +
-                 17.0 * dt / 7.0 * qf / hf * qxf - 5.0 * dt / 3.0 / RE * hf -
-                 5.0 * dt / 6.0 / CA / RE * hf * hxxxf +
-                 5.0 * dt / 2.0 / RE * qf / hf / hf - 2.0 * q0f -
-                 0.5 * dt * fff * q0f / h0f -
-                 9.0 / 7.0 * dt * q0f * q0f / h0f / h0f * h0xf +
-                 5.0 * dt / 3.0 / RE / tan(THETA) * h0f * h0xf +
-                 17.0 * dt / 7.0 * q0f / h0f * q0xf -
-                 5.0 * dt / 3.0 / RE * h0f -
-                 5.0 * dt / 6.0 / CA / RE * h0f * h0xxxf +
-                 5.0 * dt / 2.0 / RE * q0f / h0f / h0f;
+    res[i + N] =
+        qf - dt * ff - 0.25 * dt * fff * qf / hf -
+        9.0 / 14.0 * dt * qf * qf / hf / hf * hxf +
+        5.0 * dt / 6.0 / RE / tan(THETA) * hf * hxf +
+        17.0 * dt / 14.0 * qf / hf * qxf - 5.0 * dt / 6.0 / RE * hf -
+        5.0 * dt / 12.0 / CA / RE * hf * hxxxf +
+        5.0 * dt / 4.0 / RE * qf / hf / hf - q0f - 0.25 * dt * fff * q0f / h0f -
+        9.0 / 14.0 * dt * q0f * q0f / h0f / h0f * h0xf +
+        5.0 * dt / 6.0 / RE / tan(THETA) * h0f * h0xf +
+        17.0 * dt / 14.0 * q0f / h0f * q0xf - 5.0 * dt / 6.0 / RE * h0f -
+        5.0 * dt / 12.0 / CA / RE * h0f * h0xxxf +
+        5.0 * dt / 4.0 / RE * q0f / h0f / h0f;
     res_norm_2 += res[i] * res[i];
     res_norm_2 += res[i + N] * res[i + N];
   }
@@ -226,12 +226,12 @@ void est_compute_jacobian(double dt, double **J) {
 
   // dFh/dh (top left)
   for (int i = 0; i < N; i++) {
-    J[i][i] = 2.0;
+    J[i][i] = 1.0;
   }
 
   // dFh/dq (top right)
   for (int i = 0; i < N; i++) {
-    const double c0 = dt;
+    const double c0 = 0.5 * dt;
     J[i][N + WRAP(i + 0)] = (-1.0 / DX) * c0;
     J[i][N + WRAP(i + 1)] = (1.0 / DX) * c0;
   }
@@ -246,15 +246,15 @@ void est_compute_jacobian(double dt, double **J) {
     const double qxf = D1C(EST_q, i);
     const double fff = D0R(EST_ff, i);
 
-    const double c0 = 0.5 * dt * fff * qf / hf / hf +
-                      18.0 / 7.0 * dt * qf * qf / hf / hf / hf * hxf +
-                      5.0 * dt * BETA / 3.0 / RE * hxf -
-                      17.0 * dt / 7.0 * qf / hf / hf * qxf -
-                      5.0 * dt / 3.0 / RE - 5.0 * dt / 6.0 / CA / RE * hxxxf -
-                      5.0 * dt / RE * qf / hf / hf / hf;
+    const double c0 = 0.25 * dt * fff * qf / hf / hf +
+                      9.0 / 7.0 * dt * qf * qf / hf / hf / hf * hxf +
+                      2.5 * dt * BETA / 3.0 / RE * hxf -
+                      17.0 * dt / 14.0 * qf / hf / hf * qxf -
+                      5.0 * dt / 6.0 / RE - 5.0 * dt / 12.0 / CA / RE * hxxxf -
+                      2.5 * dt / RE * qf / hf / hf / hf;
     const double c1 =
-        -9.0 / 7.0 * dt * qf * qf / hf / hf + 5.0 * dt * BETA / 3.0 / RE * hf;
-    const double c3 = -5.0 * dt / 6.0 / CA / RE * hf;
+        -9.0 / 14.0 * dt * qf * qf / hf / hf + 5.0 * dt * BETA / 6.0 / RE * hf;
+    const double c3 = -5.0 * dt / 12.0 / CA / RE * hf;
 
     J[N + i][WRAP(i - 1)] += (0.5) * c0;
     J[N + i][WRAP(i + 0)] += (0.5) * c0;
@@ -278,9 +278,9 @@ void est_compute_jacobian(double dt, double **J) {
     const double fff = D0R(EST_ff, i);
 
     const double c0 =
-        2.0 - 0.5 * dt * fff / hf - 18.0 / 7.0 * dt * qf / hf / hf * hxf +
-        17.0 * dt / 7.0 / hf * qxf + 5.0 * dt / 2.0 / RE / hf / hf;
-    const double c1 = 17.0 * dt / 7.0 * qf / hf;
+        1.0 - 0.25 * dt * fff / hf - 9.0 / 7.0 * dt * qf / hf / hf * hxf +
+        17.0 * dt / 14.0 / hf * qxf + 5.0 * dt / 4.0 / RE / hf / hf;
+    const double c1 = 17.0 * dt / 14.0 * qf / hf;
 
     J[N + i][N + WRAP(i - 1)] = (-0.5 / DX) * c1;
     J[N + i][N + WRAP(i + 0)] = c0;

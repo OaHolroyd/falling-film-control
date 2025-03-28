@@ -5,7 +5,7 @@ from scipy.sparse import coo_array
 
 
 # grid parameters
-N = 128
+N = 32
 L = 30.0
 DX = L / N
 
@@ -293,15 +293,39 @@ def main():
 
         for k in range(iter_max):
             # compute the residual
-            res_norm_2, res = compute_residual_cc(dt, h, h0, q, q0)
+            res_norm_2, res = compute_residual_cf(dt, h, h0, q, q0)
+
 
             # finish early if converged
             if res_norm_2 < res_tol_2:
                 break
 
             # compute Jacobian and solve linear system
-            J = compute_jacobian_cc(dt, h, q)
+            J = compute_jacobian_cf(dt, h, q)
             dhq = np.linalg.solve(J, res)
+
+            A = J[:N, :N]
+            B = J[:N, N:]
+            C = J[N:, :N]
+            D = J[N:, N:]
+
+            # sparsity patterns of A
+            fig2, ax = plt.subplots(3, 2, figsize=(8, 12))
+            ax[0][0].spy(A)
+            ax[0][0].set_title("A")
+            ax[0][1].spy(B)
+            ax[0][1].set_title("B")
+            ax[1][0].spy(C)
+            ax[1][0].set_title("C")
+            ax[1][1].spy(D)
+            ax[1][1].set_title("D")
+            ax[2][0].spy(C @ B)
+            ax[2][0].set_title("CB")
+            ax[2][1].spy(D - C @ B)
+            ax[2][1].set_title("D-CB")
+            fig2.savefig("plots/blocks.png")
+            plt.close(fig2)
+            exit(0)
 
             # J = coo_array(J)
             # dhq = spsolve(J, res)[:, None]
