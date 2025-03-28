@@ -1,11 +1,10 @@
 import numpy as np
 import matplotlib.pyplot as plt
-from scipy.sparse.linalg import spsolve
-from scipy.sparse import coo_array
+from scipy.linalg import lu_factor, lu_solve
 
 
 # grid parameters
-N = 32
+N = 128
 L = 30.0
 DX = L / N
 
@@ -117,6 +116,40 @@ def der_mat_right(order):
     return D / (DX ** order)
 
 
+def block_schur_solve(B, C, S, a, b):
+    """
+    This is a code for the block-solution to
+
+        [      ][   ] [   ]
+        [ I  B ][ x ] [ a ]
+        [      ][   ]=[   ]
+        [ C  D ][ y ] [ b ]
+        [      ][   ] [   ]
+
+    With S = D - C B
+    """
+    # z = C a
+    z = C @ a
+
+    # [b, z] = S \ [b, z]
+    # S = lu_factor(S)
+    # b = lu_solve(S, b)
+    # z = lu_solve(S, z)
+    b = np.linalg.solve(S, b)
+    z = np.linalg.solve(S, z)
+
+    # b = b - z
+    b = b - z
+
+    # z = B b
+    z = B @ b
+
+    # a = a - z
+    a = a - z
+
+    return a, b
+
+
 def main():
     # create the grid
     xf = DX * np.arange(N).reshape((N, 1))
@@ -133,23 +166,7 @@ def main():
     D1r = der_mat_right(1)
     D3r = der_mat_right(3)
 
-    def compute_residual_cc(dt, h, h0, q, q0):
-        hx = D1c @ h
-        h0x = D1c @ h0
-        hxxx = D3c @ h
-        h0xxx = D3c @ h0
-        qx = D1c @ q
-        q0x = D1c @ q0
-
-        res_h = 2.0 * h + dt * qx - 2.0 * h0 + dt * q0x
-        res_q = 2.0 * q - 9.0/7.0*dt*q*q/h/h*hx + 5.0*dt*BETA/3.0/RE*h*hx + 17.0*dt/7.0*q/h*qx - 5.0*dt/3.0/RE*h - 5.0*dt/6.0/CA/RE*h*hxxx + 5.0*dt/2.0/RE*q/h/h - 2.0 * q0 - 9.0/7.0*dt*q0*q0/h0/h0*h0x + 5.0*dt*BETA/3.0/RE*h0*h0x + 17.0*dt/7.0*q0/h0*q0x - 5.0*dt/3.0/RE*h0 - 5.0*dt/6.0/CA/RE*h0*h0xxx + 5.0*dt/2.0/RE*q0/h0/h0
-
-        res = np.concatenate((res_h, res_q))
-        res_norm_2 = np.sum(res*res)
-
-        return res_norm_2, res
-
-    def compute_residual_cf(dt, hc, h0c, qf, q0f):
+    def compute_residual(dt, hc, h0c, qf, q0f):
         qxc = D1l @ qf
         q0xc = D1l @ q0f
 
@@ -162,53 +179,28 @@ def main():
         qxf = D1c @ qf
         q0xf = D1c @ q0f
 
-        res_h = 2.0 * hc + dt * qxc - 2.0 * h0c + dt * q0xc
-        res_q = 2.0 * qf - 9.0/7.0*dt*qf*qf/hf/hf*hxf + 5.0*dt*BETA/3.0/RE*hf*hxf + 17.0*dt/7.0*qf/hf*qxf - 5.0*dt/3.0/RE*hf - 5.0*dt/6.0/CA/RE*hf*hxxxf + 5.0*dt/2.0/RE*qf/hf/hf - 2.0 * q0f - 9.0/7.0*dt*q0f*q0f/h0f/h0f*h0xf + 5.0*dt*BETA/3.0/RE*h0f*h0xf + 17.0*dt/7.0*q0f/h0f*q0xf - 5.0*dt/3.0/RE*h0f - 5.0*dt/6.0/CA/RE*h0f*h0xxxf + 5.0*dt/2.0/RE*q0f/h0f/h0f
+        res_h = hc + 0.5 * dt * qxc - h0c + 0.5 * dt * q0xc
+        res_q = qf \
+              - 9.0/14.0*dt*qf*qf/hf/hf*hxf \
+              + 5.0*dt*BETA/6.0/RE*hf*hxf \
+              + 17.0*dt/14.0*qf/hf*qxf \
+              - 5.0*dt/6.0/RE*hf \
+              - 5.0*dt/12.0/CA/RE*hf*hxxxf \
+              + 5.0*dt/4.0/RE*qf/hf/hf \
+              - q0f \
+              - 9.0/14.0*dt*q0f*q0f/h0f/h0f*h0xf \
+              + 5.0*dt*BETA/6.0/RE*h0f*h0xf \
+              + 17.0*dt/14.0*q0f/h0f*q0xf \
+              - 5.0*dt/6.0/RE*h0f \
+              - 5.0*dt/12.0/CA/RE*h0f*h0xxxf \
+              + 5.0*dt/4.0/RE*q0f/h0f/h0f
 
         res = np.concatenate((res_h, res_q))
         res_norm_2 = np.sum(res*res)
 
         return res_norm_2, res
 
-    def compute_jacobian_cc(dt, h, q):
-        hx = D1c @ h
-        hxxx = D3c @ h
-        qx = D1c @ q
-
-        J = np.zeros((2*N, 2*N))
-
-        # top left (dFh/dH)
-        for i in range(N):
-            J[i][i] = 2.0
-
-        # top right (dFh/dq)
-        for i in range(N):
-            c1 = dt
-            J[i][N+WRAP(i-1)] = (-0.5 / DX) * c1
-            J[i][N+WRAP(i+1)] = (0.5 / DX) * c1
-
-        # bottom left (dFq/dh)
-        c0 = 18.0/7.0*dt*q*q/h/h/h*hx + 5.0*dt*BETA/3.0/RE*hx - 17.0*dt/7.0*q/h/h*qx - 5.0*dt/3.0/RE - 5.0*dt/6.0/CA/RE*hxxx - 5.0*dt/RE*q/h/h/h
-        c1 = -9.0/7.0*dt*q*q/h/h + 5.0*dt*BETA/3.0/RE*h
-        c3 = -5.0*dt/6.0/CA/RE*h
-        for i in range(N):
-            J[N+i][WRAP(i-2)] = (-0.5 / DX / DX / DX) * c3[i].item()
-            J[N+i][WRAP(i-1)] = (1.0 / DX / DX / DX) * c3[i].item() + (-0.5 / DX) * c1[i].item()
-            J[N+i][WRAP(i+0)] = c0[i].item()
-            J[N+i][WRAP(i+1)] = (-1.0 / DX / DX / DX) * c3[i].item() + (0.5 / DX) * c1[i].item()
-            J[N+i][WRAP(i+2)] = (0.5 / DX / DX / DX) * c3[i].item()
-
-        # bottom right (dFq/dq)
-        c0 = 2.0 - 18.0/7.0*dt*q/h/h*hx + 17.0*dt/7.0/h*qx + 5.0*dt/2.0/RE/h/h
-        c1 = 17.0*dt/7.0*q/h
-        for i in range(N):
-            J[N+i][N+WRAP(i-1)] = (-0.5 / DX) * c1[i].item()
-            J[N+i][N+WRAP(i+0)] = c0[i].item()
-            J[N+i][N+WRAP(i+1)] = (0.5 / DX) * c1[i].item()
-
-        return J
-
-    def compute_jacobian_cf(dt, hc, qf):
+    def compute_jacobian(dt, hc, qf):
         qxc = D1l @ qf
 
         hf = D0r @ hc
@@ -220,18 +212,18 @@ def main():
 
         # top left (dFh/dH)
         for i in range(N):
-            J[i][i] = 2.0
+            J[i][i] = 1.0
 
         # top right (dFh/dq)
         for i in range(N):
-            c0 = dt
+            c0 = 0.5 * dt
             J[i][N+WRAP(i+0)] = (-1.0 / DX) * c0
             J[i][N+WRAP(i+1)] = (1.0 / DX) * c0
 
         # bottom left (dFq/dh)
-        c0 = 18.0/7.0*dt*qf*qf/hf/hf/hf*hxf + 5.0*dt*BETA/3.0/RE*hxf - 17.0*dt/7.0*qf/hf/hf*qxf - 5.0*dt/3.0/RE - 5.0*dt/6.0/CA/RE*hxxxf - 5.0*dt/RE*qf/hf/hf/hf
-        c1 = -9.0/7.0*dt*qf*qf/hf/hf + 5.0*dt*BETA/3.0/RE*hf
-        c3 = -5.0*dt/6.0/CA/RE*hf
+        c0 = 9.0/7.0*dt*qf*qf/hf/hf/hf*hxf + 5.0*dt*BETA/6.0/RE*hxf - 17.0*dt/14.0*qf/hf/hf*qxf - 5.0*dt/6.0/RE - 5.0*dt/12.0/CA/RE*hxxxf - 2.5*dt/RE*qf/hf/hf/hf
+        c1 = -9.0/14.0*dt*qf*qf/hf/hf + 5.0*dt*BETA/6.0/RE*hf
+        c3 = -5.0*dt/12.0/CA/RE*hf
         for i in range(N):
             J[N+i, WRAP(i-1)] += (0.5) * c0[i].item()
             J[N+i, WRAP(i+0)] += (0.5) * c0[i].item()
@@ -245,14 +237,144 @@ def main():
             J[N+i, WRAP(i+1)] = (1.0 / DX/DX/DX) * c3[i].item()
 
         # bottom right (dFq/dq)
-        c0 = 2.0 - 18.0/7.0*dt*qf/hf/hf*hxf + 17.0*dt/7.0/hf*qxf + 5.0*dt/2.0/RE/hf/hf
-        c1 = 17.0*dt/7.0*qf/hf
+        c0 = 1.0 - 9.0/7.0*dt*qf/hf/hf*hxf + 17.0*dt/14.0/hf*qxf + 5.0*dt/RE/hf/hf
+        c1 = 17.0*dt/14.0*qf/hf
         for i in range(N):
             J[N+i][N+WRAP(i-1)] = (-0.5 / DX) * c1[i].item()
             J[N+i][N+WRAP(i+0)] = c0[i].item()
             J[N+i][N+WRAP(i+1)] = (0.5 / DX) * c1[i].item()
 
         return J
+
+    def compute_residual_blocks(dt, hc, h0c, qf, q0f):
+        qxc = D1l @ qf
+        q0xc = D1l @ q0f
+
+        hf = D0r @ hc
+        h0f = D0r @ hc
+        hxf = D1r @ hc
+        h0xf = D1r @ hc
+        hxxxf = D3r @ hc
+        h0xxxf = D3r @ hc
+        qxf = D1c @ qf
+        q0xf = D1c @ q0f
+
+        res_h = hc + 0.5 * dt * qxc - h0c + 0.5 * dt * q0xc
+        res_q = qf \
+              - 9.0/14.0*dt*qf*qf/hf/hf*hxf \
+              + 5.0*dt*BETA/6.0/RE*hf*hxf \
+              + 17.0*dt/14.0*qf/hf*qxf \
+              - 5.0*dt/6.0/RE*hf \
+              - 5.0*dt/12.0/CA/RE*hf*hxxxf \
+              + 5.0*dt/4.0/RE*qf/hf/hf \
+              - q0f \
+              - 9.0/14.0*dt*q0f*q0f/h0f/h0f*h0xf \
+              + 5.0*dt*BETA/6.0/RE*h0f*h0xf \
+              + 17.0*dt/14.0*q0f/h0f*q0xf \
+              - 5.0*dt/6.0/RE*h0f \
+              - 5.0*dt/12.0/CA/RE*h0f*h0xxxf \
+              + 5.0*dt/4.0/RE*q0f/h0f/h0f
+
+        res_norm_2 = np.sum(res_h*res_h) + np.sum(res_q*res_q)
+
+        return res_norm_2, res_h, res_q
+
+    def compute_jacobian_blocks(dt, hc, qf):
+        qxc = D1l @ qf
+
+        hf = D0r @ hc
+        hxf = D1r @ hc
+        hxxxf = D3r @ hc
+        qxf = D1c @ qf
+
+        A = np.zeros((N, N))
+        B = np.zeros((N, N))
+        C = np.zeros((N, N))
+        D = np.zeros((N, N))
+
+        # top left (dFh/dH)
+        for i in range(N):
+            A[i][i] = 1.0
+
+        # top right (dFh/dq)
+        for i in range(N):
+            c0 = 0.5 * dt
+            B[i][WRAP(i+0)] = (-1.0 / DX) * c0
+            B[i][WRAP(i+1)] = (1.0 / DX) * c0
+
+        # bottom left (dFq/dh)
+        c0 = 9.0/7.0*dt*qf*qf/hf/hf/hf*hxf + 5.0*dt*BETA/6.0/RE*hxf - 17.0*dt/14.0*qf/hf/hf*qxf - 5.0*dt/6.0/RE - 5.0*dt/12.0/CA/RE*hxxxf - 2.5*dt/RE*qf/hf/hf/hf
+        c1 = -9.0/14.0*dt*qf*qf/hf/hf + 5.0*dt*BETA/6.0/RE*hf
+        c3 = -5.0*dt/12.0/CA/RE*hf
+        for i in range(N):
+            C[i, WRAP(i-1)] += (0.5) * c0[i].item()
+            C[i, WRAP(i+0)] += (0.5) * c0[i].item()
+            C[i, WRAP(i-1)] += (-1.0 / DX) * c1[i].item()
+            C[i, WRAP(i+0)] += (1.0 / DX) * c1[i].item()
+            C[i, WRAP(i-2)] = (-1.0 / DX/DX/DX) * c3[i].item()
+            C[i, WRAP(i-1)] = (3.0 / DX/DX/DX) * c3[i].item()
+            C[i, WRAP(i+0)] = (-3.0 / DX/DX/DX) * c3[i].item()
+            C[i, WRAP(i+1)] = (1.0 / DX/DX/DX) * c3[i].item()
+
+        # bottom right (dFq/dq)
+        c0 = 1.0 - 9.0/7.0*dt*qf/hf/hf*hxf + 17.0*dt/14.0/hf*qxf + 5.0*dt/RE/hf/hf
+        c1 = 17.0*dt/14.0*qf/hf
+        for i in range(N):
+            D[i][WRAP(i-1)] = (-0.5 / DX) * c1[i].item()
+            D[i][WRAP(i+0)] = c0[i].item()
+            D[i][WRAP(i+1)] = (0.5 / DX) * c1[i].item()
+
+        return A, B, C, D
+
+    def compute_jacobian_blocks_schur(dt, hc, qf):
+        qxc = D1l @ qf
+
+        hf = D0r @ hc
+        hxf = D1r @ hc
+        hxxxf = D3r @ hc
+        qxf = D1c @ qf
+
+        B = np.zeros((N, N))
+        C = np.zeros((N, N))
+        D = np.zeros((N, N))
+
+        # top right (dFh/dq)
+        for i in range(N):
+            c0 = 0.5 * dt
+            B[i][WRAP(i+0)] = (-1.0 / DX) * c0
+            B[i][WRAP(i+1)] = (1.0 / DX) * c0
+
+        # bottom left (dFq/dh)
+        c0 = 9.0/7.0*dt*qf*qf/hf/hf/hf*hxf + 5.0*dt*BETA/6.0/RE*hxf - 17.0*dt/14.0*qf/hf/hf*qxf - 5.0*dt/6.0/RE - 5.0*dt/12.0/CA/RE*hxxxf - 2.5*dt/RE*qf/hf/hf/hf
+        c1 = -9.0/14.0*dt*qf*qf/hf/hf + 5.0*dt*BETA/6.0/RE*hf
+        c3 = -5.0*dt/12.0/CA/RE*hf
+        for i in range(N):
+            C[i, WRAP(i-1)] += (0.5) * c0[i].item()
+            C[i, WRAP(i+0)] += (0.5) * c0[i].item()
+
+            C[i, WRAP(i-1)] += (-1.0 / DX) * c1[i].item()
+            C[i, WRAP(i+0)] += (1.0 / DX) * c1[i].item()
+
+            C[i, WRAP(i-2)] += (-1.0 / DX/DX/DX) * c3[i].item()
+            C[i, WRAP(i-1)] += (3.0 / DX/DX/DX) * c3[i].item()
+            C[i, WRAP(i+0)] += (-3.0 / DX/DX/DX) * c3[i].item()
+            C[i, WRAP(i+1)] += (1.0 / DX/DX/DX) * c3[i].item()
+
+        # bottom right (dFq/dq)
+        c0 = 1.0 - 9.0/7.0*dt*qf/hf/hf*hxf + 17.0*dt/14.0/hf*qxf + 5.0*dt/RE/hf/hf
+        c1 = 17.0*dt/14.0*qf/hf
+        for i in range(N):
+            D[i][WRAP(i-1)] = (-0.5 / DX) * c1[i].item()
+            D[i][WRAP(i+0)] = c0[i].item()
+            D[i][WRAP(i+1)] = (0.5 / DX) * c1[i].item()
+
+        S = np.zeros((N, N))
+        for i in range(N):
+            S[i]
+
+        S = D - C @ B
+
+        return B, C, S
 
     # initial condition
     h = 1.0 + 0.01 * np.sin(2.0 * np.pi * xc / L)
@@ -293,7 +415,8 @@ def main():
 
         for k in range(iter_max):
             # compute the residual
-            res_norm_2, res = compute_residual_cf(dt, h, h0, q, q0)
+            # res_norm_2, res = compute_residual(dt, h, h0, q, q0)
+            res_norm_2, res_h, res_q = compute_residual_blocks(dt, h, h0, q, q0)
 
 
             # finish early if converged
@@ -301,38 +424,11 @@ def main():
                 break
 
             # compute Jacobian and solve linear system
-            J = compute_jacobian_cf(dt, h, q)
-            dhq = np.linalg.solve(J, res)
+            B, C, S = compute_jacobian_blocks_schur(dt, h, q)
 
-            A = J[:N, :N]
-            B = J[:N, N:]
-            C = J[N:, :N]
-            D = J[N:, N:]
-
-            # sparsity patterns of A
-            fig2, ax = plt.subplots(3, 2, figsize=(8, 12))
-            ax[0][0].spy(A)
-            ax[0][0].set_title("A")
-            ax[0][1].spy(B)
-            ax[0][1].set_title("B")
-            ax[1][0].spy(C)
-            ax[1][0].set_title("C")
-            ax[1][1].spy(D)
-            ax[1][1].set_title("D")
-            ax[2][0].spy(C @ B)
-            ax[2][0].set_title("CB")
-            ax[2][1].spy(D - C @ B)
-            ax[2][1].set_title("D-CB")
-            fig2.savefig("plots/blocks.png")
-            plt.close(fig2)
-            exit(0)
-
-            # J = coo_array(J)
-            # dhq = spsolve(J, res)[:, None]
-
-            # update variables
-            h = h - dhq[0:N]
-            q = q - dhq[N:2*N]
+            dh, dq = block_schur_solve(B, C, S, res_h, res_q)
+            h = h - dh
+            q = q - dq
 
         tmax.append(t)
         hmax.append(np.max(h0))

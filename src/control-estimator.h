@@ -41,59 +41,6 @@ static double **EST_C;  // observer matrix
 /* ========================================================================== */
 /*   AUXILIARY FUNCTION DEFINITIONS                                           */
 /* ========================================================================== */
-/* jacobian matrix for WR using face-centred flux */
-void wr_jacobian_cf(double **A) {
-  memset(A[0], 0, 4 * N * N * sizeof(double));
-
-  // top left (hh): 0
-
-  // top right (hq): -D1L
-  const double chq0 = -1.0;
-  for (int i = 0; i < N; i++) {
-    A[i][N + WRAP(i + 0)] = chq0 * (-1.0 / DX);
-    A[i][N + WRAP(i + 1)] = chq0 * (1.0 / DX);
-  }
-
-  // bottom left (qh): 5/RE D0R + (4/7-5/3/RE/tan(THETA)) D1R + 5/6/CA/RE D3R
-  const double cqh0 = 5.0 / RE;
-  const double cqh1 = 4.0 / 7.0 - 5.0 / 3.0 / RE / tan(THETA);
-  const double cqh3 = 5.0 / 6.0 / CA / RE;
-  for (int i = 0; i < N; i++) {
-    A[N + i][WRAP(i - 1)] = cqh3 * (-1.0 / (DX * DX * DX));
-    A[N + i][WRAP(i + 0)] =
-        cqh3 * (3.0 / (DX * DX * DX)) + cqh1 * (-1.0 / DX) + cqh0 * (0.5);
-    A[N + i][WRAP(i + 1)] =
-        cqh3 * (-3.0 / (DX * DX * DX)) + cqh1 * (1.0 / DX) + cqh0 * (0.5);
-    A[N + i][WRAP(i + 2)] = cqh3 * (1.0 / (DX * DX * DX));
-  }
-
-  // bottom right (qq): -5/2/RE D0C - 34/21 D1C
-  const double cqq0 = -5.0 / 2.0 / RE;
-  const double cqq1 = -34.0 / 21.0;
-  for (int i = 0; i < N; i++) {
-    A[N + i][N + WRAP(i - 1)] = cqq1 * (-0.5 / DX);
-    A[N + i][N + WRAP(i + 0)] = cqq0;
-    A[N + i][N + WRAP(i + 1)] = cqq1 * (0.5 / DX);
-  }
-}
-
-/* actuator matrix for WR using face-centred flux */
-void wr_actuator_cf(double **B) {
-  /* forcing matrix */
-  double **F = malloc_f2d(N, M);
-  forcing_matrix(F);
-
-  /* actuator matrix */
-  for (int i = 0; i < N; i++) {
-    for (int j = 0; j < M; j++) {
-      B[i][j] = F[i][j];
-      B[N + i][j] = (1.0 / 3.0) * F[i][j];
-    } // j end
-  } // i end
-
-  free_2d(F);
-}
-
 /* solve the (transpose) LQR problem to compute L. This requires EST_C to have
  * been filled with the Benney or WR observer. */
 void est_forcing_matrix(double **L) {
@@ -251,16 +198,9 @@ void est_compute_jacobian(double dt, double **J) {
     const double c1 =
         -9.0 / 14.0 * dt * qf * qf / hf / hf + 5.0 * dt * BETA / 6.0 / RE * hf;
     const double c3 = -5.0 * dt / 12.0 / CA / RE * hf;
-
-    J[N + i][WRAP(i - 1)] += (0.5) * c0;
-    J[N + i][WRAP(i + 0)] += (0.5) * c0;
-
-    J[N + i][WRAP(i - 1)] += (-1.0 / DX) * c1;
-    J[N + i][WRAP(i + 0)] += (1.0 / DX) * c1;
-
     J[N + i][WRAP(i - 2)] = (-1.0 / DX / DX / DX) * c3;
-    J[N + i][WRAP(i - 1)] = (3.0 / DX / DX / DX) * c3;
-    J[N + i][WRAP(i + 0)] = (-3.0 / DX / DX / DX) * c3;
+    J[N + i][WRAP(i - 1)] = (3.0 / DX / DX / DX) * c3 + (-1.0 / DX) * c1 + (0.5) * c0;
+    J[N + i][WRAP(i + 0)] = (-3.0 / DX / DX / DX) * c3 + (1.0 / DX) * c1 + (0.5) * c0;
     J[N + i][WRAP(i + 1)] = (1.0 / DX / DX / DX) * c3;
   }
 
