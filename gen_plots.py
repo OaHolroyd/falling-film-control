@@ -84,7 +84,7 @@ def main():
     fplot, = plt.plot(x, x)
     zplot, = plt.plot(x, x)
 
-    plt.axis([0, 30, 0.95, 1.05])
+    plt.axis([0, 30, 0.3, 1.7])
 
 
     for i in range(len(t)):

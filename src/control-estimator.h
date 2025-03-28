@@ -323,14 +323,14 @@ int est_update(double dt, double *H) {
   // implicit time-stepping (for stability)
   // iterate to the solution for the next timestep
   const int iter_max = 100;
-  const double res_tol_2 = 1.0e-10; // square of the residual tolerance
+  const double res_tol = 1.0e-6; // square of the residual tolerance
   int k = 0;
   for (; k < iter_max; k++) {
     /* compute res */
     double res_norm_2 = est_compute_residual(dt, EST_res);
 
     /* end if converged */
-    if (res_norm_2 < res_tol_2 && k > 0) {
+    if (sqrt(res_norm_2) < (N * res_tol) && k > 0) {
       break;
     }
 
