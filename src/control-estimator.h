@@ -199,8 +199,10 @@ void est_compute_jacobian(double dt, double **J) {
         -9.0 / 14.0 * dt * qf * qf / hf / hf + 5.0 * dt * BETA / 6.0 / RE * hf;
     const double c3 = -5.0 * dt / 12.0 / CA / RE * hf;
     J[N + i][WRAP(i - 2)] = (-1.0 / DX / DX / DX) * c3;
-    J[N + i][WRAP(i - 1)] = (3.0 / DX / DX / DX) * c3 + (-1.0 / DX) * c1 + (0.5) * c0;
-    J[N + i][WRAP(i + 0)] = (-3.0 / DX / DX / DX) * c3 + (1.0 / DX) * c1 + (0.5) * c0;
+    J[N + i][WRAP(i - 1)] =
+        (3.0 / DX / DX / DX) * c3 + (-1.0 / DX) * c1 + (0.5) * c0;
+    J[N + i][WRAP(i + 0)] =
+        (-3.0 / DX / DX / DX) * c3 + (1.0 / DX) * c1 + (0.5) * c0;
     J[N + i][WRAP(i + 1)] = (1.0 / DX / DX / DX) * c3;
   }
 
@@ -222,6 +224,13 @@ void est_compute_jacobian(double dt, double **J) {
     J[N + i][N + WRAP(i + 0)] = c0;
     J[N + i][N + WRAP(i + 1)] = (0.5 / DX) * c1;
   }
+}
+
+/* once the residual is computed, solve the linear system to compute the update h and q */
+void est_update_hq(double dt) {
+  /* compute Jacobian and solve linear system */
+  est_compute_jacobian(dt, EST_J);
+  dsv(EST_J, EST_res, 2 * N);
 }
 
 /* step the estimator forward in time using observations of the real height H.
@@ -271,11 +280,7 @@ int est_update(double dt, double *H) {
     }
 
     /* compute Jacobian and solve linear system */
-    // TODO: use sparse/banded matrix representation and solver
-    // TODO: since the top block-row of the Jacobian is constant we could
-    //       decompose it into a 2x2 block system and save a lot of work
-    est_compute_jacobian(dt, EST_J);
-    dsv(EST_J, EST_res, 2 * N);
+    est_update_hq(dt);
 
     /* update variables */
     for (int i = 0; i < N; i++) {
