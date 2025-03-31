@@ -17,12 +17,11 @@ static double *EST_q;   // flux estimate
 static double *EST_h0;  // height estimate (previous time step)
 static double *EST_q0;  // flux estimate (previous time step)
 static double *EST_res; // residual (for time stepping)
-static double **EST_J;  // Jacobian (for time stepping)
 static double **EST_L;  // estimator forcing matrix
 static double **EST_K;  // main forcing matrix
 static double **EST_C;  // observer matrix
 
-// storage for bands in the Jacobian
+// storage used in inverting the Jacobian
 static double *EST_cl2;
 static double *EST_cl1;
 static double *EST_cd0;
@@ -35,7 +34,6 @@ static double *EST_su2;
 static double *EST_k0;
 static double *EST_k1;
 static double *EST_work_z;
-static double **EST_S; // TODO: remove
 
 // derivative macros
 #define WRAP(i) ((i + N) % N)
@@ -241,14 +239,6 @@ void est_compute_jacobian(double dt, double **J) {
   }
 }
 
-/* once the residual is computed, solve the linear system to compute the update
- * h and q */
-void est_update_hq(double dt) {
-  /* compute Jacobian and solve linear system */
-  est_compute_jacobian(dt, EST_J);
-  dsv(EST_J, EST_res, 2 * N);
-}
-
 /* rather than construct the full Jacobian, we use it's 2x2 block structure and
  * the (periodic) banded structure of the blocks to solve it in linear time. */
 void est_update_hq_fast(double dt) {
@@ -326,29 +316,12 @@ void est_update_hq_fast(double dt) {
            a[WRAP(i + 0)] * c_d0[i] + a[WRAP(i + 1)] * c_u1[i];
   }
 
-  // TODO: remove
-  // contstruct S
-  double **S = EST_S;
-  for (int i = 0; i < N; i++) {
-    for (int j = 0; j < N; j++) {
-      S[i][j] = 0.0;
-    }
-    S[i][WRAP(i - 2)] = s_l2[i];
-    S[i][WRAP(i - 1)] = s_l1[i];
-    S[i][WRAP(i + 0)] = s_d0[i];
-    S[i][WRAP(i + 1)] = s_u1[i];
-    S[i][WRAP(i + 2)] = s_u2[i];
-  }
-
   // [b, z] = S \ [b, z]
-  // double *k0 = EST_k0;
-  // double *k1 = EST_k1;
-  // cyclic_pentadiagonal_lu_factorise(s_l2, s_l1, s_d0, s_u1, s_u2, k0, k1, N);
-  // cyclic_pentadiagonal_lu_solve(s_l2, s_l1, s_d0, s_u1, s_u2, k0, k1, b, N);
-  // cyclic_pentadiagonal_lu_solve(s_l2, s_l1, s_d0, s_u1, s_u2, k0, k1, z, N);
-  dlu(S, N);
-  dlusv(S, b, N);
-  dlusv(S, z, N);
+  double *k0 = EST_k0;
+  double *k1 = EST_k1;
+  cyclic_pentadiagonal_lu_factorise(s_l2, s_l1, s_d0, s_u1, s_u2, k0, k1, N);
+  cyclic_pentadiagonal_lu_solve(s_l2, s_l1, s_d0, s_u1, s_u2, k0, k1, b, N);
+  cyclic_pentadiagonal_lu_solve(s_l2, s_l1, s_d0, s_u1, s_u2, k0, k1, z, N);
 
   // b = b - z
   for (int i = 0; i < N; i++) {
@@ -484,8 +457,6 @@ void est_set(void) {
   EST_k0 = malloc(N * sizeof(double));
   EST_k1 = malloc(N * sizeof(double));
   EST_work_z = malloc(N * sizeof(double));
-
-  EST_S = malloc_f2d(N, N);
 
   /* pick from the available ROMs */
   switch (RT) {

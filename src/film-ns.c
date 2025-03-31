@@ -148,18 +148,18 @@ int main(int argc, char const *argv[]) {
     ABORT("failed to read parameter file (returned %d)", err);
   }
 
+  /* sanity check the dimensionless numbers and Nusselt velocity */
+  fprintf(stderr, "Us: %.8lf\n", US);
+  fprintf(stderr, "Re: %.8lf\n", RE);
+  fprintf(stderr, "Ca: %.8lf\n", CA);
+  output_numbers();
+
   /* set up the model */
   init_domain();
   set_params();
   control_set(C_STRAT, C_ROM, C_M, C_P, C_W, C_ALPHA, C_MU, C_DEL,
               LX, N, RE, CA, THETA);
   control_output();
-
-  /* sanity check the dimensionless numbers and Nusselt velocity */
-  fprintf(stderr, "Us: %.8lf\n", US);
-  fprintf(stderr, "Re: %.8lf\n", RE);
-  fprintf(stderr, "Ca: %.8lf\n", CA);
-  output_numbers();
 
   run();
 
