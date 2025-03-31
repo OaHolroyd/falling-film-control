@@ -469,15 +469,11 @@ def main():
         s_u1 = np.zeros((N,))
         s_u2 = np.zeros((N,))
         for i in range(N):
-            s_l1[i] = (-0.5 / DX) * d1[i]
-            s_d0[i] = d0[i]
-            s_u1[i] = (0.5 / DX) * d1[i]
-
-            s_l2[i] += c_l2[i] * 0.5 * dt / DX
-            s_l1[i] += (c_l1[i] - c_l2[i]) * 0.5 * dt / DX
-            s_d0[i] += (c_d0[i] - c_l1[i]) * 0.5 * dt / DX
-            s_u1[i] += (c_u1[i] - c_d0[i]) * 0.5 * dt / DX
-            s_u2[i] += -c_u1[i] * 0.5 * dt / DX
+            s_l2[i] = c_l2[i] * 0.5 * dt / DX
+            s_l1[i] = (-0.5 / DX) * d1[i] + (c_l1[i] - c_l2[i]) * 0.5 * dt / DX
+            s_d0[i] = d0[i] + (c_d0[i] - c_l1[i]) * 0.5 * dt / DX
+            s_u1[i] = (0.5 / DX) * d1[i] + (c_u1[i] - c_d0[i]) * 0.5 * dt / DX
+            s_u2[i] = -c_u1[i] * 0.5 * dt / DX
 
         # z = C a
         z = np.zeros(a.shape)

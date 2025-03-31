@@ -429,3 +429,108 @@ int zlqr(COMPLEX **A, COMPLEX **B, double u, double v, int n, int m, COMPLEX **K
 
   return info;
 }
+
+
+/* ========================= */
+/*   PENTADIAGONAL SOLVERS   */
+/* ========================= */
+void pentadiagonal_lu_factorise(const double *a, double *b, double *c, double *d, double *e, int n) {
+  // compute the entries of L and U
+  d[0] /= c[0];
+  e[0] /= c[0];
+
+  c[1] -= b[1] * d[0];
+  d[1] = (d[1] - b[1] * e[0]) / c[1];
+  e[1] /= c[1];
+
+  for (int i = 2; i < n - 2; i++) {
+    b[i] -= a[i] * d[i - 2];
+    c[i] -= a[i] * e[i - 2] + b[i] * d[i - 1];
+    d[i] = (d[i] - b[i] * e[i - 1]) / c[i];
+    e[i] /= c[i];
+  }
+
+  b[n - 2] -= a[n - 2] * d[n - 4];
+  c[n - 2] -= a[n - 2] * e[n - 4] + b[n - 2] * d[n - 3];
+  d[n - 2] = (d[n - 2] - b[n - 2] * e[n - 3]) / c[n - 2];
+
+  b[n - 1] -= a[n - 1] * d[n - 3];
+  c[n - 1] -= a[n - 1] * e[n - 3] + b[n - 1] * d[n - 2];
+}
+
+void pentadiagonal_lu_solve(const double *al, const double *be, const double *ep, const double *ga, const double *de, double *f, int n) {
+  // solve Ly = f via forward substitution
+  double *y = f;
+  y[0] /= al[0];
+  y[1] = (y[1] - be[1] * y[0]) / al[1];
+  for (int i = 2; i < n; i++) {
+    y[i] = (y[i] - be[i] * y[i - 1] - ep[i] * y[i - 2]) / al[i];
+  }
+
+  // solve Ux = y via backward substitution
+  double *x = y;
+  x[n - 2] -= ga[n - 2] * x[n - 1];
+  for (int i = n - 3; i >= 0; i--) {
+    x[i] -= ga[i] * x[i + 1] + de[i] * x[i + 2];
+  }
+}
+
+void pentadiagonal_solve(double *a, double *b, double *c, double *d, double *e, double *f, int n) {
+  pentadiagonal_lu_factorise(a, b, c, d, e, n);
+  pentadiagonal_lu_solve(c, b, a, d, e, f, n);
+}
+
+void cyclic_pentadiagonal_lu_factorise(double *a, double *b, double *c, double *d, double *e, double *k0, double *k1, int n) {
+  // set K = [k0 | k1]
+  k0[0] = a[0];
+  for (int i = 1; i < n - 4; i++) {
+    k0[i] = 0.0;
+  }
+  k0[n - 4] = e[n - 4];
+  k0[n - 3] = d[n - 3];
+
+  k1[0] = b[0];
+  k1[1] = a[1];
+  for (int i = 2; i < n - 3; i++) {
+    k1[i] = 0.0;
+  }
+  k1[n - 3] = e[n - 3];
+
+  // compute the LU factorisation of E
+  pentadiagonal_lu_factorise(a, b, c, d, e, n - 2);
+
+  // solve E \ K
+  pentadiagonal_lu_solve(c, b, a, d, e, k0, n - 2);
+  pentadiagonal_lu_solve(c, b, a, d, e, k1, n - 2);
+
+  // compute the 2x2 matrix C - H E^-1 K for eqn 12
+  c[n - 2] -= e[n - 2] * k0[0] + a[n - 2] * k0[n - 4] + b[n - 2] * k0[n - 3];
+  d[n - 2] -= e[n - 2] * k1[0] + a[n - 2] * k1[n - 4] + b[n - 2] * k1[n - 3];
+  b[n - 1] -= d[n - 1] * k0[0] + e[n - 1] * k0[1] + a[n - 1] * k0[n - 3];
+  c[n - 1] -= d[n - 1] * k1[0] + e[n - 1] * k1[1] + a[n - 1] * k1[n - 3];
+}
+
+void cyclic_pentadiagonal_lu_solve(double *a, double *b, double *c, double *d, double *e, const double *k0, const double *k1, double *f, int n) {
+  // solve E \ f[:-2]
+  pentadiagonal_lu_solve(c, b, a, d, e, f, n - 2);
+
+  // compute rhs vector of eqn 12
+  f[n - 2] -= e[n - 2] * f[0] + a[n - 2] * f[n - 4] + b[n - 2] * f[n - 3];
+  f[n - 1] -= d[n - 1] * f[0] + e[n - 1] * f[1] + a[n - 1] * f[n - 3];
+
+  // solve for the final two elements of the solution vector (eq 12)
+  double det = c[n - 2] * c[n - 1] - d[n - 2] * b[n - 1];
+  double tmp = (c[n - 1] * f[n - 2] - d[n - 2] * f[n - 1]) / det;
+  f[n - 1] = (c[n - 2] * f[n - 1] - b[n - 1] * f[n - 2]) / det;
+  f[n - 2] = tmp;
+
+  // update the rhs vector for the final solve (eq 11)
+  for (int i = 0; i < n - 2; i++) {
+    f[i] -= k0[i] * f[n - 2] + k1[i] * f[n - 1];
+  }
+}
+
+void cyclic_pentadiagonal_solve(double *a, double *b, double *c, double *d, double *e, double *f, double *k0, double *k1, int n) {
+  cyclic_pentadiagonal_lu_factorise(a, b, c, d, e, k0, k1, n);
+  cyclic_pentadiagonal_lu_solve(a, b, c, d, e, k0, k1, f, n);
+}

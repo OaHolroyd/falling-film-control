@@ -22,6 +22,21 @@ static double **EST_L;  // estimator forcing matrix
 static double **EST_K;  // main forcing matrix
 static double **EST_C;  // observer matrix
 
+// storage for bands in the Jacobian
+static double *EST_cl2;
+static double *EST_cl1;
+static double *EST_cd0;
+static double *EST_cu1;
+static double *EST_sl2;
+static double *EST_sl1;
+static double *EST_sd0;
+static double *EST_su1;
+static double *EST_su2;
+static double *EST_k0;
+static double *EST_k1;
+static double *EST_work_z;
+static double **EST_S; // TODO: remove
+
 // derivative macros
 #define WRAP(i) ((i + N) % N)
 
@@ -226,11 +241,124 @@ void est_compute_jacobian(double dt, double **J) {
   }
 }
 
-/* once the residual is computed, solve the linear system to compute the update h and q */
+/* once the residual is computed, solve the linear system to compute the update
+ * h and q */
 void est_update_hq(double dt) {
   /* compute Jacobian and solve linear system */
   est_compute_jacobian(dt, EST_J);
   dsv(EST_J, EST_res, 2 * N);
+}
+
+/* rather than construct the full Jacobian, we use it's 2x2 block structure and
+ * the (periodic) banded structure of the blocks to solve it in linear time. */
+void est_update_hq_fast(double dt) {
+  const double BETA = 1.0 / tan(THETA);
+
+  // break J into blocks: J = [[A, B], [C, D]], noting that A = I
+  // break res into blocks: res = [a, b]
+  double *a = EST_res;
+  double *b = EST_res + N;
+
+  // construct the diagonals of C
+  double *c_l2 = EST_cl2;
+  double *c_l1 = EST_cl1;
+  double *c_d0 = EST_cd0;
+  double *c_u1 = EST_cu1;
+  for (int i = 0; i < N; i++) {
+    // face-centred variables
+    const double hf = D0R(EST_h, i);
+    const double hxf = D1R(EST_h, i);
+    const double hxxxf = D3R(EST_h, i);
+    const double qf = EST_q[i];
+    const double qxf = D1C(EST_q, i);
+    const double fff = D0R(EST_ff, i);
+
+    // interim constants
+    const double c0 = 0.25 * dt * fff * qf / hf / hf +
+                      9.0 / 7.0 * dt * qf * qf / hf / hf / hf * hxf +
+                      2.5 * dt * BETA / 3.0 / RE * hxf -
+                      17.0 * dt / 14.0 * qf / hf / hf * qxf -
+                      5.0 * dt / 6.0 / RE - 5.0 * dt / 12.0 / CA / RE * hxxxf -
+                      2.5 * dt / RE * qf / hf / hf / hf;
+    const double c1 =
+        -9.0 / 14.0 * dt * qf * qf / hf / hf + 5.0 * dt * BETA / 6.0 / RE * hf;
+    const double c3 = -5.0 * dt / 12.0 / CA / RE * hf;
+
+    // set diagonals
+    c_l2[i] = (-1.0 / DX / DX / DX) * c3;
+    c_l1[i] = (3.0 / DX / DX / DX) * c3 + (-1.0 / DX) * c1 + (0.5) * c0;
+    c_d0[i] = (-3.0 / DX / DX / DX) * c3 + (1.0 / DX) * c1 + (0.5) * c0;
+    c_u1[i] = (1.0 / DX / DX / DX) * c3;
+  } // i end
+
+  // construct the diagonals of the Schur complement, D - C A \ B = D - C B
+  double *s_l2 = EST_sl2;
+  double *s_l1 = EST_sl1;
+  double *s_d0 = EST_sd0;
+  double *s_u1 = EST_su1;
+  double *s_u2 = EST_su2;
+  for (int i = 0; i < N; i++) {
+    // face-centred variables
+    const double hf = D0R(EST_h, i);
+    const double hxf = D1R(EST_h, i);
+    const double qf = EST_q[i];
+    const double qxf = D1C(EST_q, i);
+    const double fff = D0R(EST_ff, i);
+
+    // interim constants
+    const double d0 =
+        1.0 - 0.25 * dt * fff / hf - 9.0 / 7.0 * dt * qf / hf / hf * hxf +
+        17.0 * dt / 14.0 / hf * qxf + 5.0 * dt / 4.0 / RE / hf / hf;
+    const double d1 = 17.0 * dt / 14.0 * qf / hf;
+
+    // set diagonals
+    s_l2[i] = c_l2[i] * 0.5 * dt / DX;
+    s_l1[i] = (-0.5 / DX) * d1 + (c_l1[i] - c_l2[i]) * 0.5 * dt / DX;
+    s_d0[i] = d0 + (c_d0[i] - c_l1[i]) * 0.5 * dt / DX;
+    s_u1[i] = (0.5 / DX) * d1 + (c_u1[i] - c_d0[i]) * 0.5 * dt / DX;
+    s_u2[i] = -c_u1[i] * 0.5 * dt / DX;
+  } // i end
+
+  // z = C a
+  double *z = EST_work_z;
+  for (int i = 0; i < N; i++) {
+    z[i] = a[WRAP(i - 2)] * c_l2[i] + a[WRAP(i - 1)] * c_l1[i] +
+           a[WRAP(i + 0)] * c_d0[i] + a[WRAP(i + 1)] * c_u1[i];
+  }
+
+  // TODO: remove
+  // contstruct S
+  double **S = EST_S;
+  for (int i = 0; i < N; i++) {
+    for (int j = 0; j < N; j++) {
+      S[i][j] = 0.0;
+    }
+    S[i][WRAP(i - 2)] = s_l2[i];
+    S[i][WRAP(i - 1)] = s_l1[i];
+    S[i][WRAP(i + 0)] = s_d0[i];
+    S[i][WRAP(i + 1)] = s_u1[i];
+    S[i][WRAP(i + 2)] = s_u2[i];
+  }
+
+  // [b, z] = S \ [b, z]
+  // double *k0 = EST_k0;
+  // double *k1 = EST_k1;
+  // cyclic_pentadiagonal_lu_factorise(s_l2, s_l1, s_d0, s_u1, s_u2, k0, k1, N);
+  // cyclic_pentadiagonal_lu_solve(s_l2, s_l1, s_d0, s_u1, s_u2, k0, k1, b, N);
+  // cyclic_pentadiagonal_lu_solve(s_l2, s_l1, s_d0, s_u1, s_u2, k0, k1, z, N);
+  dlu(S, N);
+  dlusv(S, b, N);
+  dlusv(S, z, N);
+
+  // b = b - z
+  for (int i = 0; i < N; i++) {
+    b[i] -= z[i];
+  }
+
+  // a = a - B b
+  for (int i = 0; i < N; i++) {
+    a[i] += (b[i] - b[WRAP(i + 1)]) * 0.5 * dt / DX;
+  }
 }
 
 /* step the estimator forward in time using observations of the real height H.
@@ -280,7 +408,7 @@ int est_update(double dt, double *H) {
     }
 
     /* compute Jacobian and solve linear system */
-    est_update_hq(dt);
+    est_update_hq_fast(dt);
 
     /* update variables */
     for (int i = 0; i < N; i++) {
@@ -343,7 +471,21 @@ void est_set(void) {
 
   // residual and Jacobian (for time stepping)
   EST_res = malloc(2 * N * sizeof(double));
-  EST_J = malloc_f2d(2 * N, 2 * N);
+
+  EST_cl2 = malloc(N * sizeof(double));
+  EST_cl1 = malloc(N * sizeof(double));
+  EST_cd0 = malloc(N * sizeof(double));
+  EST_cu1 = malloc(N * sizeof(double));
+  EST_sl2 = malloc(N * sizeof(double));
+  EST_sl1 = malloc(N * sizeof(double));
+  EST_sd0 = malloc(N * sizeof(double));
+  EST_su1 = malloc(N * sizeof(double));
+  EST_su2 = malloc(N * sizeof(double));
+  EST_k0 = malloc(N * sizeof(double));
+  EST_k1 = malloc(N * sizeof(double));
+  EST_work_z = malloc(N * sizeof(double));
+
+  EST_S = malloc_f2d(N, N);
 
   /* pick from the available ROMs */
   switch (RT) {
@@ -371,7 +513,19 @@ void est_free(void) {
   free_2d(EST_L);
   free_2d(EST_K);
   free_2d(EST_C);
-  free_2d(EST_J);
+
+  free(EST_cl2);
+  free(EST_cl1);
+  free(EST_cd0);
+  free(EST_cu1);
+  free(EST_sl2);
+  free(EST_sl1);
+  free(EST_sd0);
+  free(EST_su1);
+  free(EST_su2);
+  free(EST_k0);
+  free(EST_k1);
+  free(EST_work_z);
 }
 
 /* [REQUIRED] steps the system forward in time given the interfacial height */
