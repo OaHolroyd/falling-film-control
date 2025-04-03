@@ -433,7 +433,7 @@ void est_free(void) {
 }
 
 /* [REQUIRED] steps the system forward in time given the interfacial height */
-int est_step(double dt, double *h, int control_on) {
+int est_step(double dt, double *h, double *q, int control_on) {
   /* u = K * (h-1) */
   for (int i = 0; i < M; i++) {
     Amag[i] = 0.0;

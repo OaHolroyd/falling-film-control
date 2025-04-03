@@ -19,6 +19,7 @@
 
 
 double *H; // film height
+double *Q; // film flux
 face vector av[]; // acceleration vector field
 double G[2]; // gravity
 double Ccost; // control cost
@@ -102,8 +103,9 @@ void init_fluid() {
   /* compute heights */
   heights(f,hei);
 
-  /* allocate film */
+  /* allocate film and flux */
   H = malloc(N*sizeof(double));
+  Q = malloc(N*sizeof(double));
 
   Ccost = 0.0;
 }
@@ -165,6 +167,7 @@ int main(int argc, char const *argv[]) {
 
   control_free();
   free(H);
+  free(Q);
 
   return EXIT_SUCCESS;
 }
@@ -208,9 +211,16 @@ event controls(i++) {
   /* compute film height */
   for (int i = 0; i < N; i++) {
     H[i] = interfacial_height(ITOX(i));
+
+    // compute the flux exactly or using the flux approximation
+    if (C_EXACT_FLUX) {
+      Q[i] = flux(ITOX(i), H[i], u.x, f);
+    } else {
+      Q[i] = 2.0 / 3.0 * H[i];
+    }
   } // i end
 
-  control_step(dt, H, t >= C_START);
+  control_step(dt, H, Q, t >= C_START);
   if (t >= C_START) {
     Ccost += dt * control_cost(H);
 

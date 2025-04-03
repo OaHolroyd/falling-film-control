@@ -70,7 +70,7 @@ void lqr_set(void) {
 void lqr_free(void) { free(LQR_K); }
 
 /* [REQUIRED] steps the system forward in time given the interfacial height */
-int lqr_step(double dt, double *h, int control_on) {
+int lqr_step(double dt, double *h, double *q, int control_on) {
   if (!control_on) {
     return 0;
   }
@@ -83,9 +83,8 @@ int lqr_step(double dt, double *h, int control_on) {
     } // j end
 
     if (RT == WR) {
-      // use the flux approximation for q
       for (int j = 0; j < N; j++) {
-        Amag[i] += LQR_K[i][j + N] * 2.0 / 3.0 * (interp(ITOX(j), h) - 1.0);
+        Amag[i] += LQR_K[i][j + N] * (interp(ITOX(j), q) - 2.0 / 3.0);
       } // j end
     }
   } // i end

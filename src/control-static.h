@@ -681,7 +681,7 @@ void static_free(void) {
 }
 
 /* [REQUIRED] steps the system forward in time given the interfacial height */
-int static_step(double dt, double *h, int control_on) {
+int static_step(double dt, double *h, double *q, int control_on) {
   if (!control_on) {
     return 0;
   }

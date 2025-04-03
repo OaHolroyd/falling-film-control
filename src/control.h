@@ -31,7 +31,7 @@ extern void (*control_matrix)(double **CM);
 
 /* steps the specific control system forward in time given the interfacial
    height */
-extern int (*control_step)(double dt, double *h, int control_on);
+extern int (*control_step)(double dt, double *h, double *q, int control_on);
 
 /* returns the estimator as a function of x */
 extern double (*estimator)(double x);
