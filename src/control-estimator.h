@@ -88,8 +88,8 @@ void est_forcing_matrix(double **L) {
   }
 
   /* compute L using LQR */
-  double u = 1.0; // cost of estimator error
-  double v = 0.1; // cost of control effort (don't care)
+  double u = 10 * DX; // cost of estimator error (should scale with DX)
+  double v = 0.1; // cost of control (shouldn't be too small or numerics become hard)
   dlqr(At, Ct, u, v, 2 * N, P, Lt);
 
   // transpose Lt to get L
@@ -170,73 +170,6 @@ double est_compute_residual(double dt, double *res) {
   }
 
   return res_norm_2;
-}
-
-/* compute the Jacobian matrix for solving the WR implicit time-stepping problem
- */
-void est_compute_jacobian(double dt, double **J) {
-  const double BETA = 1.0 / tan(THETA);
-
-  // TODO: use memset
-  memset(J[0], 0, 4 * N * N * sizeof(double));
-
-  // dFh/dh (top left)
-  for (int i = 0; i < N; i++) {
-    J[i][i] = 1.0;
-  }
-
-  // dFh/dq (top right)
-  for (int i = 0; i < N; i++) {
-    const double c0 = 0.5 * dt;
-    J[i][N + WRAP(i + 0)] = (-1.0 / DX) * c0;
-    J[i][N + WRAP(i + 1)] = (1.0 / DX) * c0;
-  }
-
-  // dFq/dh (bottom left)
-  for (int i = 0; i < N; i++) {
-    // face-centred variables
-    const double hf = D0R(EST_h, i);
-    const double hxf = D1R(EST_h, i);
-    const double hxxxf = D3R(EST_h, i);
-    const double qf = EST_q[i];
-    const double qxf = D1C(EST_q, i);
-    const double fff = D0R(EST_ff, i);
-
-    const double c0 = 0.25 * dt * fff * qf / hf / hf +
-                      9.0 / 7.0 * dt * qf * qf / hf / hf / hf * hxf +
-                      2.5 * dt * BETA / 3.0 / RE * hxf -
-                      17.0 * dt / 14.0 * qf / hf / hf * qxf -
-                      5.0 * dt / 6.0 / RE - 5.0 * dt / 12.0 / CA / RE * hxxxf -
-                      2.5 * dt / RE * qf / hf / hf / hf;
-    const double c1 =
-        -9.0 / 14.0 * dt * qf * qf / hf / hf + 5.0 * dt * BETA / 6.0 / RE * hf;
-    const double c3 = -5.0 * dt / 12.0 / CA / RE * hf;
-    J[N + i][WRAP(i - 2)] = (-1.0 / DX / DX / DX) * c3;
-    J[N + i][WRAP(i - 1)] =
-        (3.0 / DX / DX / DX) * c3 + (-1.0 / DX) * c1 + (0.5) * c0;
-    J[N + i][WRAP(i + 0)] =
-        (-3.0 / DX / DX / DX) * c3 + (1.0 / DX) * c1 + (0.5) * c0;
-    J[N + i][WRAP(i + 1)] = (1.0 / DX / DX / DX) * c3;
-  }
-
-  // dFq/dq (bottom right)
-  for (int i = 0; i < N; i++) {
-    // face-centred variables
-    const double hf = D0R(EST_h, i);
-    const double hxf = D1R(EST_h, i);
-    const double qf = EST_q[i];
-    const double qxf = D1C(EST_q, i);
-    const double fff = D0R(EST_ff, i);
-
-    const double c0 =
-        1.0 - 0.25 * dt * fff / hf - 9.0 / 7.0 * dt * qf / hf / hf * hxf +
-        17.0 * dt / 14.0 / hf * qxf + 5.0 * dt / 4.0 / RE / hf / hf;
-    const double c1 = 17.0 * dt / 14.0 * qf / hf;
-
-    J[N + i][N + WRAP(i - 1)] = (-0.5 / DX) * c1;
-    J[N + i][N + WRAP(i + 0)] = c0;
-    J[N + i][N + WRAP(i + 1)] = (0.5 / DX) * c1;
-  }
 }
 
 /* rather than construct the full Jacobian, we use it's 2x2 block structure and

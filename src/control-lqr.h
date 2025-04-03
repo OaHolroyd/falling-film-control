@@ -40,19 +40,10 @@ void lqr_wr_compute_K(double **lqr_k) {
   wr_actuator(B);
 
   /* full control matrix */
-  double **K = malloc_f2d(M, 2 * N);
-  dlqr(A, B, DX * MU, 1 - MU, 2 * N, M, K);
-
-  /* apply flux approximation */
-  for (int i = 0; i < M; i++) {
-    for (int j = 0; j < N; j++) {
-      lqr_k[i][j] = K[i][j] + (2 / 3.0) * K[i][j + N]; // TODO: is this correct
-    } // j end
-  } // i end
+  dlqr(A, B, DX * MU, 1 - MU, 2 * N, M, lqr_k);
 
   free_2d(A);
   free_2d(B);
-  free_2d(K);
 }
 
 /* ========================================================================== */
@@ -60,14 +51,14 @@ void lqr_wr_compute_K(double **lqr_k) {
 /* ========================================================================== */
 /* [REQUIRED] internal setup */
 void lqr_set(void) {
-  LQR_K = malloc_f2d(M, N);
-
   /* pick from the available ROMs */
   switch (RT) {
   case BENNEY:
+    LQR_K = malloc_f2d(M, N);
     lqr_benney_compute_K(LQR_K);
     break;
   case WR:
+    LQR_K = malloc_f2d(M, 2 * N);
     lqr_wr_compute_K(LQR_K);
     break;
   default:
@@ -90,6 +81,13 @@ int lqr_step(double dt, double *h, int control_on) {
     for (int j = 0; j < N; j++) {
       Amag[i] += LQR_K[i][j] * (interp(ITOX(j), h) - 1.0);
     } // j end
+
+    if (RT == WR) {
+      // use the flux approximation for q
+      for (int j = 0; j < N; j++) {
+        Amag[i] += LQR_K[i][j + N] * 2.0 / 3.0 * (interp(ITOX(j), h) - 1.0);
+      } // j end
+    }
   } // i end
 
   return 0;
@@ -99,7 +97,18 @@ int lqr_step(double dt, double *h, int control_on) {
 double lqr_estimator(double x) { return 0.0; }
 
 /* [REQUIRED] outputs the internal matrices */
-void lqr_output(void) { output_d2d("out/K.dat", LQR_K, M, N); }
+void lqr_output(void) {
+  switch (RT) {
+  case BENNEY:
+    output_d2d("out/K.dat", LQR_K, M, N);
+    break;
+  case WR:
+    output_d2d("out/K.dat", LQR_K, M, 2 * N);
+    break;
+  default:
+    ABORT("invalid ROM type %d", RT);
+  }
+}
 
 /* [REQUIRED] generates the control matrix CM = F*K */
 void lqr_matrix(double **CM) {
