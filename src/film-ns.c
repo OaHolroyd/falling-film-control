@@ -159,8 +159,20 @@ int main(int argc, char const *argv[]) {
   /* set up the model */
   init_domain();
   set_params();
-  control_set(C_STRAT, C_ROM, C_M, C_P, C_W, C_ALPHA, C_MU, C_DEL,
-              LX, N, RE, CA, THETA);
+
+  if (0) {
+    int nn[11] = {128, 181, 256, 362, 512, 724, 1024, 1448, 2048, 2896, 4096};
+    for (int i = 0; i < 11; i++) {
+      fprintf(stderr, "N: %d\n", nn[i]);
+      control_set(C_STRAT, C_ROM, C_M, C_P, C_W, C_ALPHA, C_MU, C_DEL, LX, nn[i], RE, CA, THETA);
+      control_output();
+      control_free();
+    } // i end
+
+    return 0;
+  }
+
+  control_set(C_STRAT, C_ROM, C_M, C_P, C_W, C_ALPHA, C_MU, C_DEL, LX, N, RE, CA, THETA);
   control_output();
 
   run();

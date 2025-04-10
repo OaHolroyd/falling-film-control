@@ -88,8 +88,8 @@ void est_forcing_matrix(double **L) {
   }
 
   /* compute L using LQR */
-  double u = 10 * DX; // cost of estimator error (should scale with DX)
-  double v = 0.1; // cost of control (shouldn't be too small or numerics become hard)
+  double u = 1.0 / sqrt(DX); // cost of estimator error
+  double v = 1.0 * sqrt(DX); // cost of control (should scale with DX)
   dlqr(At, Ct, u, v, 2 * N, P, Lt);
 
   // transpose Lt to get L
@@ -455,7 +455,9 @@ double est_estimator(double x) { return interp(x, EST_h); }
 
 /* [REQUIRED] outputs the internal matrices */
 void est_output(void) {
-  output_d2d("out/L.dat", EST_L, 2 * N, P);
+  char fname[128];
+  sprintf(fname, "out/L_%d.dat", N);
+  output_d2d(fname, EST_L, 2 * N, P);
   output_d2d("out/K.dat", EST_K, M, 2 * N);
 }
 
