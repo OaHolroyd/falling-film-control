@@ -24,9 +24,9 @@
 /* ========================================================================== */
 /*   DIMENSIONLESS NUMBERS                                                    */
 /* ========================================================================== */
-#define US ((RHO_L*GRAV*sin(THETA)*H0*H0)/(2*MU_L)) // Nusselt surface velocity
-#define RE ((RHO_L*US*H0)/MU_L) // Reynolds number
-#define CA ((MU_L*US)/GAMMA) // capillary number
+// #define US ((RHO_L*GRAV*sin(THETA)*H0*H0)/(2*MU_L)) // Nusselt surface velocity
+// #define RE ((RHO_L*US*H0)/MU_L) // Reynolds number
+// #define CA ((MU_L*US)/GAMMA) // capillary number
 
 
 /* ========================================================================== */
@@ -48,12 +48,10 @@ double TMAX = 1.0; // final time
 double T0 = 0.0; // initial time (0 or an integer corresponding to a dump file)
 
 /* Physical parameters */
-double RHO_L = 1000.0;
-double RHO_G = 1.0;  // densities
-double MU_L = 1.0e-3;
-double MU_G = 1.0e-5; // (dynamic) viscosities
-double GAMMA = 0.1;  // surface tension
-double GRAV = 10;  // acceleration due to gravity
+double RE = 10.0; // Reynolds number
+double CA = 0.01; // capillary number
+double RHO_RATIO = 1000.0;  // density ratio (rho_l/rho_g)
+double MU_RATIO = 1.0e-5; // (dynamic) viscosity ratio (mu_l/mu_g)
 
 /* Solver parameters */
 int LEVEL = 8; // maximum refinement level
@@ -157,32 +155,24 @@ int read_params(const char *fname) {
     }
 
     else if (jsoneq(s, &t[i], "PHYSICAL") == 0) {
-      n = 6;
+      n = 4;
       m = n;
       for (int j = i+2; j < i+2+2*m; j++) {
-        if (jsoneq(s, &t[j], "rho_l") == 0) {
+        if (jsoneq(s, &t[j], "rho_ratio") == 0) {
           j++;
-          RHO_L = strtod(s+t[j].start, NULL);
+          RHO_RATIO = strtod(s+t[j].start, NULL);
           n--;
-        } else if (jsoneq(s, &t[j], "rho_g") == 0) {
+        } else if (jsoneq(s, &t[j], "mu_ratio") == 0) {
           j++;
-          RHO_G = strtod(s+t[j].start, NULL);
+          MU_RATIO = strtod(s+t[j].start, NULL);
           n--;
-        } else if (jsoneq(s, &t[j], "mu_l") == 0) {
+        } else if (jsoneq(s, &t[j], "Re") == 0) {
           j++;
-          MU_L = strtod(s+t[j].start, NULL);
+          RE = strtod(s+t[j].start, NULL);
           n--;
-        } else if (jsoneq(s, &t[j], "mu_g") == 0) {
+        } else if (jsoneq(s, &t[j], "Ca") == 0) {
           j++;
-          MU_G = strtod(s+t[j].start, NULL);
-          n--;
-        } else if (jsoneq(s, &t[j], "gamma") == 0) {
-          j++;
-          GAMMA = strtod(s+t[j].start, NULL);
-          n--;
-        } else if (jsoneq(s, &t[j], "grav") == 0) {
-          j++;
-          GRAV = strtod(s+t[j].start, NULL);
+          CA = strtod(s+t[j].start, NULL);
           n--;
         } else {
           fprintf(stderr, "bad token\n");

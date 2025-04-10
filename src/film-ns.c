@@ -60,9 +60,9 @@ void set_params() {
 
   /* physical params */
   rho1 = RE;
-  rho2 = rho1 * RHO_G/RHO_L;
+  rho2 = rho1 / RHO_RATIO;
   mu1 = 1.0;
-  mu2 = mu1 * MU_G/MU_L;
+  mu2 = mu1 / MU_RATIO;
   f.sigma = 1.0/CA;
 
   /* acceleration and gravity */
@@ -151,7 +151,7 @@ int main(int argc, char const *argv[]) {
   }
 
   /* sanity check the dimensionless numbers and Nusselt velocity */
-  fprintf(stderr, "Us: %.8lf\n", US);
+//  fprintf(stderr, "Us: %.8lf\n", US);
   fprintf(stderr, "Re: %.8lf\n", RE);
   fprintf(stderr, "Ca: %.8lf\n", CA);
   output_numbers();
