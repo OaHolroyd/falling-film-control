@@ -455,9 +455,13 @@ double est_estimator(double x) { return interp(x, EST_h); }
 
 /* [REQUIRED] outputs the internal matrices */
 void est_output(void) {
-  char fname[128];
-  sprintf(fname, "out/L_%d.dat", N);
-  output_d2d(fname, EST_L, 2 * N, P);
+  // char fname[128];
+  // sprintf(fname, "out/L_%d.dat", N);
+  // output_d2d(fname, EST_L, 2 * N, P);
+  // sprintf(fname, "out/K_%d.dat", N);
+  // output_d2d(fname, EST_K, M, 2 * N);
+
+  output_d2d("out/L.dat", EST_L, 2 * N, P);
   output_d2d("out/K.dat", EST_K, M, 2 * N);
 }
 
