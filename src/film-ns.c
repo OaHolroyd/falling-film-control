@@ -193,6 +193,7 @@ event init(i=0) {
   /* use solid rather than mask */
   solid(cs, fs, LY + y);
   init_fluid();
+  set_params();
 }
 
 /* static grid refinement */
