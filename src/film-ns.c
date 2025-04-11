@@ -9,6 +9,7 @@
 #include "params.h"
 #include "b-utils.h"
 #include "control.h"
+#include "wr.h"
 
 /* Basilisk headers */
 #include "navier-stokes/centered.h"
@@ -88,16 +89,77 @@ void init_fluid() {
     }
 
     /* initialise with Nusselt pressure */
+    // TODO: this probably doesn't matter
     foreach () {
       p[] = f[]*2*cos(THETA)/sin(THETA)*(1-y);
     }
 
     boundary({u,f,p});
   } else {
-    /* restore from a dump file */
-    char dump_file[32];
-    sprintf(dump_file, "dump/dump-%04d", (int)T0);
-    restore(file = dump_file);
+//    /* restore from a dump file */
+//    char dump_file[32];
+//    sprintf(dump_file, "dump/dump-%04d", (int)T0);
+//    restore(file = dump_file);
+
+    // run to T0 using WR and then use this as an initial condition for NS
+    struct wr_data data = {
+        .n = N,
+        .dx = DX,
+        .theta = THETA,
+        .re = RE,
+        .ca = CA,
+        .h = malloc(N * sizeof(double)),
+        .q = malloc(N * sizeof(double)),
+        .h0 = malloc(N * sizeof(double)),
+        .q0 = malloc(N * sizeof(double)),
+        .fa = malloc(N * sizeof(double)),
+        .f = malloc(2 * N*sizeof(double)),
+        .work = malloc(14 * N * sizeof(double)),
+    };
+
+    // set up the initial conditions
+    for (int ii = 0; ii < N; ii++) {
+      double xx = DX * (ii + 0.5);
+      data.h[ii] = 1.0+0.05*sin(1.0*(2.0/(LX))*M_PI*(xx+10.0));
+      data.q[ii] = 2.0 / 3.0;
+      data.h0[ii] = data.h[ii];
+      data.q0[ii] = data.q[ii];
+      data.fa[ii] = 0.0;
+      data.f[ii] = 0.0;
+      data.f[ii + N] = 0.0;
+    } // i end
+
+    // run until T0
+    const double dt_wr = 0.1 * DX; // TODO: this should depend on DX, RE, CA etc.
+    const int nstep_wr = (int)(T0 / dt_wr);
+    fprintf(stderr, "WARM UP (to t = %lf)\n", T0);
+    fprintf(stderr, "  model t        dt      iter\n");
+    for (int ii = 0; ii < nstep_wr; ii++) {
+      wr_step(&data, dt_wr, 1.0e-6, 100);
+      fprintf(stderr, "\r %8.2lf  %8.5lf  %8d", ii * dt_wr, dt_wr, ii);
+      fflush(stderr);
+    }
+    fprintf(stderr, "\n");
+
+    // set NS initial conditions
+    fraction(f, data.h[XTOI(x)]-y);
+
+    /* initialise with Nusselt velocity */
+    foreach () {
+      double h = data.h[XTOI(x)];
+      double q = data.q[XTOI(x)];
+      u.x[] = (1.0-f[]) + f[] * (1.5 * q / h * (y/h) * (2.0 - (y/h)));
+      u.y[] = 0.0;
+    }
+
+    // free memory
+    free(data.h);
+    free(data.q);
+    free(data.h0);
+    free(data.q0);
+    free(data.fa);
+    free(data.f);
+    free(data.work);
   }
 
   /* compute heights */
@@ -247,6 +309,7 @@ event output_log(i=0; t<=TMAX; i+=LOG_STEP) {
   /* print column headers */
   static int first_log = 1;
   if (first_log) {
+    fprintf(stderr, "RUN (to t = %lf)\n", TMAX);
     fprintf(stderr, "  model t        dt      iter         N    elap t      cost\n");
     first_log = 0;
   }
