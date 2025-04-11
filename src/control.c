@@ -56,7 +56,7 @@ double control_cost(double *h) {
 
     /* control cost */
     double ai = control(xi);
-    cost += (1 - MU) * ai * ai;
+    cost += ai * ai;
 
     /* interfacial cost */
     cost += MU * (h[i] - 1) * (h[i] - 1);
