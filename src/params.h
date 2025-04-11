@@ -40,16 +40,15 @@
 /*  This is the scaling used in Thompson 2016 and Cimpeanu 2021.              */
 
 /* Domain parameters */
-double H0 = 100.0e-6; // film thickness
 double LX = 64.0; // dimensionless domain length (Lx/h0)
 double LY = 8.0; // dimensionless domain height (Ly/h0)
-double THETA = 1.0; // inclination angle
 double TMAX = 1.0; // final time
 double T0 = 0.0; // initial time (0 or an integer corresponding to a dump file)
 
 /* Physical parameters */
 double RE = 10.0; // Reynolds number
 double CA = 0.01; // capillary number
+double THETA = 1.0; // inclination angle
 double RHO_RATIO = 1000.0;  // density ratio (rho_l/rho_g)
 double MU_RATIO = 1.0e-5; // (dynamic) viscosity ratio (mu_l/mu_g)
 
@@ -118,24 +117,16 @@ int read_params(const char *fname) {
   for (int i = 0; i < r-1; i++) {
     /* read the parameters in chunks */
     if (jsoneq(s, &t[i], "DOMAIN") == 0) {
-      n = 6;
+      n = 4;
       m = n;
       for (int j = i+2; j < i+2+2*m; j++) {
-        if (jsoneq(s, &t[j], "h0") == 0) {
-          j++;
-          H0 = strtod(s+t[j].start, NULL);
-          n--;
-        } else if (jsoneq(s, &t[j], "Lx") == 0) {
+        if (jsoneq(s, &t[j], "Lx") == 0) {
           j++;
           LX = strtod(s+t[j].start, NULL);
           n--;
         } else if (jsoneq(s, &t[j], "Ly") == 0) {
           j++;
           LY = strtod(s+t[j].start, NULL);
-          n--;
-        } else if (jsoneq(s, &t[j], "theta") == 0) {
-          j++;
-          THETA = strtod(s+t[j].start, NULL);
           n--;
         } else if (jsoneq(s, &t[j], "tmax") == 0) {
           j++;
@@ -155,24 +146,28 @@ int read_params(const char *fname) {
     }
 
     else if (jsoneq(s, &t[i], "PHYSICAL") == 0) {
-      n = 4;
+      n = 5;
       m = n;
       for (int j = i+2; j < i+2+2*m; j++) {
-        if (jsoneq(s, &t[j], "rho_ratio") == 0) {
-          j++;
-          RHO_RATIO = strtod(s+t[j].start, NULL);
-          n--;
-        } else if (jsoneq(s, &t[j], "mu_ratio") == 0) {
-          j++;
-          MU_RATIO = strtod(s+t[j].start, NULL);
-          n--;
-        } else if (jsoneq(s, &t[j], "Re") == 0) {
+        if (jsoneq(s, &t[j], "Re") == 0) {
           j++;
           RE = strtod(s+t[j].start, NULL);
           n--;
         } else if (jsoneq(s, &t[j], "Ca") == 0) {
           j++;
           CA = strtod(s+t[j].start, NULL);
+          n--;
+        } else if (jsoneq(s, &t[j], "theta") == 0) {
+          j++;
+          THETA = strtod(s+t[j].start, NULL);
+          n--;
+        } else if (jsoneq(s, &t[j], "rho_ratio") == 0) {
+          j++;
+          RHO_RATIO = strtod(s+t[j].start, NULL);
+          n--;
+        } else if (jsoneq(s, &t[j], "mu_ratio") == 0) {
+          j++;
+          MU_RATIO = strtod(s+t[j].start, NULL);
           n--;
         } else {
           fprintf(stderr, "bad token\n");

@@ -40,7 +40,7 @@ void lqr_wr_compute_K(double **lqr_k) {
   wr_actuator(B);
 
   /* full control matrix */
-  dlqr(A, B, sqrt(DX) * MU, (1 - MU) / sqrt(DX), 2 * N, M, lqr_k);
+  dlqr(A, B, sqrt(DX) * MU, 1.0 / sqrt(DX), 2 * N, M, lqr_k);
 
   free_2d(A);
   free_2d(B);

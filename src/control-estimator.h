@@ -119,7 +119,7 @@ void est_gain_matrix(double **K) {
   wr_actuator(B);
 
   /* full control matrix */
-  dlqr(A, B, sqrt(DX) * MU, (1 - MU) / sqrt(DX), 2 * N, M, K);
+  dlqr(A, B, sqrt(DX) * MU, 1.0 / sqrt(DX), 2 * N, M, K);
 
   free_2d(A);
   free_2d(B);

@@ -37,44 +37,38 @@ The code outputs 0D, 1D, and 2D data under the directory 'out', and full variabl
 ## Visualisation
 The output data is stored as plain text, timestamped on the first line and subsequently in a format easily read by [gnuplot](http://www.gnuplot.info/). The basic visualisation script [gen_plots.py](gen_plots.py) is included for quick analysis.
 
-## Restarting
-Basilisk includes the option to 'dump' the entire simulation to a single file, which can then be restored to continue the simulation from the output time. By default this occurs every 100 time-units. Since stable travelling waves take a long time to develop for most parameter regimes it is *strongly suggested* that a single run without controls is performed to generate a dump-file with a travelling wave before loading it and beginning controls after this point. To do this set the value `"t0"` to correspond to the file at dump/dump-\<time\>.
-
-
 # Input Parameters
-All of the parameters are either in SI units or dimensionless. The keys in [params.json](params.json) are hopefully fairly self-explanatory. However, below is a full description.
+All of the parameters are dimensionless. The keys in [params.json](params.json) are hopefully fairly self-explanatory. However, below is a full description.
 
 ### Domain parameters
-* **`h0`** the thickness of a uniform film - m
 * **`Lx`** the ratio of film thickness to domain length
 * **`Ly`** the ratio of film thickness to domain height (including air layer)
-* **`theta`** the angle of the plate from horizontal - rad
-* **`tmax`** the simulation end time - dimensionless
-* **`t0`** the start time (either 0 or matching a [dump file](#restarting)) - dimensionless
+* **`tmax`** the simulation end time
+* **`t0`** the quick-start time (uses the final time for a very fast WR IVP as the initial condition).
 
 ### Physical parameters
-* **`rho_l`** fluid-phase density - kg m^-3
-* **`rho_g`** gas-phase density - kg m^-3
-* **`mu_l`** fluid-phase dynamic viscosity - kg m^-1 s^-1
-* **`mu_g`** gas-phase dynamic viscosity - kg m^-1 s^-1
-* **`gamma`** surface tension - N m^-1
-* **`grav`** gravitational acceleration - m s^-2
+* **`Re`** Reynolds' number
+* **`Ca`** capillary number
+* **`theta`** the angle of the plate from horizontal
+* **`rho_ratio`** lower/upper fluid density ratio (should be large ~ 1000)
+* **`mu_ratio`** lower/upper dynamic viscosity ratio (should be large ~ 100)
 
 ### Solver parameters
 * **`level`** the grid refinement level (resulting in 2^level gridcells)
-* **`dtout`** output timestep - dimensionless
+* **`dtout`** output timestep
 * **`output`** output dimension (0, 1 or 2 dimensional data)
 
 ### Control parameters
-* **`M`** number of actuators - integer
-* **`P`** number of observers - integer
-* **`start`** control start time - dimensionless
-* **`width`** actuator and observer width parameter. As this approaches 0 the actuators and observers tend towards Dirac delta distributions. If this is too small for the grid to resolve this may cause unexpected results. - dimensionless
-* **`alpha`** control strength parameter - dimensionless
-* **`del`** actuator/actuator upstream offset - dimensionless
-* **`mu`** interface/control cost weighting - dimensionless
+* **`M`** number of actuators
+* **`P`** number of observers
+* **`start`** control start time
+* **`width`** actuator and observer width parameter. As this approaches 0 the actuators and observers tend towards Dirac delta distributions. If this is too small for the grid to resolve this may cause unexpected results.
+* **`alpha`** control strength parameter
+* **`del`** actuator/observer upstream offset
+* **`mu`** interface/control cost weighting (larger means interfacial deviation is more important)
 * **`rom`** the reduced order model to use for the control strategy - "benney" or "wr"
-* **`strategy`** the type of control to use - "pair", "static" or "dynamic"
+* **`strategy`** the type of control to use - "pair", "static", "dynamic", or "estimator"
+* **`exact_flux`** whether to use the exact flux or use q=2/3 * h.
 
 
 # Mathematical Background
