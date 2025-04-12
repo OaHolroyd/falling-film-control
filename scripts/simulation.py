@@ -12,6 +12,11 @@ from scripts.config import Config
 EXE = "./film-ns"
 
 
+# define a custom error for when a simulation cannot be run
+class SimulationError(Exception):
+    pass
+
+
 def rm_tree(path: Path):
     """
     Recursively remove a directory and all its contents.
@@ -69,6 +74,29 @@ class Simulation:
         self.output_dir.mkdir(parents=True, exist_ok=True)
         self.plots_dir.mkdir(parents=True, exist_ok=True)
 
+    @property
+    def has_completed(self):
+        """
+        Check if the simulation has completed successfully.
+        """
+        # Find out how many outputs there were
+        try:
+            data = np.loadtxt(self.output_dir / 'ns-0.dat')
+        except FileNotFoundError:
+            # No output file found, cannot have started
+            return False
+
+        if len(data.shape) < 2:
+            # Output file is empty or has only one line
+            return False
+
+        nout = data.shape[0]
+
+        # Check it this is as many as there should be
+        nsteps = np.floor(self.config.tmax / self.config.dtout) + 1
+
+        return nout == nsteps
+
     def dump_config(self):
         """
         Dump the configuration to a JSON file.
@@ -96,23 +124,19 @@ class Simulation:
 
         # check if the output directory is empty
         if len(list(self.output_dir.iterdir())) > 0:
-            print("Output directory is not empty. Use force=True to overwrite.")
-            return
+            raise SimulationError("Output directory is not empty. Use force=True to overwrite.")
 
         # check if the plots directory is empty
         if len(list(self.plots_dir.iterdir())) > 0:
-            print("Plots directory is not empty. Use force=True to overwrite.")
-            return
+            raise SimulationError("Plots directory is not empty. Use force=True to overwrite.")
 
         # check if the params file exists
         if self.params.exists():
-            print("Params file already exists. Use force=True to overwrite.")
-            return
+            raise SimulationError("Params file already exists. Use force=True to overwrite.")
 
         # check if the output file exists
         if self.output.exists():
-            print("Output file already exists. Use force=True to overwrite.")
-            return
+            raise SimulationError("Output file already exists. Use force=True to overwrite.")
 
         # dump the configuration to a JSON file to be read by the executable
         self.dump_config()
@@ -280,13 +304,7 @@ class Simulation:
                 quality=99
             )
 
-    def plot_2d(self):
-        """
-        Plot the results of the simulation in 2D (ie full-fields plots).
-        """
-        raise NotImplementedError("2D plotting not implemented yet.")
-
-    def plot(self, dim: int = 1):
+    def plot(self):
         """
         Plot the results of the simulation.
         """
@@ -295,9 +313,7 @@ class Simulation:
             print("Output directory is empty. Run the simulation first.")
             return
 
-        if dim >= 0:
+        if self.config.output_dim >= 0:
             self.plot_0d()
-        if dim >= 1:
+        if self.config.output_dim >= 1:
             self.plot_1d()
-        if dim >= 2:
-            self.plot_2d()
