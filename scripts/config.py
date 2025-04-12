@@ -1,5 +1,6 @@
 import json
 from pathlib import Path
+from typing import Self
 
 import numpy as np
 
@@ -242,3 +243,9 @@ class Config:
         with open(filename, "r") as fp:
             config = json.load(fp)
         return cls.from_dict(config)
+
+    def copy(self) -> Self:
+        """
+        Return a copy of the configuration.
+        """
+        return Config(**self.to_dict(flat=True))

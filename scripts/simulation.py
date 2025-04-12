@@ -234,6 +234,7 @@ class Simulation:
 
         hplot, = ax.plot(x, x, label="h - 1")
         fplot, = ax.plot(x, x, label="f")
+        zplot = None
         if self.config.uses_estimator:
             zplot, = ax.plot(x, x, label="z - 1")
         ax.legend(loc="lower right")
@@ -251,7 +252,7 @@ class Simulation:
             ax.set_title(f'time {t[i]} [step {i}]')
             hplot.set_ydata(h)
             fplot.set_ydata(f)
-            if self.config.uses_estimator:
+            if zplot is not None:
                 zplot.set_ydata(z)
 
             fig.savefig(interface_dir / f'interface-{i:010d}.png')
