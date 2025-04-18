@@ -171,6 +171,7 @@ class Simulation:
 
         ax.set_xlabel("t")
         ax.legend()
+        ax.set_title(f"Re = {self.config.re}, Ca = {self.config.ca}")
         fig.savefig(self.plots_dir / "lines.png")
 
         if self.config.strategy == "estimator":
@@ -184,6 +185,7 @@ class Simulation:
             ax[0].plot(x, lh, label="L0 (interface)")
             ax[0].set_xlabel("x")
             ax[0].set_ylabel("L0")
+            ax[0].set_title(f"Re = {self.config.re}, Ca = {self.config.ca}")
             ax[0].legend()
 
             ax[1].plot(x, lq, label="L0 (flux)")
@@ -205,6 +207,7 @@ class Simulation:
             ax[0].plot(x, kh, label="K0 (interface)")
             ax[0].set_xlabel("x")
             ax[0].set_ylabel("K0")
+            ax[0].set_title(f"Re = {self.config.re}, Ca = {self.config.ca}")
             ax[0].legend()
 
             ax[1].plot(x, kq, label="K0 (flux)")

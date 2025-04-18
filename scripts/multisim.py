@@ -145,8 +145,8 @@ class MultiSim:
 
     def run_all(self, timeout: int = 21600, plot: bool = True):
         # try and balance each proc's expected total runtime
-        indices = np.arange(len(self.configs))
-        indices.sort(key=lambda i: self.configs[i][1].expected_nsteps)
+        indices = list(range(len(self.configs)))
+        indices.sort(key=lambda i: self.configs[i][1].expected_runtime)
         totals = [0 for _ in range(self.size)]
         split_indices = [[] for _ in range(self.size)]
         while len(indices) > 0:
@@ -160,13 +160,27 @@ class MultiSim:
                     total = totals[j]
                     i = j
             split_indices[i].append(index)
-            totals[i] += self.configs[index][1].expected_nsteps
+            totals[i] += self.configs[index][1].expected_runtime
+
+        my_total = totals[self.rank]
+        my_indices = split_indices[self.rank]
+
+        # Compute the proportion of the expected runtime that this rank will do
+        total = 0
+        for t in totals:
+            total += t
+        print(f"[{self.rank:2d}] Performing {100 * my_total / total:.2f}% of the total")
 
         # Run all of the simulations for this rank
-        my_indices = split_indices[self.rank]
+        tbegin = datetime.now()
+        completed = 0
         for i, ind in enumerate(my_indices):
             tstart = datetime.now()
-            print(f"[{self.rank:2d}] Starting simulation {ind} ({i + 1}/{len(indices)}) at {tstart}")
+            print(f"[{self.rank:2d}] Starting simulation {ind} ({i + 1}/{len(my_indices)}) at {tstart}")
             self.run(ind, timeout=timeout, plot=plot)
             tend = datetime.now()
-            print(f"[{self.rank:2d}] Finished simulation {ind} ({i + 1}/{len(indices)}) after {tend - tstart}")
+
+            completed += self.configs[ind][1].expected_runtime / my_total
+            rem_time = (tend - tbegin) * (1.0 / completed - 1.0)
+
+            print(f"[{self.rank:2d}] Finished simulation {ind} ({i + 1}/{len(my_indices)}) after {tend - tstart}\n     estimated time remaining {rem_time}")

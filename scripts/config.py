@@ -109,7 +109,7 @@ class Config:
     @property
     def expected_dt(self):
         """
-        An estimate of what the timestep for this config will be
+        An estimate of what the timestep for this config would be
         """
         return 0.016 * np.sqrt(self.re * self.ca)
 
@@ -120,6 +120,14 @@ class Config:
         config.
         """
         return self.tmax / self.expected_dt
+
+    @property
+    def expected_runtime(self):
+        """
+        An estimate time (in seconds) it would take to run a sim with this
+        config.
+        """
+        return self.tmax * (3.0 * (self.re ** -0.5 * self.ca ** -0.35))
 
     def update(self, **kwargs):
         """
