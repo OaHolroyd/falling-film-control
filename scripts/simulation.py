@@ -63,6 +63,7 @@ class Simulation:
 
         self.output_dir = self.base_dir / "out"
         self.plots_dir = self.base_dir / "plots"
+        self.dump_dir = self.base_dir / "dump"
         self.params = self.base_dir / "params.json"
         self.output = self.base_dir / "output.txt"
 
@@ -73,29 +74,38 @@ class Simulation:
         # create the output and plots directories if they do not exist
         self.output_dir.mkdir(parents=True, exist_ok=True)
         self.plots_dir.mkdir(parents=True, exist_ok=True)
+        self.dump_dir.mkdir(parents=True, exist_ok=True)
 
     @property
     def has_completed(self):
         """
         Check if the simulation has completed successfully.
         """
-        # Find out how many outputs there were
+        # If it has completed successfully, the final line of the log file should start with a #
         try:
-            data = np.loadtxt(self.output_dir / 'ns-0.dat')
+            with open(self.output, "r") as fp:
+                lines = fp.readlines()
         except FileNotFoundError:
             # No output file found, cannot have started
             return False
 
-        if len(data.shape) < 2:
-            # Output file is empty or has only one line
+        return lines[-1][0] == '#'
+
+    @property
+    def has_converged(self):
+        """
+        Check if the simulation has converged successfully.
+        """
+        # Cannot have converged if it has not completed
+        if not self.has_completed:
             return False
 
-        nout = data.shape[0]
+        # Check if the final film thickness is within the tolerance
+        data = np.loadtxt(self.output_dir / 'ns-0.dat')
+        dh = data[-1, 1]  # final interfacial deviation, ||h - 1||2
+        tol  = 1e-3  # tolerance for convergence
 
-        # Check it this is as many as there should be
-        nsteps = np.floor(self.config.tmax / self.config.dtout) + 1
-
-        return nout == nsteps
+        return dh < tol
 
     def dump_config(self):
         """
@@ -156,6 +166,10 @@ class Simulation:
         n = self.config.n
         x = self.config.x
 
+        title = f"Re = {self.config.re}, Ca = {self.config.ca}, m = {self.config.m}"
+        if self.config.uses_estimator:
+            title += f", p = {self.config.p}"
+
         # Load the data
         data = np.loadtxt(self.output_dir / 'ns-0.dat')
         t = data[:, 0]  # time
@@ -171,12 +185,12 @@ class Simulation:
 
         ax.set_xlabel("t")
         ax.legend()
-        ax.set_title(f"Re = {self.config.re}, Ca = {self.config.ca}")
+        ax.set_title(title)
         fig.savefig(self.plots_dir / "lines.png")
 
-        if self.config.strategy == "estimator":
+        if (self.config.strategy == "estimator") and (self.config.p > 0):
             # Load the L matrix
-            L = np.loadtxt(self.output_dir / 'L.dat')
+            L = np.atleast_2d(np.loadtxt(self.output_dir / 'L.dat'))
             lh = L[:n, 0]
             lq = L[n:, 0]
 
@@ -185,7 +199,7 @@ class Simulation:
             ax[0].plot(x, lh, label="L0 (interface)")
             ax[0].set_xlabel("x")
             ax[0].set_ylabel("L0")
-            ax[0].set_title(f"Re = {self.config.re}, Ca = {self.config.ca}")
+            ax[0].set_title(title)
             ax[0].legend()
 
             ax[1].plot(x, lq, label="L0 (flux)")
@@ -196,9 +210,9 @@ class Simulation:
             fig.savefig(self.plots_dir / "L.png")
             plt.close(fig)
 
-        if self.config.strategy in ["lqr", "estimator"]:
+        if (self.config.strategy in ["lqr", "estimator"]) and (self.config.m > 0):
             # Load the K matrix
-            K = np.loadtxt(self.output_dir / 'K.dat')
+            K = np.atleast_2d(np.loadtxt(self.output_dir / 'K.dat'))
             kh = K[0, :n]
             kq = K[0, n:]
 
@@ -207,7 +221,7 @@ class Simulation:
             ax[0].plot(x, kh, label="K0 (interface)")
             ax[0].set_xlabel("x")
             ax[0].set_ylabel("K0")
-            ax[0].set_title(f"Re = {self.config.re}, Ca = {self.config.ca}")
+            ax[0].set_title(title)
             ax[0].legend()
 
             ax[1].plot(x, kq, label="K0 (flux)")

@@ -9,11 +9,15 @@ def main():
 
     re = np.logspace(0, 2, 20)
     ca = np.logspace(-3, -1, 20)
-    p = [1, 3, 5, 7, 9, 11, 13, 15, 17, 19]
+
+    re = [5.0, 15.0]
+    ca = [0.05]
 
     multisim = MultiSim(base_dir="multirun", config=config, exe="film-ns")
-    multisim.add_variants_product(re=re, ca=ca, p=p)
-    multisim.run_all()
+    multisim.add_variants_product(re=re, ca=ca)
+    # multisim.run_all()
+
+    multisim.run_all_binary_search(11)
 
 
 if __name__ == "__main__":

@@ -18,7 +18,7 @@
 #define NOUT (1<<(LEVEL)) // output resolution
 #define LOG_STEP 10 // log every LOG_STEP steps
 #define OUTPUT_DAT 1 // whether to output data
-#define DUMP 0 // how often to dump (for restarting)
+#define DUMP 500 // how often to dump (for restarting)
 
 
 /* ========================================================================== */

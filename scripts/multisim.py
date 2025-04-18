@@ -1,4 +1,5 @@
 import itertools
+import shutil
 from datetime import datetime
 from pathlib import Path
 
@@ -116,20 +117,21 @@ class MultiSim:
             new_kwargs = dict(zip(keys, instance))
             self.add_variant(**new_kwargs)
 
-    def run(self, index: int, timeout: int = 21600, plot: bool = True):
+    def run(self, index: int, run_dir: Path | str, timeout: int = 21600, plot: bool = True):
         """
         Run a simulation with the given index.
 
         Args:
             index: Index of the simulation to run.
+            run_dir: Base directory for the simulation.
             timeout: Timeout for the simulation in seconds (default is 6 hours).
             plot: If True, generate plots after the simulation.
         """
         if index < 0 or index >= len(self.configs):
             raise ValueError("Index out of range")
 
-        i, config = self.configs[index]
-        sim = Simulation(config=config, base_dir=self.base_dir / f"run-{i}", exe=self.exe)
+        _, config = self.configs[index]
+        sim = Simulation(config=config, base_dir=run_dir, exe=self.exe)
 
         try:
             sim.run(force=False, timeout=timeout)
@@ -143,7 +145,15 @@ class MultiSim:
         if plot:
             sim.plot()
 
-    def run_all(self, timeout: int = 21600, plot: bool = True):
+    def divide_problems(self):
+        """
+        Divide the problems among the ranks.
+
+        Returns:
+            my_indices: Indices of the configs assigned to this rank.
+            my_total: Total expected runtime for this rank.
+            my_prop: Proportion of the expected runtime that this rank will do.
+        """
         # try and balance each proc's expected total runtime
         indices = list(range(len(self.configs)))
         indices.sort(key=lambda i: self.configs[i][1].expected_runtime)
@@ -162,25 +172,138 @@ class MultiSim:
             split_indices[i].append(index)
             totals[i] += self.configs[index][1].expected_runtime
 
+        # Compute the proportion of the expected runtime that this rank will do
         my_total = totals[self.rank]
         my_indices = split_indices[self.rank]
-
-        # Compute the proportion of the expected runtime that this rank will do
         total = 0
         for t in totals:
             total += t
-        print(f"[{self.rank:2d}] Performing {100 * my_total / total:.2f}% of the total")
+        my_prop = my_total / total
 
-        # Run all of the simulations for this rank
+        return my_indices, my_total, my_prop
+
+    def run_all(self, timeout: int = 21600, plot: bool = True):
+        """
+        Run all simulations for this rank.
+
+        Args:
+            timeout: Timeout for the simulations in seconds (default is 6 hours).
+            plot: If True, generate plots after each simulation.
+        """
+        # try and balance each proc's expected total runtime
+        my_indices, my_total, my_prop = self.divide_problems()
+        print(f"[{self.rank:2d}] Performing {100 * my_prop:.2f}% of the total")
+
+        # Run the simulations for this rank
         tbegin = datetime.now()
         completed = 0
         for i, ind in enumerate(my_indices):
             tstart = datetime.now()
             print(f"[{self.rank:2d}] Starting simulation {ind} ({i + 1}/{len(my_indices)}) at {tstart}")
-            self.run(ind, timeout=timeout, plot=plot)
+            self.run(ind, run_dir=self.base_dir / f"run-{i}", timeout=timeout, plot=plot)
             tend = datetime.now()
 
             completed += self.configs[ind][1].expected_runtime / my_total
             rem_time = (tend - tbegin) * (1.0 / completed - 1.0)
 
-            print(f"[{self.rank:2d}] Finished simulation {ind} ({i + 1}/{len(my_indices)}) after {tend - tstart}\n     estimated time remaining {rem_time}")
+            print(
+                f"[{self.rank:2d}] Finished simulation {ind} ({i + 1}/{len(my_indices)}) after {tend - tstart}\n     estimated time remaining {rem_time}"
+            )
+
+    def run_binary_search(self, mmax, index: int, base_dir: Path, timeout: int = 21600, plot: bool = True):
+        """
+        Run a binary search to find the minimum value of m that works.
+
+        Args:
+            mmax: Maximum value of m to search.
+            index: Index of the simulation to run.
+            base_dir: Base directory for the simulation.
+            timeout: Timeout for the simulation in seconds (default is 6 hours).
+            plot: If True, generate plots after the simulation.
+        """
+        base_config = self.configs[index][1]
+
+        # define endpoints for binary search
+        m0 = 0
+        m1 = mmax
+
+        # define function to check if the simulation works
+        def works(config: Config, run_dir: Path | str):
+            # Run the simulation
+            sim = Simulation(config=config, base_dir=run_dir, exe=self.exe)
+            try:
+                sim.run(force=False, timeout=timeout)
+            except SimulationError:
+                # if the simulation has already been run, check if it ran to completion
+                if not sim.has_completed:
+                    sim.run(force=True, timeout=timeout)
+
+            if plot:
+                sim.plot()
+
+            return sim.has_converged
+
+        # check lower endpoint (ie no control)
+        config = base_config.copy()
+        config.m = m0
+        if works(config, run_dir=base_dir / "run-0"):
+            # don't need to do anything because m=0 works
+            return
+
+        # move dump files to the base directory so they can be reused
+        if not config.uses_estimator:
+            if not (base_dir / "dump").exists():
+                shutil.move(base_dir / "run-0" / "dump", base_dir / "dump")
+
+        # check upper endpoint (max controls)
+        config = base_config.copy()
+        config.m = m1
+        if not works(config, run_dir=base_dir / "run-1"):
+            # mmax doesn't work, so no need to search
+            return
+
+        # binary search for the minimum m that works
+        def binary_search(a0, a1, iter):
+            # we are done if a0 and a1 are adjacent
+            if a0 == a1 - 1:
+                return
+
+            # check the midpoint
+            a = round((a0 + a1) / 2)
+            config = base_config.copy()
+            config.m = a
+
+            # check if the simulation works
+            if works(config, run_dir=base_dir / f"run-{iter}"):
+                # if it works, search the lower half
+                return binary_search(a0, a, iter + 1)
+            else:
+                # if it doesn't work, search the upper half
+                return binary_search(a, a1, iter + 1)
+
+        binary_search(m0, m1, 2)
+
+    def run_all_binary_search(self, mmax, timeout: int = 21600, plot: bool = True):
+        """
+        For each config assigned to this rank, run a binary search to find the minimum value of m that works.
+
+        Should not be run across configs that differ only in m, as this will duplicate work.
+
+        Args:
+            mmax: Maximum value of m to search.
+            timeout: Timeout for the simulations in seconds (default is 6 hours).
+            plot: If True, generate plots after each simulation.
+        """
+        # try and balance each proc's expected total runtime
+        my_indices, my_total, my_prop = self.divide_problems()
+        print(f"[{self.rank:2d}] Performing {100 * my_prop:.2f}% of the total")
+
+        # Run the simulations for this rank
+        for i, ind in enumerate(my_indices):
+            tstart = datetime.now()
+            print(f"[{self.rank:2d}] Starting search {ind} ({i + 1}/{len(my_indices)}) at {tstart}")
+            self.run_binary_search(mmax=mmax, index=ind, base_dir=self.base_dir / f"search-{self.rank}-{i}",
+                                   timeout=timeout, plot=plot)
+            tend = datetime.now()
+
+            print(f"[{self.rank:2d}] Finished search {ind} ({i + 1}/{len(my_indices)}) after {tend - tstart}")

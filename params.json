@@ -3,7 +3,7 @@
       "Lx":30.0,
       "Ly":8.0,
       "tmax":2500.0,
-      "t0":0.0
+      "t0":1500.0
    },
    "PHYSICAL":{
       "Re":15.0,
@@ -22,11 +22,11 @@
       "P":5,
       "start":1500.0,
       "width":0.1,
-      "alpha":0.0,
+      "alpha":1.0,
       "del":0.0,
       "mu":1.0,
       "rom":"wr",
       "strategy":"lqr",
-      "exact_flux": 1
+      "exact_flux": 0
    }
 }

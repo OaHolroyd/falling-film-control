@@ -73,12 +73,21 @@ void set_params() {
   G[1] = -2.0/tan(THETA)/RE;
 }
 
+/* returns 1 if the file exists and is readable, 0 otherwise */
+int check_exists(const char *filename) {
+  FILE *fp = fopen(filename, "r");
+  if (fp) {
+    fclose(fp);
+    fprintf(stderr, "EXISTS: %s\n", filename);
+    return 1;
+  }
+  fprintf(stderr, "DOES NOT EXIST: %s\n", filename);
+  return 0;
+}
+
 /* Initialises the fluid */
 void init_fluid() {
   if ((int)T0 == 0) {
-    /* Nusselt film */
-    // fraction(f, y < 1);
-
     /* cosine perturbation */
     fraction(f, 1.0-y+0.05*sin(1.0*(2.0/(LX))*M_PI*(x+10)));
 
@@ -96,70 +105,38 @@ void init_fluid() {
 
     boundary({u,f,p});
   } else {
-//    /* restore from a dump file */
-//    char dump_file[32];
-//    sprintf(dump_file, "dump/dump-%04d", (int)T0);
-//    restore(file = dump_file);
+    /* restore from a dump file */
+    char dump_file[256];
+    sprintf(dump_file, "dump/dump-L%lf-TH%lf-RE%lf-CA%lf-%04d", LX, THETA, RE, CA, (int)T0);
 
-    // run to T0 using WR and then use this as an initial condition for NS
-    struct wr_data data = {
-        .n = N,
-        .dx = DX,
-        .theta = THETA,
-        .re = RE,
-        .ca = CA,
-        .h = malloc(N * sizeof(double)),
-        .q = malloc(N * sizeof(double)),
-        .h0 = malloc(N * sizeof(double)),
-        .q0 = malloc(N * sizeof(double)),
-        .fa = malloc(N * sizeof(double)),
-        .f = malloc(2 * N*sizeof(double)),
-        .work = malloc(14 * N * sizeof(double)),
-    };
+    // check if the file exists
+    if (check_exists(dump_file)) {
+      restore(file = dump_file);
+    } else {
+      // try one level up
+      sprintf(dump_file, "../dump/dump-L%lf-TH%lf-RE%lf-CA%lf-%04d", LX, THETA, RE, CA, (int)T0);
+      if (check_exists(dump_file)) {
+        restore(file = dump_file);
+      } else {
+        // start from the begining
+        /* cosine perturbation */
+        fraction(f, 1.0-y+0.05*sin(1.0*(2.0/(LX))*M_PI*(x+10)));
 
-    // set up the initial conditions
-    for (int ii = 0; ii < N; ii++) {
-      double xx = DX * (ii + 0.5);
-      data.h[ii] = 1.0+0.05*sin(1.0*(2.0/(LX))*M_PI*(xx+10.0));
-      data.q[ii] = 2.0 / 3.0;
-      data.h0[ii] = data.h[ii];
-      data.q0[ii] = data.q[ii];
-      data.fa[ii] = 0.0;
-      data.f[ii] = 0.0;
-      data.f[ii + N] = 0.0;
-    } // i end
+        /* initialise with Nusselt velocity */
+        foreach () {
+          u.x[] = f[]*y*(2.0-y) + (1.0-f[]);
+          u.y[] = 0.0;
+        }
 
-    // run until T0
-    const double dt_wr = 0.1 * DX; // TODO: this should depend on DX, RE, CA etc.
-    const int nstep_wr = (int)(T0 / dt_wr);
-    fprintf(stderr, "WARM UP (to t = %lf)\n", T0);
-    fprintf(stderr, "  model t        dt      iter\n");
-    for (int ii = 0; ii < nstep_wr; ii++) {
-      wr_step(&data, dt_wr, 1.0e-6, 100);
-      fprintf(stderr, "\r %8.2lf  %8.5lf  %8d", ii * dt_wr, dt_wr, ii);
-      fflush(stderr);
+        /* initialise with Nusselt pressure */
+        // TODO: this probably doesn't matter
+        foreach () {
+          p[] = f[]*2*cos(THETA)/sin(THETA)*(1-y);
+        }
+
+        boundary({u,f,p});
+      }
     }
-    fprintf(stderr, "\n");
-
-    // set NS initial conditions
-    fraction(f, data.h[XTOI(x)]-y);
-
-    /* initialise with Nusselt velocity */
-    foreach () {
-      double h = data.h[XTOI(x)];
-      double q = data.q[XTOI(x)];
-      u.x[] = (1.0-f[]) + f[] * (1.5 * q / h * (y/h) * (2.0 - (y/h)));
-      u.y[] = 0.0;
-    }
-
-    // free memory
-    free(data.h);
-    free(data.q);
-    free(data.h0);
-    free(data.q0);
-    free(data.fa);
-    free(data.f);
-    free(data.work);
   }
 
   /* compute heights */
@@ -432,8 +409,8 @@ event output_dat(t=0.0; t<=TMAX; t += DTOUT) {
 /* dump output every 100 time units */
 #if DUMP
 event dump_xxx(t=0.0; t+=DUMP) {
-  char dump_file[32];
-  sprintf(dump_file, "dump/dump-%04.0lf", t);
+  char dump_file[256];
+  sprintf(dump_file, "dump/dump-L%lf-TH%lf-RE%lf-CA%lf-%04.0lf", LX, THETA, RE, CA, t);
   dump(file = dump_file);
 }
 #endif
@@ -498,8 +475,8 @@ event early_stop(i++) {
     exit(EXIT_SUCCESS);
   }
 
-  /* if the film has been controlled, stop */
-  // if (dh < 0.00005) {
+  // /* if the film has been controlled, stop */
+  // if (dh < 1e-4) {
   //   /* clean up */
   //   control_free();
   //   free(H);
