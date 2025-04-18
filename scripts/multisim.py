@@ -144,13 +144,27 @@ class MultiSim:
             sim.plot()
 
     def run_all(self, timeout: int = 21600, plot: bool = True):
-        # decide which configurations to run
-        n_configs = len(self.configs)
-        indices = []
-        for i in range(self.rank, n_configs, self.size):
-            indices.append(i)
+        # try and balance each proc's expected total runtime
+        indices = np.arange(len(self.configs))
+        indices.sort(key=lambda i: self.configs[i][1].expected_nsteps)
+        totals = [0 for _ in range(self.size)]
+        split_indices = [[] for _ in range(self.size)]
+        while len(indices) > 0:
+            index = indices.pop()
 
-        for i, ind in enumerate(indices):
+            # add the config to the list with the smallest total
+            i = 0
+            total = totals[0]
+            for j in range(1, self.size):
+                if totals[j] < total:
+                    total = totals[j]
+                    i = j
+            split_indices[i].append(index)
+            totals[i] += self.configs[index][1].expected_nsteps
+
+        # Run all of the simulations for this rank
+        my_indices = split_indices[self.rank]
+        for i, ind in enumerate(my_indices):
             tstart = datetime.now()
             print(f"[{self.rank:2d}] Starting simulation {ind} ({i + 1}/{len(indices)}) at {tstart}")
             self.run(ind, timeout=timeout, plot=plot)

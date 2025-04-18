@@ -106,6 +106,21 @@ class Config:
         """
         return self.strategy in ["estimator", "dynamic"]
 
+    @property
+    def expected_dt(self):
+        """
+        An estimate of what the timestep for this config will be
+        """
+        return 0.016 * np.sqrt(self.re * self.ca)
+
+    @property
+    def expected_nsteps(self):
+        """
+        An estimate of the number of timesteps required to run a sim with this
+        config.
+        """
+        return self.tmax / self.expected_dt
+
     def update(self, **kwargs):
         """
         Update the configuration with new parameters.
