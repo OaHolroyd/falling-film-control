@@ -108,19 +108,13 @@ int est_update_benney(double dt, double *H) {
     }
   }
 
-  FILE *fp = fopen("out/est.dat", "a");
-
   // work out the difference in observed height and the estimate
   for (int i = 0; i < P; i++) {
     EST_y[i] = 0.0;
     for (int j = 0; j < N; j++) {
       EST_y[i] += EST_C[j][i] * (H[j] - EST_h[j]);
     } // j end
-    fprintf(fp, "%lf ", EST_y[i]);
   }
-  fprintf(fp, "\n");
-
-  fclose(fp);
 
   // compute forcing term and rhs
   for (int i = 0; i < N; i++) {
