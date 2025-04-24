@@ -105,37 +105,48 @@ void init_fluid() {
 
     boundary({u,f,p});
   } else {
-    /* restore from a dump file */
+    /* attempt to load from dump files */
+    double t0 = T0;
+    int has_loaded = 0;
     char dump_file[256];
-    sprintf(dump_file, "dump/dump-L%lf-TH%lf-RE%lf-CA%lf-%04d", LX, THETA, RE, CA, (int)T0);
-
-    // check if the file exists
-    if (check_exists(dump_file)) {
-      restore(file = dump_file);
-    } else {
-      // try one level up
-      sprintf(dump_file, "../dump/dump-L%lf-TH%lf-RE%lf-CA%lf-%04d", LX, THETA, RE, CA, (int)T0);
+    while (t0 > 0.0) {
+      // try the normal dump location
+      sprintf(dump_file, "dump/dump-L%lf-TH%lf-RE%lf-CA%lf-%04d", LX, THETA, RE, CA, (int)t0);
       if (check_exists(dump_file)) {
         restore(file = dump_file);
-      } else {
-        // start from the begining
-        /* cosine perturbation */
-        fraction(f, 1.0-y+0.05*sin(1.0*(2.0/(LX))*M_PI*(x+10)));
-
-        /* initialise with Nusselt velocity */
-        foreach () {
-          u.x[] = f[]*y*(2.0-y) + (1.0-f[]);
-          u.y[] = 0.0;
-        }
-
-        /* initialise with Nusselt pressure */
-        // TODO: this probably doesn't matter
-        foreach () {
-          p[] = f[]*2*cos(THETA)/sin(THETA)*(1-y);
-        }
-
-        boundary({u,f,p});
+        has_loaded = 1;
+        break;
       }
+
+      // try one level up
+      sprintf(dump_file, "../dump/dump-L%lf-TH%lf-RE%lf-CA%lf-%04d", LX, THETA, RE, CA, (int)t0);
+      if (check_exists(dump_file)) {
+        restore(file = dump_file);
+        has_loaded = 1;
+        break;
+      }
+
+      // go one step back
+      t0 -= DUMP;
+    }
+
+    /* if we failed to load from a save file, start from scratch */
+    if (!has_loaded) {
+      /* cosine perturbation */
+      fraction(f, 1.0-y+0.05*sin(1.0*(2.0/(LX))*M_PI*(x+10)));
+
+      /* initialise with Nusselt velocity */
+      foreach () {
+        u.x[] = f[]*y*(2.0-y) + (1.0-f[]);
+        u.y[] = 0.0;
+      }
+
+      /* initialise with Nusselt pressure */
+      // TODO: this probably doesn't matter
+      foreach () {
+        p[] = f[]*2*cos(THETA)/sin(THETA)*(1-y);
+      }
+      boundary({u,f,p});
     }
   }
 

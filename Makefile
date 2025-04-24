@@ -26,6 +26,12 @@ CFLAGS=-O3 -Wall -Wextra -pedantic -Wno-unused-parameter -Wshadow \
 LDFLAGS=-lm -llapacke -L/opt/homebrew/opt/lapack/lib
 IFLAGS=-I/opt/homebrew/opt/lapack/include
 
+# macos debug build
+#CC=/opt/homebrew/opt/llvm/bin/clang-20
+#LD=$(CC)
+#CFLAGS=-g3 -Og -fsanitize=address,undefined -fno-omit-frame-pointer
+#LDFLAGS=-g3 -fsanitize=address,undefined -lm -llapacke -L/opt/homebrew/opt/lapack/lib
+
 # file/folder names
 EXE_BE=film-benney
 EXE_WR=film-wr

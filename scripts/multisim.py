@@ -200,7 +200,7 @@ class MultiSim:
         for i, ind in enumerate(my_indices):
             tstart = datetime.now()
             print(f"[{self.rank:2d}] Starting simulation {ind} ({i + 1}/{len(my_indices)}) at {tstart}")
-            self.run(ind, run_dir=self.base_dir / f"run-{i}", timeout=timeout, plot=plot)
+            self.run(ind, run_dir=self.base_dir / f"run-{ind}", timeout=timeout, plot=plot)
             tend = datetime.now()
 
             completed += self.configs[ind][1].expected_runtime / my_total
