@@ -33,6 +33,9 @@ int (*control_step)(double dt, double *h, double *q, int control_on);
 /* returns the estimator as a function of x */
 double (*estimator)(double x);
 
+/* returns the estimator of the flux as a function of x */
+double (*estimator_flux)(double x);
+
 /* ========================================================================== */
 /*   FUNCTION DEFINITIONS                                                     */
 /* ========================================================================== */
@@ -84,6 +87,7 @@ void control_set(control_t ct, rom_t rt, int m, int p, double w, double alpha,
     s_free = &pair_free;
     control_step = &pair_step;
     estimator = &pair_estimator;
+    estimator_flux = &pair_estimator_flux;
     s_output = &pair_output;
     control_matrix = &pair_matrix;
     break;
@@ -92,6 +96,7 @@ void control_set(control_t ct, rom_t rt, int m, int p, double w, double alpha,
     s_free = &lqr_free;
     control_step = &lqr_step;
     estimator = &lqr_estimator;
+    estimator_flux = &lqr_estimator_flux;
     s_output = &lqr_output;
     control_matrix = &lqr_matrix;
     break;
@@ -100,6 +105,7 @@ void control_set(control_t ct, rom_t rt, int m, int p, double w, double alpha,
     s_free = &static_free;
     control_step = &static_step;
     estimator = &static_estimator;
+    estimator_flux = &static_estimator_flux;
     s_output = &static_output;
     control_matrix = &static_matrix;
     break;
@@ -108,6 +114,7 @@ void control_set(control_t ct, rom_t rt, int m, int p, double w, double alpha,
     s_free = &dynamic_free;
     control_step = &dynamic_step;
     estimator = &dynamic_estimator;
+    estimator_flux = &dynamic_estimator_flux;
     s_output = &dynamic_output;
     control_matrix = NULL;
     break;
@@ -116,6 +123,7 @@ void control_set(control_t ct, rom_t rt, int m, int p, double w, double alpha,
     s_free = &est_free;
     control_step = &est_step;
     estimator = &est_estimator;
+    estimator_flux = &est_estimator_flux;
     s_output = &est_output;
     control_matrix = NULL;
     break;

@@ -36,7 +36,7 @@ void static_benney_compute_KPHI(double **static_kphi) {
 
   /* full control matrix (note alternative cost preferences) */
   double **K_lqr = malloc_f2d(M, N);
-  dlqr(J, Psi, MU, 1-MU, N, M, K_lqr);
+  dlqr(J, Psi, MU, 1.0, N, M, K_lqr);
 
 
   /* initial guess for restricted matrix */
@@ -699,8 +699,11 @@ int static_step(double dt, double *h, double *q, int control_on) {
 
 /* [REQUIRED] returns the estimator as a function of x */
 double static_estimator(double x) {
+  return 1.0;
+}
 
-  return 0.0;
+double static_estimator_flux(double x) {
+  return 2.0/3.0;
 }
 
 /* [REQUIRED] outputs the internal matrices */

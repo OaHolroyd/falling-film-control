@@ -383,7 +383,13 @@ int est_step(double dt, double *h, double *q, int control_on) {
 }
 
 /* [REQUIRED] returns the estimator as a function of x */
-double est_estimator(double x) { return interp(x, EST_h); }
+double est_estimator(double x) {
+  return interp(x, EST_h);
+}
+
+double est_estimator_flux(double x) {
+  return interp(x, EST_q);
+}
 
 /* [REQUIRED] outputs the internal matrices */
 void est_output(void) {

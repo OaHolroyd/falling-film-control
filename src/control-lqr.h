@@ -23,7 +23,7 @@ void lqr_benney_compute_K(double **lqr_k) {
   benney_actuator(B);
 
   /* control matrix */
-  dlqr(A, B, sqrt(DX) * MU, (1 - MU) / sqrt(DX), N, M, lqr_k);
+  dlqr(A, B, sqrt(DX) * MU, 1.0 / sqrt(DX), N, M, lqr_k);
 
   free_2d(A);
   free_2d(B);
@@ -93,7 +93,13 @@ int lqr_step(double dt, double *h, double *q, int control_on) {
 }
 
 /* [REQUIRED] returns the estimator as a function of x */
-double lqr_estimator(double x) { return 0.0; }
+double lqr_estimator(double x) {
+  return 1.0;
+}
+
+double lqr_estimator_flux(double x) {
+  return 2.0/3.0;
+}
 
 /* [REQUIRED] outputs the internal matrices */
 void lqr_output(void) {

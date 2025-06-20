@@ -57,7 +57,7 @@ void init_domain() {
 void set_params() {
   /* model params */
   TOLERANCE = 1e-4; // default 1e-3
-  DT = 5e-2;
+  DT = 0.001;
 
   /* physical params */
   rho1 = RE;
@@ -381,7 +381,7 @@ event output_dat(t=0.0; t<=TMAX; t += DTOUT) {
     for (int i = 0; i < NOUT; i++) {
       double xx = i*dx + 0.5*dx;
       double h = interfacial_height(xx);
-      fprintf(fp, "%lf %lf %lf %lf %lf\n", xx, h, control(xx), estimator(xx), flux(xx, h, u.x, f));
+      fprintf(fp, "%lf %lf %lf %lf %lf %lf\n", xx, h, control(xx), estimator(xx), flux(xx, h, u.x, f), estimator_flux(xx));
     } // i end
     fclose(fp);
 

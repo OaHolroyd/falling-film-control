@@ -32,7 +32,13 @@ int pair_step(double dt, double *h, double *q, int control_on) {
 }
 
 /* [REQUIRED] returns the estimator as a function of x */
-double pair_estimator(double x) { return 0.0; }
+double pair_estimator(double x) {
+  return 1.0;
+}
+
+double pair_estimator_flux(double x) {
+  return 2.0/3.0;
+}
 
 /* [REQUIRED] outputs the internal matrices */
 void pair_output(void) {

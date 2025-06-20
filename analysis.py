@@ -30,12 +30,14 @@ def main():
 
     config = Config.from_json("params.json")
 
-    re = np.logspace(0, 2, 20)
-    ca = np.logspace(-3, -1, 20)
+    re = [50]
+    ca = [0.01, 0.05]
+    m = [9, 11, 13, 15]
+    p = [7, 9]
 
     multisim = MultiSim(base_dir="multirun", config=config, exe="film-ns")
-    multisim.add_variants_product(re=re, ca=ca)
-    multisim.run_all()
+    multisim.add_variants_product(re=re, ca=ca, m=m, p=p)
+    multisim.run_all(timeout=14400000)
     # multisim.run_all_binary_search(19)
 
 

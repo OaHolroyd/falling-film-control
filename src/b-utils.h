@@ -77,13 +77,14 @@ double flux(double xp, double h, scalar u, scalar f) {
 
   /* integrate flux from 0 to h */
   double q = 0.0;
-  double yp = 0.5 * DX;
-  while (yp < h) {
-    q += DX * interpolate(u, xp, yp) * interpolate(f, xp, yp);
-    yp += DX;
+  double step = 0.1 * DX;
+  double yp = step * 0.5;
+  while (yp < (h + 2 * step)) {
+    q += interpolate(u, xp, yp) * interpolate(f, xp, yp);
+    yp += step;
   }
 
-  return q;
+  return q * step;
 }
 
 

@@ -77,7 +77,7 @@ void dynamic_benney_set(void) {
 
 
   /* compute spectral K */
-  zlqr(J, Psi, MU*LX, (1-MU), M, M, DYNAMIC_K);
+  zlqr(J, Psi, MU*sqrt(LX), 1.0/sqrt(LX), M, M, DYNAMIC_K);
 
 
   /* compute spectral Phi - observer (this is actually the transpose) */
@@ -233,7 +233,7 @@ void dynamic_wr_set(void) {
 
 
   /* compute spectral K */
-  zlqr(J, Psi, MU*LX, (1.0-MU), 2*M, M, DYNAMIC_K);
+  zlqr(J, Psi, MU*sqrt(LX), 1.0/sqrt(LX), 2*M, M, DYNAMIC_K);
 
   // /* set K to zero */
   // for (i = 0; i < M; i++) {
@@ -393,9 +393,12 @@ int dynamic_step(double dt, double *h, double *q, int control_on) {
   /* f = K * (h-1) */
   for (int i = 0; i < M; i++) {
     Amag[i] = 0.0;
-    for (int j = 0; j < M; j++) {
-      Amag[i] += creal(DYNAMIC_K[i][j] * DYNAMIC_z[j]); // ensure this is real
-    } // j end
+
+    if (control_on) {
+      for (int j = 0; j < M; j++) {
+        Amag[i] += creal(DYNAMIC_K[i][j] * DYNAMIC_z[j]); // ensure this is real
+      } // j end
+    }
   } // i end
 
   return 0;
@@ -421,7 +424,11 @@ double dynamic_estimator(double x) {
     e += DYNAMIC_z[i]*(cos(dk*k*x) + I*sin(dk*k*x));
   } // i end
 
-  return creal(e);
+  return 1.0 + creal(e);
+}
+
+double dynamic_estimator_flux(double x) {
+  return 2.0 / 3.0 * dynamic_estimator(x);
 }
 
 /* [REQUIRED] outputs the internal matrices */

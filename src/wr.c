@@ -51,11 +51,11 @@ static double compute_residual(struct wr_data *data, const double dt) {
 
     // face-centred variables
     const double hf = D0R(h, i);
-    const double h0f = D0R(h, i);
+    const double h0f = D0R(h0, i);
     const double hxf = D1R(h, i);
-    const double h0xf = D1R(h, i);
+    const double h0xf = D1R(h0, i);
     const double hxxxf = D3R(h, i);
-    const double h0xxxf = D3R(h, i);
+    const double h0xxxf = D3R(h0, i);
     const double qf = q[i];
     const double q0f = q0[i];
     const double qxf = D1C(q, i);

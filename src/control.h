@@ -33,8 +33,11 @@ extern void (*control_matrix)(double **CM);
    height */
 extern int (*control_step)(double dt, double *h, double *q, int control_on);
 
-/* returns the estimator as a function of x */
+/* returns the estimator of the height as a function of x */
 extern double (*estimator)(double x);
+
+/* returns the estimator of the flux as a function of x */
+extern double (*estimator_flux)(double x);
 
 
 #endif
