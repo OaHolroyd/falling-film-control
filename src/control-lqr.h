@@ -79,12 +79,20 @@ int lqr_step(double dt, double *h, double *q, int control_on) {
   for (int i = 0; i < M; i++) {
     Amag[i] = 0.0;
     for (int j = 0; j < N; j++) {
-      Amag[i] += LQR_K[i][j] * (interp(ITOX(j), h) - 1.0);
+      double o_noise = 0.0;
+      if (SIG_OBSERVER > 0.0) {
+        o_noise = rand_normal(0.0, SIG_OBSERVER);
+      }
+      Amag[i] += LQR_K[i][j] * (interp(ITOX(j), h) - 1.0 + o_noise);
     } // j end
 
     if (RT == WR) {
       for (int j = 0; j < N; j++) {
-        Amag[i] += LQR_K[i][j + N] * (interp(ITOX(j), q) - 2.0 / 3.0);
+        double o_noise = 0.0;
+        if (SIG_OBSERVER > 0.0) {
+          o_noise = rand_normal(0.0, SIG_OBSERVER);
+        }
+        Amag[i] += LQR_K[i][j + N] * (interp(ITOX(j), q) - 2.0 / 3.0 + o_noise);
       } // j end
     }
   } // i end

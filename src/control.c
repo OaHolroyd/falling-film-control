@@ -44,7 +44,12 @@ double control(double x) {
   double vc = 0.0;
 
   for (int i = 0; i < M; i++) {
-    vc += Amag[i] * actuator(x - Aloc[i]);
+    double a_noise = 0.0;
+    if (SIG_ACTUATOR > 0.0) {
+      a_noise = rand_normal(0.0, SIG_ACTUATOR);
+    }
+
+    vc += (Amag[i] + a_noise) * actuator(x - Aloc[i]);
   } // i end
 
   return -ALPHA * vc;
@@ -75,9 +80,9 @@ double control_cost(double *h) {
 // TODO: explain parameters properly
 void control_set(control_t ct, rom_t rt, int m, int p, double w, double alpha,
                  double mu, double del, double lx, int n, double re, double ca,
-                 double theta) {
+                 double theta, double sig_actuator, double sig_observer) {
   /* control strategy independent setup */
-  internal_control_set(rt, m, p, w, alpha, mu, del, lx, n, re, ca, theta);
+  internal_control_set(rt, m, p, w, alpha, mu, del, lx, n, re, ca, theta, sig_actuator, sig_observer);
 
   /* set strategy specific functions */
   CT = ct;

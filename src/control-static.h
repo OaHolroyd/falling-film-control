@@ -672,6 +672,10 @@ void static_set(void) {
     default :
       ABORT("invalid ROM type %d", RT);
   }
+
+  if (SIG_OBSERVER > 0.0) {
+    ABORT("SOF only works with no observer noise");
+  }
 }
 
 /* [REQUIRED] internal free */

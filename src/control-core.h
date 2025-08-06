@@ -38,6 +38,10 @@ static double NORM; // normalising constant
 static double DEL; // observer offset (upstream)
 static rom_t RT; // type of reduced order model
 
+/* noise constants */
+static double SIG_ACTUATOR; // standard deviation of the actuator error
+static double SIG_OBSERVER; // standard deviation of the observer error
+
 /* location arrays */
 static double *Aloc; // actuator locations
 static double *Oloc; // observer locations
@@ -155,7 +159,7 @@ double actuator(double x) {
 }
 
 /* sets the common control parameters and allocates common memory */
-void internal_control_set(rom_t rt, int m, int p, double w, double alpha, double mu, double del, double lx, int n, double re, double ca, double theta) {
+void internal_control_set(rom_t rt, int m, int p, double w, double alpha, double mu, double del, double lx, int n, double re, double ca, double theta, double sig_actuator, double sig_observer) {
   /* set constants */
   N = n;
   LX = lx;
@@ -171,6 +175,9 @@ void internal_control_set(rom_t rt, int m, int p, double w, double alpha, double
   MU = mu;
   DEL = del;
   RT = rt;
+
+  SIG_ACTUATOR = sig_actuator;
+  SIG_OBSERVER = sig_observer;
 
   /* actuator locations/magnitudes */
   Aloc = malloc(M*sizeof(double));

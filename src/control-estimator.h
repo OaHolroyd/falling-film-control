@@ -233,6 +233,10 @@ int est_update_wr(double dt, double *H) {
     for (int j = 0; j < N; j++) {
       EST_y[i] += EST_C[j][i] * (H[j] - EST_h[j]);
     } // j end
+
+    if (SIG_OBSERVER > 0.0) {
+      EST_y[i] += rand_normal(0.0, SIG_OBSERVER);
+    }
   }
 
   // compute forcing term and rhs

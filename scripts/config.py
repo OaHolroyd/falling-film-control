@@ -29,6 +29,12 @@ class Config:
             output_dim: int = 1,
             actuator_width: float = 0.1,
             strength: float = 1.0,
+            sig_actuator: float = 0.0,
+            sig_observer: float = 0.0,
+            error_re: float = 0.0,
+            error_ca: float = 0.0,
+            error_theta: float = 0.0,
+            seed: int = 0,
     ):
         """
         Create a controlled NS simulation configuration.
@@ -55,6 +61,12 @@ class Config:
             output_dim: Maximum dimensionality of the output data. (0 for integral statistics, 1 for interfaces, and 2 for full fields).
             actuator_width: Width parameter for the actuators (smaller means a narrower actuator).
             strength: Scaling to apply to the actuators.
+            sig_actuator: standard deviation for the actuator noise
+            sig_observer: standard deviation for the observer noise
+            error_re: error in the Reynolds number
+            error_ca: error in the Capillary number
+            error_theta: error in the plate angle
+            seed: seed for RNG
         """
         self.re = re
         self.ca = ca
@@ -77,6 +89,12 @@ class Config:
         self.output_dim = output_dim
         self.actuator_width = actuator_width
         self.strength = strength
+        self.sig_actuator = sig_actuator
+        self.sig_observer = sig_observer
+        self.error_re = error_re
+        self.error_ca = error_ca
+        self.error_theta = error_theta
+        self.seed = seed
 
     @property
     def n(self):
@@ -171,7 +189,13 @@ class Config:
                 "mu_ratio": self.mu_ratio,
                 "output_dim": self.output_dim,
                 "actuator_width": self.actuator_width,
-                "strength": self.strength
+                "strength": self.strength,
+                "sig_actuator": self.sig_actuator,
+                "sig_observer": self.sig_observer,
+                "error_re": self.error_re,
+                "error_ca": self.error_ca,
+                "error_theta": self.error_theta,
+                "seed": self.seed,
             }
 
         else:
@@ -205,6 +229,14 @@ class Config:
                     "rom": self.model,
                     "strategy": self.strategy,
                     "exact_flux": self.exact_flux,
+                },
+                "NOISE": {
+                    "actuator": self.sig_actuator,
+                    "observer": self.sig_observer,
+                    "Re": self.error_re,
+                    "Ca": self.error_ca,
+                    "theta": self.error_theta,
+                    "seed": self.seed,
                 }
             }
 
@@ -240,6 +272,12 @@ class Config:
                 output_dim=config["SOLVER"]["output"],
                 actuator_width=config["CONTROL"]["width"],
                 strength=config["CONTROL"]["alpha"],
+                sig_actuator=config["NOISE"]["actuator"],
+                sig_observer=config["NOISE"]["observer"],
+                error_re=config["NOISE"]["Re"],
+                error_ca=config["NOISE"]["Ca"],
+                error_theta=config["NOISE"]["theta"],
+                seed=config["NOISE"]["seed"],
             )
         else:
             return cls(**config)

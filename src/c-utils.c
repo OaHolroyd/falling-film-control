@@ -4,6 +4,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <stdarg.h>
+#include <math.h>
 
 
 /* ========================================================================== */
@@ -128,4 +129,12 @@ int output_z2d(const char *fname, double complex **A, int ni, int nj) {
   fclose(fp);
 
   return 0;
+}
+
+// uses Box-Muller
+double rand_normal(double mu, double sig) {
+  double u0 = ((double)rand() / (double)RAND_MAX);
+  double u1 = ((double)rand() / (double)RAND_MAX);
+
+  return sqrt(-2 * log(u0)) * cos(2.0*M_PI*u1);
 }

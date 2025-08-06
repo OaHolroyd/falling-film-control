@@ -35,8 +35,11 @@ def main():
     m = [9, 11, 13, 15]
     p = [7, 9]
 
+    sig_observer = [0.1, 0.15, 0.2, 0.5]
+
     multisim = MultiSim(base_dir="multirun", config=config, exe="film-ns")
-    multisim.add_variants_product(re=re, ca=ca, m=m, p=p)
+    # multisim.add_variants_product(re=re, ca=ca, m=m, p=p)
+    multisim.add_variants_product(sig_observer=sig_observer)
     multisim.run_all(timeout=14400000)
     # multisim.run_all_binary_search(19)
 

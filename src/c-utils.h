@@ -37,5 +37,7 @@ int output_d2d(const char *fname, double **A, int ni, int nj);
 /* output 2D double complex array to files at fname */
 int output_z2d(const char *fname, double complex **A, int ni, int nj);
 
+/* return a normally distributed number with mean mu and standard deviation sig */
+double rand_normal(double mu, double sig);
 
 #endif

@@ -367,6 +367,10 @@ void dynamic_set(void) {
     default :
       ABORT("invalid ROM type %d", RT);
   }
+
+  if (SIG_OBSERVER > 0.0) {
+    ABORT("DOF doesn't work with noise");
+  }
 }
 
 /* [REQUIRED] internal free */

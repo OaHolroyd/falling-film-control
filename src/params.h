@@ -76,6 +76,17 @@ int C_EXACT_FLUX = 1; // use exact flux (1) or approximation (0)
 
 
 /* ========================================================================== */
+/*   NOISE PARAMETERS                                                         */
+/* ========================================================================== */
+double SIG_ACTUATOR = 0.0;
+double SIG_OBSERVER = 0.0;
+double ERROR_RE = 0.0;
+double ERROR_CA = 0.0;
+double ERROR_THETA = 0.0;
+int SEED = -1;
+
+
+/* ========================================================================== */
 /*   FUNCTION DEFINITIONS                                                     */
 /* ========================================================================== */
 /* checks if a token and a string match */
@@ -277,6 +288,43 @@ int read_params(const char *fname) {
       } // j end
       if (n) {
         ABORT("missing control parameter");
+      }
+    }
+
+    else if (jsoneq(s, &t[i], "NOISE") == 0) {
+      n = 6;
+      m = n;
+      for (int j = i+2; j < i+2+2*m; j++) {
+        if (jsoneq(s, &t[j], "actuator") == 0) {
+          j++;
+          SIG_ACTUATOR = strtod(s+t[j].start, NULL);
+          n--;
+        } else if (jsoneq(s, &t[j], "observer") == 0) {
+          j++;
+          SIG_OBSERVER = strtod(s+t[j].start, NULL);
+          n--;
+        } else if (jsoneq(s, &t[j], "Re") == 0) {
+          j++;
+          ERROR_RE = strtod(s+t[j].start, NULL);
+          n--;
+        } else if (jsoneq(s, &t[j], "Ca") == 0) {
+          j++;
+          ERROR_CA = strtod(s+t[j].start, NULL);
+          n--;
+        } else if (jsoneq(s, &t[j], "theta") == 0) {
+          j++;
+          ERROR_THETA = strtod(s+t[j].start, NULL);
+          n--;
+        } else if (jsoneq(s, &t[j], "seed") == 0) {
+          j++;
+          SEED = atoi(s+t[j].start);
+          n--;
+        } else {
+          fprintf(stderr, "bad token\n");
+        }
+      } // j end
+      if (n) {
+        ABORT("missing solver parameter");
       }
     }
   } // i end

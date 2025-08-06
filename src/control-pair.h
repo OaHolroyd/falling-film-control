@@ -25,7 +25,11 @@ int pair_step(double dt, double *h, double *q, int control_on) {
   }
 
   for (int i = 0; i < M; i++) {
-    Amag[i] = ALPHA * (interp(Aloc[i] - DEL, h) - 1.0);
+    double o_noise = 0.0;
+    if (SIG_OBSERVER > 0.0) {
+      o_noise = rand_normal(0.0, SIG_OBSERVER);
+    }
+    Amag[i] = ALPHA * (interp(Aloc[i] - DEL, h) - 1.0 + o_noise);
   } // i end
 
   return 0;
