@@ -5,6 +5,7 @@
 *.gif
 *.pdf
 *.mov
+multirun
 dump*/**
 src/_*.c
 remote.sh
@@ -13,6 +14,7 @@ film-ns
 film-benney
 film-wr
 .idea
+_params.json
 
 __pycache__
 

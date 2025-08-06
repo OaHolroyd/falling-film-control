@@ -2,31 +2,31 @@
    "DOMAIN":{
       "Lx":30.0,
       "Ly":8.0,
-      "tmax":300.0,
+      "tmax":150.0,
       "t0":0.0
    },
    "PHYSICAL":{
-      "Re":50.0,
+      "Re":11.288379,
       "Ca":0.05,
       "theta":1.047197551,
       "rho_ratio":1000.0,
       "mu_ratio":100.0
    },
    "SOLVER":{
-      "level":9,
+      "level":8,
       "dtout":0.05,
       "output":0
    },
    "CONTROL":{
-      "M":6,
-      "P":6,
-      "start":200.0,
+      "M":5,
+      "P":5,
+      "start":50.0,
       "width":0.1,
       "alpha":1.0,
       "del":0.0,
-      "mu":1.0,
+      "mu":0.1,
       "rom":"wr",
-      "strategy":"estimator",
+      "strategy":"lqr",
       "exact_flux": 0
    }
 }
